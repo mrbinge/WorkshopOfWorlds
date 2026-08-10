@@ -52,6 +52,15 @@
     -webkit-font-smoothing:antialiased;
   }
   ::selection{background:var(--thread); color:#fff;}
+
+  /* Custom scrollbars — dark track, gold thumb, no native gray arrow buttons */
+  *{ scrollbar-width:thin; scrollbar-color:var(--border) var(--bg-alt); }
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-track{ background:var(--bg-alt); }
+  ::-webkit-scrollbar-thumb{ background:var(--border); border-radius:6px; border:2px solid var(--bg-alt); background-clip:padding-box; }
+  ::-webkit-scrollbar-thumb:hover{ background:var(--gold); }
+  ::-webkit-scrollbar-corner{ background:var(--bg-alt); }
+  ::-webkit-scrollbar-button{ display:none; width:0; height:0; }
   a{color:inherit;}
   button{font-family:inherit; cursor:pointer;}
   input,textarea,select{font-family:inherit; color:var(--text); background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius); padding:9px 11px; font-size:14px; outline:none; transition:border-color .15s;}
@@ -214,17 +223,28 @@
   .tl-card .d-desc{max-height:none;}
   .tl-card .d-tags{margin-top:8px;}
 
-  /* Relationship graph */
-  #graphWrap{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
-  #graphSvgHolder{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:10px; flex:1; min-width:340px;}
-  #legend{display:flex; flex-direction:column; gap:8px; min-width:180px; padding-top:6px;}
+  /* Relationship network canvas */
+  #legend{display:flex; flex-wrap:wrap; gap:14px;}
   .legend-item{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);}
-  .legend-swatch{width:18px; height:2px; border-radius:1px;}
-  .graph-node{cursor:pointer;}
-  .graph-node circle{transition:opacity .2s;}
-  .graph-node text{fill:var(--text); font-family:'Inter',sans-serif; font-size:11px; pointer-events:none;}
-  .graph-edge{transition:opacity .2s;}
+  .legend-swatch{width:18px; height:3px; border-radius:1px;}
   .dim{opacity:.12;}
+  #relCanvasViewport{
+    position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
+    background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
+    height:560px; cursor:grab; touch-action:none;
+  }
+  #relCanvasViewport.panning{cursor:grabbing;}
+  #relCanvasInner{position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0;}
+  #relEdgesSvg{position:absolute; top:0; left:0; pointer-events:none; overflow:visible;}
+  .rel-edge{stroke-width:2.4; fill:none; cursor:pointer; pointer-events:stroke; transition:opacity .2s;}
+  .rel-edge:hover{stroke-width:3.6;}
+  .rel-node{position:absolute; width:84px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; transition:opacity .2s;}
+  .rel-node.dragging{cursor:grabbing; z-index:20;}
+  .rel-avatar{width:52px; height:52px; border-radius:50%; overflow:hidden; border:2px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
+  .rel-avatar img{width:100%; height:100%; object-fit:cover;}
+  .rel-name{font-size:11px; color:var(--text-dim); text-align:center; max-width:84px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .rel-port{position:absolute; bottom:2px; right:10px; width:14px; height:14px; border-radius:50%; background:var(--gold); border:2px solid var(--bg-alt); cursor:crosshair;}
+  .rel-port:hover{background:var(--thread);}
 
   /* World (locations/factions) */
   .world-section{margin-bottom:34px;}
@@ -240,7 +260,7 @@
   }
   #storyCanvasViewport.panning{cursor:grabbing;}
   #storyCanvasInner{position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0;}
-  #edgesSvg{position:absolute; top:0; left:0; pointer-events:none;}
+  #edgesSvg{position:absolute; top:0; left:0; pointer-events:none; overflow:visible;}
   .scene-edge{stroke:var(--gold); stroke-width:2; fill:none; cursor:pointer; pointer-events:stroke;}
   .scene-edge:hover{stroke:var(--thread);}
   .temp-edge{stroke:var(--text-faint); stroke-width:1.6; stroke-dasharray:4 3; fill:none;}
@@ -258,13 +278,14 @@
   .scene-node .sn-body{padding:9px 12px; font-size:11.5px; color:var(--text-dim); line-height:1.5; max-height:56px; overflow:hidden;}
   .scene-node .sn-remove{background:none; border:none; color:var(--text-faint); font-size:15px; line-height:1; padding:0 2px; flex-shrink:0;}
   .scene-node .sn-remove:hover{color:var(--thread);}
-  .port{position:absolute; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--bg-alt); border:2px solid var(--gold); cursor:crosshair;}
+  .port{position:absolute; top:50%; width:14px; height:14px; margin-top:-7px; border-radius:50%; background:var(--bg-alt); border:2px solid var(--gold); cursor:crosshair; z-index:5;}
   .port-out{right:-7px;}
   .port-in{left:-7px;}
   .port:hover{background:var(--gold);}
 
   /* Modal */
-  #modalOverlay{position:fixed; inset:0; background:rgba(10,10,14,0.7); backdrop-filter:blur(2px); display:none; align-items:flex-start; justify-content:center; z-index:100; padding:5vh 20px; overflow-y:auto;}
+  #modalOverlay{position:fixed; inset:0; background:rgba(10,10,14,0.7); backdrop-filter:blur(2px); display:none; align-items:flex-start; justify-content:center; z-index:100; padding:5vh 20px; overflow-y:auto; scrollbar-width:none; -ms-overflow-style:none;}
+  #modalOverlay::-webkit-scrollbar{ display:none; width:0; height:0; }
   #modalOverlay.show{display:flex;}
   #modalBox{background:var(--bg-alt); border:1px solid var(--border); border-radius:6px; width:100%; max-width:560px; padding:26px; box-shadow:var(--shadow);}
   #modalBox h2{font-size:20px; margin-bottom:18px;}
@@ -386,6 +407,8 @@ const REL_TYPES = {
   family:{label:'Семья', color:'#c9a24c'},
   romance:{label:'Романтика', color:'#b5698f'},
   mentor:{label:'Наставник', color:'#8c7ec9'},
+  friend:{label:'Друзья', color:'#7fb069'},
+  acquaintance:{label:'Знакомые', color:'#6a8caf'},
   other:{label:'Другое', color:'#7a7f92'},
 };
 
@@ -663,7 +686,29 @@ function characterFields(){
   ];
 }
 
-/* ---------------- RELATIONSHIPS ---------------- */
+/* ---------------- RELATIONSHIPS (network canvas) ---------------- */
+let relCanvasView = { pan:{x:220,y:90}, scale:1 };
+let relSelected = null;
+
+function relTypes(r){ return (r.types && r.types.length) ? r.types : (r.type ? [r.type] : ['other']); }
+function relEvolves(r){ return (r.evolvesTo && r.evolvesTo.length) ? r.evolvesTo : []; }
+function relTypeLabel(k){ return (REL_TYPES[k]||REL_TYPES.other).label; }
+function relTypeColor(k){ return (REL_TYPES[k]||REL_TYPES.other).color; }
+
+function ensureNetPositions(chars){
+  let changed = false;
+  const cx=280, cy=230, R=170;
+  chars.forEach((c,i)=>{
+    if(c.netX===undefined || c.netY===undefined){
+      const angle = (i/chars.length)*Math.PI*2 - Math.PI/2;
+      c.netX = Math.round(cx + R*Math.cos(angle) - 42);
+      c.netY = Math.round(cy + R*Math.sin(angle) - 26);
+      changed = true;
+    }
+  });
+  if(changed) queueSave();
+}
+
 function renderRelationships(el, pid){
   const chars = itemsOf('characters', pid);
   const rels = itemsOf('relationships', pid);
@@ -671,26 +716,198 @@ function renderRelationships(el, pid){
     el.innerHTML = `<div class="empty-tab">Нужно хотя бы два персонажа, чтобы строить связи. Добавьте их во вкладке «Персонажи».</div>`;
     return;
   }
+  ensureNetPositions(chars);
   el.innerHTML = `
-    <div class="toolbar">
-      <div class="eyebrow">Карта связей — нажмите на персонажа, чтобы выделить его нити</div>
-      <button class="btn btn-primary" onclick="openNewRelationshipModal()">+ Новая связь</button>
-    </div>
-    <div id="graphWrap">
-      <div id="graphSvgHolder">${buildGraphSvg(chars, rels)}</div>
-      <div id="legend">
-        ${Object.entries(REL_TYPES).map(([k,v])=>`<div class="legend-item"><span class="legend-swatch" style="background:${v.color}"></span>${v.label}</div>`).join('')}
+    <div class="canvas-toolbar">
+      <div class="eyebrow">Тащите персонажей, чтобы расставить как хотите. Тяните от золотой точки к другому персонажу — так рождается связь. Клик по персонажу — подсветить его нити. Клик по линии — открыть связь.</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="canvas-zoom-controls">
+          <button class="btn btn-sm" onclick="zoomRelCanvas(-0.15)">−</button>
+          <span class="mono" id="relZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
+          <button class="btn btn-sm" onclick="zoomRelCanvas(0.15)">+</button>
+        </div>
+        <button class="btn btn-sm" onclick="resetRelCanvasView()">Сброс вида</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewRelationshipModal()">+ Связь</button>
       </div>
+    </div>
+    <div id="relCanvasViewport">
+      <div id="relCanvasInner">
+        <svg id="relEdgesSvg" width="4000" height="3000"></svg>
+        ${chars.map(relNodeHtml).join('')}
+      </div>
+    </div>
+    <div id="legend" style="margin-top:14px;">
+      ${Object.entries(REL_TYPES).map(([k,v])=>`<div class="legend-item"><span class="legend-swatch" style="background:${v.color}"></span>${v.label}</div>`).join('')}
     </div>
     <div class="side-section-label" style="margin:26px 0 10px;">Список связей</div>
     <div class="grid">${rels.length ? rels.map(relCard).join('') : '<div class="empty-tab">Связей пока нет.</div>'}</div>
   `;
+  applyRelCanvasTransform();
+  drawRelEdges();
+  attachRelCanvasEvents();
 }
+
+function relNodeHtml(c){
+  const avatarInner = c.photo ? `<img src="${c.photo}" alt="">` : `<span>${esc(initials(c.name))}</span>`;
+  return `<div class="rel-node" data-id="${c.id}" style="left:${c.netX}px; top:${c.netY}px;">
+    <div class="rel-avatar">${avatarInner}</div>
+    <div class="rel-name">${esc(c.name)}</div>
+    <div class="rel-port" data-id="${c.id}" title="Тяните, чтобы создать связь"></div>
+  </div>`;
+}
+
+function applyRelCanvasTransform(){
+  const inner = document.getElementById('relCanvasInner');
+  if(!inner) return;
+  inner.style.transform = `translate(${relCanvasView.pan.x}px, ${relCanvasView.pan.y}px) scale(${relCanvasView.scale})`;
+  const lbl = document.getElementById('relZoomLabel');
+  if(lbl) lbl.textContent = Math.round(relCanvasView.scale*100)+'%';
+}
+function zoomRelCanvas(delta){ relCanvasView.scale = Math.min(2, Math.max(0.35, relCanvasView.scale+delta)); applyRelCanvasTransform(); drawRelEdges(); }
+function resetRelCanvasView(){ relCanvasView.pan = {x:220,y:90}; relCanvasView.scale = 1; applyRelCanvasTransform(); drawRelEdges(); }
+
+function drawRelEdges(){
+  const svg = document.getElementById('relEdgesSvg');
+  if(!svg) return;
+  const chars = itemsOf('characters', state.activeProjectId);
+  const rels = itemsOf('relationships', state.activeProjectId);
+  const byId = {}; chars.forEach(c=>byId[c.id]=c);
+  const NCX=42, NCY=26;
+  let defs = '<defs>';
+  let paths = '';
+  rels.forEach(r=>{
+    const a = byId[r.charA], b = byId[r.charB];
+    if(!a||!b) return;
+    const types = relTypes(r), evolves = relEvolves(r);
+    const startColor = relTypeColor(types[0]);
+    const endColor = evolves.length ? relTypeColor(evolves[0]) : relTypeColor(types[types.length-1]);
+    const x1=a.netX+NCX, y1=a.netY+NCY, x2=b.netX+NCX, y2=b.netY+NCY;
+    const gradId = 'grad-'+r.id, arrowId = 'arrow-'+r.id;
+    defs += `<linearGradient id="${gradId}" gradientUnits="userSpaceOnUse" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}">
+      <stop offset="0" stop-color="${startColor}"/><stop offset="1" stop-color="${endColor}"/>
+    </linearGradient>
+    <marker id="${arrowId}" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="${endColor}"/></marker>`;
+    const mx=(x1+x2)/2, my=(y1+y2)/2 - 26;
+    paths += `<path class="rel-edge" data-id="${r.id}" data-a="${r.charA}" data-b="${r.charB}" onclick="event.stopPropagation(); openEditRelationshipModal('${r.id}')" d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" stroke="url(#${gradId})" marker-end="url(#${arrowId})" fill="none"/>`;
+  });
+  defs += '</defs>';
+  svg.innerHTML = defs + paths;
+}
+
+function attachRelCanvasEvents(){
+  const viewport = document.getElementById('relCanvasViewport');
+  if(!viewport) return;
+  viewport.addEventListener('mousedown', onRelCanvasMouseDown);
+  viewport.addEventListener('wheel', onRelCanvasWheel, {passive:false});
+}
+
+function onRelCanvasWheel(e){
+  e.preventDefault();
+  const viewport = document.getElementById('relCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const cursorX = e.clientX-rect.left, cursorY = e.clientY-rect.top;
+  const oldScale = relCanvasView.scale;
+  const newScale = Math.min(2, Math.max(0.35, oldScale + (e.deltaY<0?0.1:-0.1)));
+  const localX=(cursorX-relCanvasView.pan.x)/oldScale, localY=(cursorY-relCanvasView.pan.y)/oldScale;
+  relCanvasView.pan.x = cursorX-localX*newScale;
+  relCanvasView.pan.y = cursorY-localY*newScale;
+  relCanvasView.scale = newScale;
+  applyRelCanvasTransform(); drawRelEdges();
+}
+
+function onRelCanvasMouseDown(e){
+  const viewport = document.getElementById('relCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const portEl = e.target.closest('.rel-port');
+  const nodeEl = e.target.closest('.rel-node');
+
+  if(portEl){
+    const sourceId = portEl.dataset.id;
+    const svg = document.getElementById('relEdgesSvg');
+    const tempPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+    tempPath.setAttribute('class','temp-edge');
+    svg.appendChild(tempPath);
+    const move=(ev)=>{
+      const s = itemsOf('characters', state.activeProjectId).find(x=>x.id===sourceId);
+      if(!s) return;
+      const x1=s.netX+42, y1=s.netY+26;
+      const lx=(ev.clientX-rect.left-relCanvasView.pan.x)/relCanvasView.scale, ly=(ev.clientY-rect.top-relCanvasView.pan.y)/relCanvasView.scale;
+      tempPath.setAttribute('d', `M${x1},${y1} L${lx},${ly}`);
+    };
+    const up=(ev)=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      tempPath.remove();
+      const targetNode = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.rel-node');
+      if(targetNode && targetNode.dataset.id !== sourceId) openNewRelationshipModal(sourceId, targetNode.dataset.id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.stopPropagation(); e.preventDefault();
+    return;
+  }
+
+  if(nodeEl){
+    const id = nodeEl.dataset.id;
+    const c = itemsOf('characters', state.activeProjectId).find(x=>x.id===id);
+    if(!c) return;
+    const startX=e.clientX, startY=e.clientY, ox=c.netX, oy=c.netY;
+    let moved = false;
+    nodeEl.classList.add('dragging');
+    const move=(ev)=>{
+      if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
+      c.netX = ox + (ev.clientX-startX)/relCanvasView.scale;
+      c.netY = oy + (ev.clientY-startY)/relCanvasView.scale;
+      nodeEl.style.left = c.netX+'px'; nodeEl.style.top = c.netY+'px';
+      drawRelEdges();
+    };
+    const up=()=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      nodeEl.classList.remove('dragging');
+      if(moved) queueSave(); else relToggleSelect(id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
+    return;
+  }
+
+  const startX=e.clientX, startY=e.clientY, ox=relCanvasView.pan.x, oy=relCanvasView.pan.y;
+  viewport.classList.add('panning');
+  const move=(ev)=>{
+    relCanvasView.pan.x = ox+(ev.clientX-startX);
+    relCanvasView.pan.y = oy+(ev.clientY-startY);
+    applyRelCanvasTransform();
+  };
+  const up=()=>{
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    viewport.classList.remove('panning');
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+function relToggleSelect(id){
+  relSelected = relSelected===id ? null : id;
+  document.querySelectorAll('.rel-node').forEach(n=>{ n.classList.toggle('dim', relSelected && n.dataset.id !== relSelected); });
+  document.querySelectorAll('.rel-edge').forEach(ed=>{
+    const connected = !relSelected || ed.dataset.a===relSelected || ed.dataset.b===relSelected;
+    ed.classList.toggle('dim', !connected);
+  });
+}
+
+function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+
 function relCard(r){
-  const t = REL_TYPES[r.type]||REL_TYPES.other;
+  const types = relTypes(r), evolves = relEvolves(r);
+  const typesHtml = types.map(t=>`<span class="d-tag" style="border-color:${relTypeColor(t)}; color:${relTypeColor(t)};">${esc(relTypeLabel(t))}</span>`).join('');
+  const evolvesHtml = evolves.length ? `<span style="margin:0 4px; color:var(--text-faint);">→</span>` + evolves.map(t=>`<span class="d-tag" style="border-color:${relTypeColor(t)}; color:${relTypeColor(t)};">${esc(relTypeLabel(t))}</span>`).join('') : '';
   return `<div class="dossier">
     <div class="d-top"><h3 style="font-size:14.5px;">${esc(charName(r.charA))} ↔ ${esc(charName(r.charB))}</h3></div>
-    <div class="d-role" style="color:${t.color};">${t.label}</div>
+    <div class="d-tags" style="margin-top:8px; align-items:center;">${typesHtml}${evolvesHtml}</div>
+    ${r.evolveNote ? `<div class="d-alias" style="margin-top:6px;">${esc(r.evolveNote)}</div>` : ''}
     ${r.desc ? `<div class="d-desc">${esc(r.desc)}</div>` : ''}
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditRelationshipModal('${r.id}')">Изменить</button>
@@ -698,45 +915,8 @@ function relCard(r){
     </div>
   </div>`;
 }
-function buildGraphSvg(chars, rels){
-  const W=560,H=420,cx=W/2,cy=H/2,R=Math.min(W,H)/2-60;
-  const pos = {};
-  chars.forEach((c,i)=>{
-    const angle = (i/chars.length) * Math.PI*2 - Math.PI/2;
-    pos[c.id] = { x: cx + R*Math.cos(angle), y: cy + R*Math.sin(angle) };
-  });
-  const edges = rels.map(r=>{
-    const a = pos[r.charA], b = pos[r.charB];
-    if(!a||!b) return '';
-    const t = REL_TYPES[r.type]||REL_TYPES.other;
-    const mx = (a.x+b.x)/2 + (cy-(a.y+b.y)/2)*0.12;
-    const my = (a.y+b.y)/2 + (cx-(a.x+b.x)/2)*0.12*-1;
-    return `<path class="graph-edge" data-a="${r.charA}" data-b="${r.charB}" d="M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}" stroke="${t.color}" stroke-width="1.6" stroke-dasharray="4 3" fill="none" opacity="0.75"/>`;
-  }).join('');
-  const nodes = chars.map(c=>{
-    const p = pos[c.id];
-    return `<g class="graph-node" data-id="${c.id}" onclick="graphSelect('${c.id}')" transform="translate(${p.x},${p.y})">
-      <circle r="16" fill="#1f222c" stroke="var(--gold)" stroke-width="1.4"/>
-      <text text-anchor="middle" dy="4" font-size="10">${esc(initials(c.name))}</text>
-      <text text-anchor="middle" dy="${p.y > cy ? 30 : -22}" font-size="10.5" fill="var(--text-dim)">${esc(truncate(c.name,14))}</text>
-    </g>`;
-  }).join('');
-  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:440px;">${edges}${nodes}</svg>`;
-}
-function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
-function truncate(s,n){ return s && s.length>n ? s.slice(0,n-1)+'…' : s; }
-function graphSelect(id){
-  state.graphSelected = state.graphSelected === id ? null : id;
-  document.querySelectorAll('.graph-node').forEach(n=>{
-    n.classList.toggle('dim', state.graphSelected && n.dataset.id !== state.graphSelected);
-  });
-  document.querySelectorAll('.graph-edge').forEach(ed=>{
-    const connected = !state.graphSelected || ed.dataset.a===state.graphSelected || ed.dataset.b===state.graphSelected;
-    ed.classList.toggle('dim', !connected);
-  });
-}
-function openNewRelationshipModal(){
-  openFormModal('Новая связь', relationshipFields(), {}, (vals)=>{
+function openNewRelationshipModal(presetA, presetB){
+  openFormModal('Новая связь', relationshipFields(), {charA: presetA||'', charB: presetB||''}, (vals)=>{
     if(vals.charA===vals.charB){ showToast('Выберите двух разных персонажей'); return; }
     data.relationships.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals));
     queueSave(); closeModal(); renderMain();
@@ -744,15 +924,20 @@ function openNewRelationshipModal(){
 }
 function openEditRelationshipModal(id){
   const r = data.relationships.find(x=>x.id===id);
-  openFormModal('Изменить связь', relationshipFields(), r, (vals)=>{ Object.assign(r, vals); queueSave(); closeModal(); renderMain(); });
+  const initial = Object.assign({}, r, { types: relTypes(r), evolvesTo: relEvolves(r) });
+  openFormModal('Изменить связь', relationshipFields(), initial, (vals)=>{ Object.assign(r, vals); delete r.type; queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить связь', onClick: ()=>{ closeModal(); deleteRelationship(id); } });
 }
 function deleteRelationship(id){ data.relationships = data.relationships.filter(r=>r.id!==id); queueSave(); renderMain(); }
 function relationshipFields(){
   const chars = itemsOf('characters', state.activeProjectId).map(c=>[c.id,c.name]);
+  const typeOptions = Object.entries(REL_TYPES).map(([k,v])=>[k,v.label]);
   return [
     {key:'charA', label:'Персонаж А', type:'select', options: chars, required:true},
     {key:'charB', label:'Персонаж Б', type:'select', options: chars, required:true},
-    {key:'type', label:'Тип связи', type:'select', options: Object.entries(REL_TYPES).map(([k,v])=>[k,v.label])},
+    {key:'types', label:'Тип связи — можно выбрать сразу несколько', type:'multiselect', options: typeOptions, required:true},
+    {key:'evolvesTo', label:'Во что переросла со временем (необязательно)', type:'multiselect', options: typeOptions},
+    {key:'evolveNote', label:'Когда и почему изменилась', type:'text', placeholder:'например: после предательства в 3 акте'},
     {key:'desc', label:'Описание связи', type:'textarea'},
   ];
 }
@@ -843,8 +1028,8 @@ function sceneNodeHtml(s){
       <button class="sn-remove" title="Удалить сцену" onclick="event.stopPropagation(); deleteScene('${s.id}')">×</button>
     </div>
     <div class="sn-body">${esc(s.summary||'')}</div>
-    <div class="port port-in" data-port="in" data-id="${s.id}"></div>
-    <div class="port port-out" data-port="out" data-id="${s.id}"></div>
+    <div class="port port-in" data-port="in" data-id="${s.id}" title="Сюда приходят связи"></div>
+    <div class="port port-out" data-port="out" data-id="${s.id}" title="Отсюда тяните новую связь"></div>
   </div>`;
 }
 
@@ -864,20 +1049,31 @@ function resetCanvasView(){
   applyCanvasTransform(); drawEdges();
 }
 
+function getScenePortCenter(nodeId, portClass){
+  const el = document.querySelector(`.scene-node[data-id="${nodeId}"] .${portClass}`);
+  const viewport = document.getElementById('storyCanvasViewport');
+  if(!el || !viewport) return null;
+  const portRect = el.getBoundingClientRect();
+  const vpRect = viewport.getBoundingClientRect();
+  const screenX = portRect.left + portRect.width/2 - vpRect.left;
+  const screenY = portRect.top + portRect.height/2 - vpRect.top;
+  return {
+    x: (screenX - canvasView.pan.x) / canvasView.scale,
+    y: (screenY - canvasView.pan.y) / canvasView.scale,
+  };
+}
+
 function drawEdges(){
   const svg = document.getElementById('edgesSvg');
   if(!svg) return;
-  const scenes = itemsOf('scenes', state.activeProjectId);
   const links = itemsOf('sceneLinks', state.activeProjectId);
-  const byId = {}; scenes.forEach(s=>byId[s.id]=s);
-  const CARD_W = 200, CARD_MID = 45;
   let out = `<defs><marker id="arrowHead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--gold)"/></marker></defs>`;
   out += links.map(l=>{
-    const a = byId[l.from], b = byId[l.to];
-    if(!a||!b) return '';
-    const x1=a.x+CARD_W, y1=a.y+CARD_MID, x2=b.x, y2=b.y+CARD_MID;
-    const mx = (x1+x2)/2;
-    return `<path class="scene-edge" onclick="deleteSceneLink('${l.id}')" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" marker-end="url(#arrowHead)"/>`;
+    const p1 = getScenePortCenter(l.from, 'port-out');
+    const p2 = getScenePortCenter(l.to, 'port-in');
+    if(!p1||!p2) return '';
+    const mx = (p1.x+p2.x)/2;
+    return `<path class="scene-edge" onclick="deleteSceneLink('${l.id}')" d="M${p1.x},${p1.y} C${mx},${p1.y} ${mx},${p2.y} ${p2.x},${p2.y}" marker-end="url(#arrowHead)"/>`;
   }).join('');
   svg.innerHTML = out;
 }
@@ -916,12 +1112,11 @@ function onCanvasMouseDown(e){
     const tempPath = document.createElementNS('http://www.w3.org/2000/svg','path');
     tempPath.setAttribute('class','temp-edge');
     svg.appendChild(tempPath);
+    const startPort = getScenePortCenter(sourceId, 'port-out');
     const move = (ev)=>{
-      const s = itemsOf('scenes', state.activeProjectId).find(x=>x.id===sourceId);
-      if(!s) return;
-      const x1=s.x+200, y1=s.y+45;
+      if(!startPort) return;
       const lx=(ev.clientX-rect.left-canvasView.pan.x)/canvasView.scale, ly=(ev.clientY-rect.top-canvasView.pan.y)/canvasView.scale;
-      tempPath.setAttribute('d', `M${x1},${y1} L${lx},${ly}`);
+      tempPath.setAttribute('d', `M${startPort.x},${startPort.y} L${lx},${ly}`);
     };
     const up = (ev)=>{
       document.removeEventListener('mousemove', move);
@@ -1173,7 +1368,7 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
       else if(inp.dataset.type==='tags'){ vals[inp.dataset.key] = inp.value.split(',').map(s=>s.trim()).filter(Boolean); }
       else { vals[inp.dataset.key] = inp.value; }
     });
-    const req = fields.find(f=>f.required && !vals[f.key]);
+    const req = fields.find(f=> f.required && (f.type==='multiselect' ? (!vals[f.key] || vals[f.key].length===0) : !vals[f.key]));
     if(req){ showToast(`Заполните поле «${req.label}»`); return; }
     onSave(vals);
   };
