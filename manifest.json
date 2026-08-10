@@ -1,0 +1,17 @@
+{
+  "name": "Мастерская миров",
+  "short_name": "Мастерская",
+  "description": "Инструмент для управления большими историями: персонажи, связи, структура сюжета, таймлайн и лор.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#14151b",
+  "theme_color": "#14151b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
