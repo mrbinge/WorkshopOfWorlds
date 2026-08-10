@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Мастерская миров</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14151b;
+    --bg-alt:#1a1c24;
+    --card:#1f222c;
+    --card-hover:#262a36;
+    --border:#33384a;
+    --border-soft:#2a2e3a;
+    --text:#e9e4d8;
+    --text-dim:#9a9fb0;
+    --text-faint:#5f6478;
+    --thread:#c1443b;
+    --gold:#c9a24c;
+    --teal:#5fa8a0;
+    --rose:#b5698f;
+    --violet:#8c7ec9;
+    --gray:#7a7f92;
+    --manga-color:#5fa8a0;
+    --roman-color:#c9a24c;
+    --other-color:#8c7ec9;
+    --shadow: 0 8px 24px rgba(0,0,0,0.35);
+    --radius: 3px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(ellipse at top left, rgba(193,68,59,0.05), transparent 50%),
+      radial-gradient(ellipse at bottom right, rgba(95,168,160,0.04), transparent 50%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--thread); color:#fff;}
+  a{color:inherit;}
+  button{font-family:inherit; cursor:pointer;}
+  input,textarea,select{font-family:inherit; color:var(--text); background:var(--bg-alt); border:1px solid var(--border); border-radius:var(--radius); padding:9px 11px; font-size:14px; outline:none; transition:border-color .15s;}
+  input:focus,textarea:focus,select:focus{border-color:var(--thread);}
+  textarea{resize:vertical; min-height:70px; line-height:1.5;}
+  h1,h2,h3,h4{font-family:'Spectral', serif; font-weight:600; margin:0;}
+  .mono{font-family:'IBM Plex Mono', monospace;}
+  .eyebrow{font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint);}
+
+  /* Layout */
+  #app{display:flex; min-height:100vh;}
+  #sidebar{
+    width:280px; flex-shrink:0; background:var(--bg-alt); border-right:1px solid var(--border-soft);
+    display:flex; flex-direction:column; padding:22px 18px; gap:18px; position:sticky; top:0; height:100vh; overflow-y:auto;
+  }
+  #sidebar > div:nth-child(3){ flex:1; }
+  #main{flex:1; min-width:0; padding:34px 42px 80px;}
+  @media (max-width:900px){
+    #app{flex-direction:column;}
+    #sidebar{width:100%; height:auto; position:relative; border-right:none; border-bottom:1px solid var(--border-soft);}
+    #main{padding:22px 18px 60px;}
+  }
+
+  /* Sidebar */
+  .brand{display:flex; align-items:center; gap:9px; padding-bottom:4px; border-bottom:1px solid var(--border-soft);}
+  .brand h1{font-size:20px; letter-spacing:.01em;}
+  .brand .mark{color:var(--gold); display:flex; align-items:center;}
+  #globalSearchWrap{position:relative;}
+  #globalSearch{width:100%;}
+  #searchResults{position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); max-height:360px; overflow-y:auto; z-index:50; display:none;}
+  #searchResults.show{display:block;}
+  .search-hit{padding:9px 12px; border-bottom:1px solid var(--border-soft); font-size:13px; display:flex; flex-direction:column; gap:2px;}
+  .search-hit:last-child{border-bottom:none;}
+  .search-hit:hover{background:var(--card-hover); cursor:pointer;}
+  .search-hit .hit-name{color:var(--text); font-weight:600;}
+  .search-hit .hit-meta{color:var(--text-faint); font-size:11px;}
+  .search-empty{padding:12px; font-size:12.5px; color:var(--text-faint);}
+
+  .side-section-label{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:2px;}
+  #projectList{display:flex; flex-direction:column; gap:6px;}
+  .project-item{
+    display:flex; align-items:center; gap:10px; padding:10px 11px; border-radius:var(--radius); cursor:pointer;
+    border:1px solid transparent; border-left:3px solid var(--pcolor, var(--gray)); background:var(--bg);
+    transition:background .15s;
+  }
+  .project-item:hover{background:var(--card-hover);}
+  .project-item.active{background:var(--card); border-color:var(--border);}
+  .project-item .p-name{font-size:13.5px; font-weight:600; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .project-item .p-type{font-size:9.5px; font-family:'IBM Plex Mono',monospace; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em;}
+  #newProjectBtn{width:100%; padding:10px; background:none; border:1px dashed var(--border); color:var(--text-dim); border-radius:var(--radius); font-size:13px;}
+  #newProjectBtn:hover{border-color:var(--thread); color:var(--text);}
+
+  .btn{border:1px solid var(--border); background:var(--card); color:var(--text); padding:9px 15px; border-radius:var(--radius); font-size:13px; font-weight:500; transition:all .15s;}
+  .btn:hover{background:var(--card-hover); border-color:var(--text-faint);}
+  .btn-primary{background:var(--thread); border-color:var(--thread); color:#fff;}
+  .btn-primary:hover{background:#a83a32; border-color:#a83a32;}
+  .btn-ghost{background:none; border:1px solid transparent; color:var(--text-dim); padding:6px 10px;}
+  .btn-ghost:hover{color:var(--text); background:var(--card-hover);}
+  .btn-danger{color:var(--thread); border-color:transparent; background:none;}
+  .btn-danger:hover{background:rgba(193,68,59,0.12);}
+  .btn-sm{padding:6px 10px; font-size:12px;}
+
+  /* Empty state */
+  .empty-state{display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:100px 20px; color:var(--text-dim); gap:14px;}
+  .empty-state .mark{color:var(--gold); display:flex; align-items:center; justify-content:center;}
+  .empty-state h2{color:var(--text); font-size:22px;}
+  .empty-state p{max-width:420px; font-size:14px; line-height:1.6; color:var(--text-dim);}
+
+  /* Project header */
+  #projectHeader{margin-bottom:26px;}
+  #projectHeader .ph-top{display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px;}
+  #projectHeader h2{font-size:30px; color:var(--text);}
+  #projectHeader .ph-type{display:inline-block; margin-top:6px; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.12em; text-transform:uppercase; color:var(--pcolor); border:1px solid var(--pcolor); padding:3px 8px; border-radius:2px;}
+  #projectHeader .ph-desc{color:var(--text-dim); font-size:13.5px; margin-top:10px; max-width:640px; line-height:1.6;}
+
+  #tabs{display:flex; gap:2px; border-bottom:1px solid var(--border-soft); margin-bottom:26px; flex-wrap:wrap;}
+  .tab-btn{background:none; border:none; color:var(--text-faint); padding:11px 16px; font-size:13.5px; font-weight:500; border-bottom:2px solid transparent; margin-bottom:-1px;}
+  .tab-btn:hover{color:var(--text-dim);}
+  .tab-btn.active{color:var(--text); border-bottom-color:var(--thread);}
+
+  /* Stat cards */
+  .stat-row{display:flex; gap:14px; flex-wrap:wrap; margin-bottom:30px;}
+  .stat-card{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:16px 20px; min-width:120px;}
+  .stat-card .num{font-family:'Spectral',serif; font-size:28px; font-weight:600;}
+  .stat-card .label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; margin-top:2px;}
+
+  /* Grid + cards (dossier style) */
+  .toolbar{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; flex-wrap:wrap;}
+  .toolbar input[type=text]{width:260px;}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill, minmax(250px,1fr)); gap:14px;}
+  .dossier{
+    background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:16px;
+    position:relative; transition:border-color .15s, transform .15s;
+  }
+  .dossier:hover{border-color:var(--border); }
+  .dossier::before{
+    content:''; position:absolute; top:-1px; left:16px; width:26px; height:6px; background:var(--gold);
+    clip-path: polygon(0 0,100% 0,85% 100%,15% 100%); opacity:.85;
+  }
+  .dossier .d-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:6px;}
+  .dossier h3{font-size:16.5px; margin-bottom:2px;}
+  .dossier .d-alias{font-size:11.5px; color:var(--text-faint); font-style:italic;}
+  .dossier .d-role{font-size:11px; color:var(--gold); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.05em; margin-top:6px;}
+  .dossier .d-status{font-size:10px; padding:2px 7px; border-radius:10px; border:1px solid var(--border); color:var(--text-faint); white-space:nowrap; font-family:'IBM Plex Mono',monospace;}
+  .status-alive{color:var(--teal); border-color:var(--teal);}
+  .status-dead{color:var(--thread); border-color:var(--thread);}
+  .dossier .d-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin-top:10px; max-height:80px; overflow:hidden;}
+  .d-tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;}
+  .d-tag{font-size:10px; background:var(--bg-alt); border:1px solid var(--border-soft); padding:2px 7px; border-radius:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace;}
+  .d-actions{display:flex; gap:4px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-soft);}
+
+  /* Timeline */
+  #timelineList{position:relative; padding-left:26px; margin-top:6px;}
+  #timelineList::before{content:''; position:absolute; left:6px; top:6px; bottom:6px; width:1px; background:linear-gradient(var(--border), var(--border-soft));}
+  .tl-event{position:relative; padding-bottom:22px;}
+  .tl-event::before{content:''; position:absolute; left:-26px; top:5px; width:9px; height:9px; border-radius:50%; background:var(--thread); box-shadow:0 0 0 3px var(--bg);}
+  .tl-card{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:14px 16px;}
+  .tl-card .tl-date{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold); letter-spacing:.05em;}
+  .tl-card h3{font-size:15.5px; margin-top:4px;}
+  .tl-card .tl-arc{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; font-family:'IBM Plex Mono',monospace;}
+  .tl-card .d-desc{max-height:none;}
+  .tl-card .d-tags{margin-top:8px;}
+
+  /* Relationship graph */
+  #graphWrap{display:flex; gap:24px; flex-wrap:wrap; align-items:flex-start;}
+  #graphSvgHolder{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:10px; flex:1; min-width:340px;}
+  #legend{display:flex; flex-direction:column; gap:8px; min-width:180px; padding-top:6px;}
+  .legend-item{display:flex; align-items:center; gap:8px; font-size:12px; color:var(--text-dim);}
+  .legend-swatch{width:18px; height:2px; border-radius:1px;}
+  .graph-node{cursor:pointer;}
+  .graph-node circle{transition:opacity .2s;}
+  .graph-node text{fill:var(--text); font-family:'Inter',sans-serif; font-size:11px; pointer-events:none;}
+  .graph-edge{transition:opacity .2s;}
+  .dim{opacity:.12;}
+
+  /* World (locations/factions) */
+  .world-section{margin-bottom:34px;}
+  .world-section h3{font-size:15px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; margin-bottom:14px; font-weight:500;}
+
+  /* Structure canvas (node editor) */
+  .canvas-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
+  .canvas-zoom-controls{display:flex; gap:4px; align-items:center;}
+  #storyCanvasViewport{
+    position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
+    background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
+    height:620px; cursor:grab; touch-action:none;
+  }
+  #storyCanvasViewport.panning{cursor:grabbing;}
+  #storyCanvasInner{position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0;}
+  #edgesSvg{position:absolute; top:0; left:0; pointer-events:none;}
+  .scene-edge{stroke:var(--gold); stroke-width:2; fill:none; cursor:pointer; pointer-events:stroke;}
+  .scene-edge:hover{stroke:var(--thread);}
+  .temp-edge{stroke:var(--text-faint); stroke-width:1.6; stroke-dasharray:4 3; fill:none;}
+  .scene-node{
+    position:absolute; width:200px; background:var(--card); border:1px solid var(--border); border-radius:5px;
+    box-shadow:var(--shadow); cursor:grab; user-select:none;
+  }
+  .scene-node.dragging{cursor:grabbing; z-index:20; box-shadow:0 12px 30px rgba(0,0,0,.45);}
+  .scene-node .sn-head{padding:9px 10px; border-bottom:1px solid var(--border-soft); display:flex; align-items:center; gap:7px;}
+  .scene-node .sn-title{font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1;}
+  .scene-node .sn-status{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+  .status-idea .sn-status{background:var(--violet);}
+  .status-draft .sn-status{background:var(--gold);}
+  .status-final .sn-status{background:var(--teal);}
+  .scene-node .sn-body{padding:9px 12px; font-size:11.5px; color:var(--text-dim); line-height:1.5; max-height:56px; overflow:hidden;}
+  .scene-node .sn-remove{background:none; border:none; color:var(--text-faint); font-size:15px; line-height:1; padding:0 2px; flex-shrink:0;}
+  .scene-node .sn-remove:hover{color:var(--thread);}
+  .port{position:absolute; top:50%; width:12px; height:12px; margin-top:-6px; border-radius:50%; background:var(--bg-alt); border:2px solid var(--gold); cursor:crosshair;}
+  .port-out{right:-7px;}
+  .port-in{left:-7px;}
+  .port:hover{background:var(--gold);}
+
+  /* Modal */
+  #modalOverlay{position:fixed; inset:0; background:rgba(10,10,14,0.7); backdrop-filter:blur(2px); display:none; align-items:flex-start; justify-content:center; z-index:100; padding:5vh 20px; overflow-y:auto;}
+  #modalOverlay.show{display:flex;}
+  #modalBox{background:var(--bg-alt); border:1px solid var(--border); border-radius:6px; width:100%; max-width:560px; padding:26px; box-shadow:var(--shadow);}
+  #modalBox h2{font-size:20px; margin-bottom:18px;}
+  .field{margin-bottom:14px; display:flex; flex-direction:column; gap:6px;}
+  .field label{font-size:12px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.05em;}
+  .field input, .field textarea, .field select{width:100%;}
+  .field-row{display:flex; gap:10px;}
+  .field-row .field{flex:1;}
+  #modalActions{display:flex; justify-content:flex-end; gap:10px; margin-top:20px;}
+
+  .empty-tab{padding:50px 20px; text-align:center; color:var(--text-faint); font-size:13.5px;}
+  .toast{position:fixed; bottom:22px; right:22px; background:var(--card); border:1px solid var(--border); padding:11px 16px; border-radius:var(--radius); font-size:13px; box-shadow:var(--shadow); z-index:200; opacity:0; transform:translateY(8px); transition:all .25s;}
+  .toast.show{opacity:1; transform:translateY(0);}
+  .highlight-flash{animation:flash 1.4s ease;}
+  @keyframes flash{0%{box-shadow:0 0 0 2px var(--thread);} 100%{box-shadow:0 0 0 0 transparent;}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c0 0 3-1.4 6.3-1.4 2 0 3.2.9 3.2.9v14.6c0 0-1.2-.8-3.2-.8-3.3 0-6.3 1.3-6.3 1.3V5.2Z"/><path d="M21.5 5.2c0 0-3-1.4-6.3-1.4-2 0-3.2.9-3.2.9v14.6c0 0 1.2-.8 3.2-.8 3.3 0 6.3 1.3 6.3 1.3V5.2Z"/><path d="M12 4.7v14.6" stroke-width="1" opacity="0.5"/></svg></span><h1>Мастерская миров</h1></div>
+    <div id="globalSearchWrap">
+      <input type="text" id="globalSearch" placeholder="Искать по всем проектам…">
+      <div id="searchResults"></div>
+    </div>
+    <div>
+      <div class="side-section-label">Проекты</div>
+      <div id="projectList" style="margin-top:8px;"></div>
+      <button id="newProjectBtn" style="margin-top:10px;">+ Новый проект</button>
+    </div>
+    <div style="margin-top:auto; padding-top:16px; border-top:1px solid var(--border-soft);">
+      <button id="dataToggle" style="width:100%; display:flex; align-items:center; justify-content:space-between; background:none; border:none; padding:2px 0; color:var(--text-faint);">
+        <span class="side-section-label" style="margin:0;">Данные</span>
+        <span id="dataToggleIcon" class="mono" style="font-size:12px;">▸</span>
+      </button>
+      <div id="dataPanel" style="display:none; flex-direction:column; gap:8px; margin-top:10px;">
+        <button id="exportBtn" class="btn btn-sm" style="width:100%;">⭳ Скачать бэкап</button>
+        <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+      </div>
+    </div>
+  </div>
+  <div id="main"></div>
+</div>
+
+<div id="modalOverlay"><div id="modalBox"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------------- DATA LAYER ---------------- */
+const STORAGE_KEY = 'story-bible-data';
+let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [] };
+let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null };
+let canvasView = { pan:{x:120,y:80}, scale:1 };
+let saveTimer = null;
+
+function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
+
+async function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[] }, parsed);
+    }
+  }catch(e){ /* no data yet, or storage unavailable */ }
+  if(data.projects.length && !state.activeProjectId){ state.activeProjectId = data.projects[0].id; }
+  render();
+}
+
+function queueSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+    catch(e){ showToast('Не удалось сохранить — возможно, закончилось место в хранилище браузера.'); }
+  }, 350);
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+/* ---------------- HELPERS ---------------- */
+const TYPE_PALETTE = ['var(--roman-color)','var(--manga-color)','var(--other-color)','var(--thread)','var(--rose)'];
+function typeColor(type){
+  const t = (type||'').trim().toLowerCase();
+  if(!t) return 'var(--gray)';
+  let hash = 0; for(let i=0;i<t.length;i++){ hash = (hash*31 + t.charCodeAt(i)) >>> 0; }
+  return TYPE_PALETTE[hash % TYPE_PALETTE.length];
+}
+const REL_TYPES = {
+  ally:{label:'Союзники', color:'#5fa8a0'},
+  enemy:{label:'Враги', color:'#c1443b'},
+  family:{label:'Семья', color:'#c9a24c'},
+  romance:{label:'Романтика', color:'#b5698f'},
+  mentor:{label:'Наставник', color:'#8c7ec9'},
+  other:{label:'Другое', color:'#7a7f92'},
+};
+
+function proj(id){ return data.projects.find(p=>p.id===id); }
+function activeProject(){ return proj(state.activeProjectId); }
+function itemsOf(coll, projectId){ return data[coll].filter(x=>x.projectId===projectId); }
+function charName(id){ const c = data.characters.find(c=>c.id===id); return c ? c.name : '???'; }
+function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ---------------- RENDER ROOT ---------------- */
+function render(){
+  renderSidebarProjects();
+  renderMain();
+}
+
+function renderSidebarProjects(){
+  const list = document.getElementById('projectList');
+  if(!data.projects.length){
+    list.innerHTML = `<div style="font-size:12.5px; color:var(--text-faint); padding:6px 2px;">Пока нет проектов</div>`;
+    return;
+  }
+  list.innerHTML = data.projects.map(p=>{
+    const color = typeColor(p.type);
+    return `<div class="project-item ${p.id===state.activeProjectId?'active':''}" style="--pcolor:${color}" onclick="selectProject('${p.id}')">
+      <div style="flex:1; min-width:0;">
+        <div class="p-name">${esc(p.name)}</div>
+        <div class="p-type">${esc(p.type || '—')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function selectProject(id){ state.activeProjectId = id; state.activeTab='overview'; render(); }
+
+function renderMain(){
+  const main = document.getElementById('main');
+  if(!data.projects.length){
+    main.innerHTML = `<div class="empty-state">
+      <div class="mark"><svg viewBox="0 0 24 24" width="42" height="42" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c0 0 3-1.4 6.3-1.4 2 0 3.2.9 3.2.9v14.6c0 0-1.2-.8-3.2-.8-3.3 0-6.3 1.3-6.3 1.3V5.2Z"/><path d="M21.5 5.2c0 0-3-1.4-6.3-1.4-2 0-3.2.9-3.2.9v14.6c0 0 1.2-.8 3.2-.8 3.3 0 6.3 1.3 6.3 1.3V5.2Z"/><path d="M12 4.7v14.6" stroke-width="1" opacity="0.5"/></svg></div>
+      <h2>Пустая мастерская</h2>
+      <p>Создайте первый проект — роман, мангу или что угодно ещё. Внутри будут свои персонажи, связи, таймлайн и лор, отдельно от всех остальных проектов.</p>
+      <button class="btn btn-primary" onclick="openNewProjectModal()">Создать первый проект</button>
+    </div>`;
+    return;
+  }
+  const p = activeProject();
+  if(!p){ state.activeProjectId = data.projects[0].id; return renderMain(); }
+  const color = typeColor(p.type);
+
+  main.innerHTML = `
+    <div id="projectHeader" style="--pcolor:${color}">
+      <div class="ph-top">
+        <div>
+          <h2>${esc(p.name)}</h2>
+          <span class="ph-type">${esc(p.type || 'без типа')}</span>
+          ${p.desc ? `<div class="ph-desc">${esc(p.desc)}</div>` : ''}
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-sm" onclick="openEditProjectModal('${p.id}')">Изменить</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteProject('${p.id}')">Удалить проект</button>
+        </div>
+      </div>
+      <div id="tabs">
+        ${tabBtn('overview','Обзор')}
+        ${tabBtn('characters','Персонажи')}
+        ${tabBtn('structure','Структура')}
+        ${tabBtn('relationships','Связи')}
+        ${tabBtn('timeline','Таймлайн')}
+        ${tabBtn('world','Мир и лор')}
+      </div>
+    </div>
+    <div id="tabContent"></div>
+  `;
+  renderTabContent();
+}
+
+function tabBtn(key,label){
+  return `<button class="tab-btn ${state.activeTab===key?'active':''}" onclick="switchTab('${key}')">${label}</button>`;
+}
+function switchTab(key){ state.activeTab = key; renderMain(); }
+
+function renderTabContent(){
+  const el = document.getElementById('tabContent');
+  const pid = state.activeProjectId;
+  if(state.activeTab==='overview') return el.innerHTML = renderOverview(pid);
+  if(state.activeTab==='characters') return renderCharacters(el, pid);
+  if(state.activeTab==='structure') return renderStructure(el, pid);
+  if(state.activeTab==='relationships') return renderRelationships(el, pid);
+  if(state.activeTab==='timeline') return renderTimeline(el, pid);
+  if(state.activeTab==='world') return renderWorld(el, pid);
+}
+
+/* ---------------- OVERVIEW ---------------- */
+function renderOverview(pid){
+  const chars = itemsOf('characters', pid);
+  const events = itemsOf('events', pid);
+  const rels = itemsOf('relationships', pid);
+  const locs = itemsOf('locations', pid);
+  const facs = itemsOf('factions', pid);
+  const stats = [
+    ['Персонажей', chars.length], ['Связей', rels.length], ['Событий', events.length],
+    ['Локаций', locs.length], ['Фракций', facs.length]
+  ];
+  return `
+    <div class="stat-row">${stats.map(([l,n])=>`<div class="stat-card"><div class="num">${n}</div><div class="label">${l}</div></div>`).join('')}</div>
+    ${chars.length===0 && events.length===0 ? `<div class="empty-tab">Проект пуст. Начните с вкладки «Персонажи» или «Таймлайн» — заполните архив по кусочку, каша сама уляжется в систему.</div>` : `
+    <div class="side-section-label" style="margin-bottom:10px;">Недавние персонажи</div>
+    <div class="grid" style="margin-bottom:30px;">${chars.slice(-4).reverse().map(characterCard).join('') || '<div class="empty-tab">Пока нет персонажей</div>'}</div>
+    <div class="side-section-label" style="margin-bottom:10px;">Последние события</div>
+    <div id="timelineList" style="max-width:640px;">${events.slice(-3).reverse().map(eventCard).join('') || '<div class="empty-tab">Пока нет событий</div>'}</div>
+    `}
+  `;
+}
+
+/* ---------------- CHARACTERS ---------------- */
+function characterCard(c){
+  const statusClass = c.status==='alive' ? 'status-alive' : c.status==='dead' ? 'status-dead' : '';
+  return `<div class="dossier" id="char-${c.id}">
+    <div class="d-top">
+      <div>
+        <h3>${esc(c.name)}</h3>
+        ${c.aliases ? `<div class="d-alias">${esc(c.aliases)}</div>` : ''}
+      </div>
+      ${c.status ? `<span class="d-status ${statusClass}">${esc(c.status)}</span>` : ''}
+    </div>
+    ${c.role ? `<div class="d-role">${esc(c.role)}</div>` : ''}
+    ${c.desc ? `<div class="d-desc">${esc(c.desc)}</div>` : ''}
+    ${c.tags && c.tags.length ? `<div class="d-tags">${c.tags.map(t=>`<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditCharacterModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCharacter('${c.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+
+function renderCharacters(el, pid){
+  const chars = itemsOf('characters', pid);
+  el.innerHTML = `
+    <div class="toolbar">
+      <input type="text" id="charFilter" placeholder="Фильтр по имени, роли, тегу…" oninput="filterCharacters()">
+      <button class="btn btn-primary" onclick="openNewCharacterModal()">+ Новый персонаж</button>
+    </div>
+    <div class="grid" id="charGrid">${chars.length ? chars.map(characterCard).join('') : '<div class="empty-tab">Пока нет персонажей. Добавьте первого.</div>'}</div>
+  `;
+}
+function filterCharacters(){
+  const q = document.getElementById('charFilter').value.toLowerCase();
+  const chars = itemsOf('characters', state.activeProjectId).filter(c=>
+    (c.name||'').toLowerCase().includes(q) || (c.role||'').toLowerCase().includes(q) ||
+    (c.aliases||'').toLowerCase().includes(q) || (c.tags||[]).some(t=>t.toLowerCase().includes(q))
+  );
+  document.getElementById('charGrid').innerHTML = chars.length ? chars.map(characterCard).join('') : '<div class="empty-tab">Ничего не найдено.</div>';
+}
+
+function openNewCharacterModal(){
+  openFormModal('Новый персонаж', characterFields(), {}, (vals)=>{
+    data.characters.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals));
+    queueSave(); closeModal(); renderMain();
+  });
+}
+function openEditCharacterModal(id){
+  const c = data.characters.find(x=>x.id===id);
+  openFormModal('Изменить персонажа', characterFields(), c, (vals)=>{
+    Object.assign(c, vals); queueSave(); closeModal(); renderMain();
+  });
+}
+function deleteCharacter(id){
+  if(!confirm('Удалить персонажа? Связанные связи и упоминания в событиях тоже будут удалены.')) return;
+  data.characters = data.characters.filter(c=>c.id!==id);
+  data.relationships = data.relationships.filter(r=>r.charA!==id && r.charB!==id);
+  data.events.forEach(e=>{ if(e.charIds) e.charIds = e.charIds.filter(cid=>cid!==id); });
+  data.scenes.forEach(s=>{ if(s.charIds) s.charIds = s.charIds.filter(cid=>cid!==id); });
+  queueSave(); renderMain();
+}
+function characterFields(){
+  return [
+    {key:'name', label:'Имя', type:'text', required:true},
+    {key:'aliases', label:'Прозвища / другие имена', type:'text'},
+    {key:'role', label:'Роль в истории', type:'text', placeholder:'протагонист, антагонист, наставник…'},
+    {key:'status', label:'Статус', type:'select', options:[['','—'],['alive','жив(а)'],['dead','мёртв(а)'],['unknown','неизвестно']]},
+    {key:'tags', label:'Теги (через запятую)', type:'tags'},
+    {key:'desc', label:'Описание / заметки', type:'textarea'},
+  ];
+}
+
+/* ---------------- RELATIONSHIPS ---------------- */
+function renderRelationships(el, pid){
+  const chars = itemsOf('characters', pid);
+  const rels = itemsOf('relationships', pid);
+  if(chars.length < 2){
+    el.innerHTML = `<div class="empty-tab">Нужно хотя бы два персонажа, чтобы строить связи. Добавьте их во вкладке «Персонажи».</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="toolbar">
+      <div class="eyebrow">Карта связей — нажмите на персонажа, чтобы выделить его нити</div>
+      <button class="btn btn-primary" onclick="openNewRelationshipModal()">+ Новая связь</button>
+    </div>
+    <div id="graphWrap">
+      <div id="graphSvgHolder">${buildGraphSvg(chars, rels)}</div>
+      <div id="legend">
+        ${Object.entries(REL_TYPES).map(([k,v])=>`<div class="legend-item"><span class="legend-swatch" style="background:${v.color}"></span>${v.label}</div>`).join('')}
+      </div>
+    </div>
+    <div class="side-section-label" style="margin:26px 0 10px;">Список связей</div>
+    <div class="grid">${rels.length ? rels.map(relCard).join('') : '<div class="empty-tab">Связей пока нет.</div>'}</div>
+  `;
+}
+function relCard(r){
+  const t = REL_TYPES[r.type]||REL_TYPES.other;
+  return `<div class="dossier">
+    <div class="d-top"><h3 style="font-size:14.5px;">${esc(charName(r.charA))} ↔ ${esc(charName(r.charB))}</h3></div>
+    <div class="d-role" style="color:${t.color};">${t.label}</div>
+    ${r.desc ? `<div class="d-desc">${esc(r.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditRelationshipModal('${r.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteRelationship('${r.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function buildGraphSvg(chars, rels){
+  const W=560,H=420,cx=W/2,cy=H/2,R=Math.min(W,H)/2-60;
+  const pos = {};
+  chars.forEach((c,i)=>{
+    const angle = (i/chars.length) * Math.PI*2 - Math.PI/2;
+    pos[c.id] = { x: cx + R*Math.cos(angle), y: cy + R*Math.sin(angle) };
+  });
+  const edges = rels.map(r=>{
+    const a = pos[r.charA], b = pos[r.charB];
+    if(!a||!b) return '';
+    const t = REL_TYPES[r.type]||REL_TYPES.other;
+    const mx = (a.x+b.x)/2 + (cy-(a.y+b.y)/2)*0.12;
+    const my = (a.y+b.y)/2 + (cx-(a.x+b.x)/2)*0.12*-1;
+    return `<path class="graph-edge" data-a="${r.charA}" data-b="${r.charB}" d="M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}" stroke="${t.color}" stroke-width="1.6" stroke-dasharray="4 3" fill="none" opacity="0.75"/>`;
+  }).join('');
+  const nodes = chars.map(c=>{
+    const p = pos[c.id];
+    return `<g class="graph-node" data-id="${c.id}" onclick="graphSelect('${c.id}')" transform="translate(${p.x},${p.y})">
+      <circle r="16" fill="#1f222c" stroke="var(--gold)" stroke-width="1.4"/>
+      <text text-anchor="middle" dy="4" font-size="10">${esc(initials(c.name))}</text>
+      <text text-anchor="middle" dy="${p.y > cy ? 30 : -22}" font-size="10.5" fill="var(--text-dim)">${esc(truncate(c.name,14))}</text>
+    </g>`;
+  }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-height:440px;">${edges}${nodes}</svg>`;
+}
+function initials(name){ return (name||'?').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
+function truncate(s,n){ return s && s.length>n ? s.slice(0,n-1)+'…' : s; }
+function graphSelect(id){
+  state.graphSelected = state.graphSelected === id ? null : id;
+  document.querySelectorAll('.graph-node').forEach(n=>{
+    n.classList.toggle('dim', state.graphSelected && n.dataset.id !== state.graphSelected);
+  });
+  document.querySelectorAll('.graph-edge').forEach(ed=>{
+    const connected = !state.graphSelected || ed.dataset.a===state.graphSelected || ed.dataset.b===state.graphSelected;
+    ed.classList.toggle('dim', !connected);
+  });
+}
+function openNewRelationshipModal(){
+  openFormModal('Новая связь', relationshipFields(), {}, (vals)=>{
+    if(vals.charA===vals.charB){ showToast('Выберите двух разных персонажей'); return; }
+    data.relationships.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals));
+    queueSave(); closeModal(); renderMain();
+  });
+}
+function openEditRelationshipModal(id){
+  const r = data.relationships.find(x=>x.id===id);
+  openFormModal('Изменить связь', relationshipFields(), r, (vals)=>{ Object.assign(r, vals); queueSave(); closeModal(); renderMain(); });
+}
+function deleteRelationship(id){ data.relationships = data.relationships.filter(r=>r.id!==id); queueSave(); renderMain(); }
+function relationshipFields(){
+  const chars = itemsOf('characters', state.activeProjectId).map(c=>[c.id,c.name]);
+  return [
+    {key:'charA', label:'Персонаж А', type:'select', options: chars, required:true},
+    {key:'charB', label:'Персонаж Б', type:'select', options: chars, required:true},
+    {key:'type', label:'Тип связи', type:'select', options: Object.entries(REL_TYPES).map(([k,v])=>[k,v.label])},
+    {key:'desc', label:'Описание связи', type:'textarea'},
+  ];
+}
+
+/* ---------------- TIMELINE ---------------- */
+function eventCard(e){
+  return `<div class="tl-event"><div class="tl-card">
+    <div class="tl-date">${esc(e.date||'дата не указана')}</div>
+    <h3>${esc(e.title)}</h3>
+    ${e.arc ? `<div class="tl-arc">Арка: ${esc(e.arc)}</div>` : ''}
+    ${e.desc ? `<div class="d-desc">${esc(e.desc)}</div>` : ''}
+    ${e.charIds && e.charIds.length ? `<div class="d-tags">${e.charIds.map(id=>`<span class="d-tag">${esc(charName(id))}</span>`).join('')}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${e.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteEvent('${e.id}')">Удалить</button>
+    </div>
+  </div></div>`;
+}
+function renderTimeline(el, pid){
+  const events = itemsOf('events', pid).slice().sort((a,b)=>(a.order||0)-(b.order||0));
+  el.innerHTML = `
+    <div class="toolbar">
+      <div class="eyebrow">Отсортировано по порядковому номеру события</div>
+      <button class="btn btn-primary" onclick="openNewEventModal()">+ Новое событие</button>
+    </div>
+    <div id="timelineList" style="max-width:720px;">${events.length ? events.map(eventCard).join('') : '<div class="empty-tab">Событий пока нет.</div>'}</div>
+  `;
+}
+function openNewEventModal(){
+  const maxOrder = Math.max(0, ...itemsOf('events', state.activeProjectId).map(e=>e.order||0));
+  openFormModal('Новое событие', eventFields(), {order: maxOrder+1}, (vals)=>{
+    vals.order = Number(vals.order)||0;
+    data.events.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals));
+    queueSave(); closeModal(); renderMain();
+  });
+}
+function openEditEventModal(id){
+  const e = data.events.find(x=>x.id===id);
+  openFormModal('Изменить событие', eventFields(), e, (vals)=>{ vals.order=Number(vals.order)||0; Object.assign(e, vals); queueSave(); closeModal(); renderMain(); });
+}
+function deleteEvent(id){ data.events = data.events.filter(e=>e.id!==id); queueSave(); renderMain(); }
+function eventFields(){
+  return [
+    {key:'title', label:'Название события', type:'text', required:true},
+    {key:'date', label:'Дата (в мире истории, текстом)', type:'text', placeholder:'год 3 эпохи, глава 12…'},
+    {key:'order', label:'Порядковый номер (для сортировки)', type:'text'},
+    {key:'arc', label:'Арка / часть', type:'text'},
+    {key:'charIds', label:'Участники', type:'multiselect', options: itemsOf('characters', state.activeProjectId).map(c=>[c.id,c.name])},
+    {key:'desc', label:'Что произошло', type:'textarea'},
+  ];
+}
+
+/* ---------------- STRUCTURE (node editor) ---------------- */
+function renderStructure(el, pid){
+  const scenes = itemsOf('scenes', pid);
+  el.innerHTML = `
+    <div class="canvas-toolbar">
+      <div class="eyebrow">Тащите карточки за шапку. Тяните от точки справа к другой карточке — так соединяются сцены. Клик по стрелке удаляет связь. Двойной клик по карточке — редактировать.</div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="canvas-zoom-controls">
+          <button class="btn btn-sm" onclick="zoomCanvas(-0.15)">−</button>
+          <span class="mono" id="zoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
+          <button class="btn btn-sm" onclick="zoomCanvas(0.15)">+</button>
+        </div>
+        <button class="btn btn-sm" onclick="resetCanvasView()">Сброс вида</button>
+        <button class="btn btn-primary btn-sm" onclick="addScene()">+ Сцена</button>
+      </div>
+    </div>
+    ${scenes.length===0 ? `<div class="empty-tab" style="margin-bottom:14px;">Пусто. Добавьте первую сцену — карточку можно будет свободно перетаскивать и соединять с другими.</div>` : ''}
+    <div id="storyCanvasViewport">
+      <div id="storyCanvasInner">
+        <svg id="edgesSvg" width="4000" height="3000"></svg>
+        ${scenes.map(sceneNodeHtml).join('')}
+      </div>
+    </div>
+  `;
+  applyCanvasTransform();
+  drawEdges();
+  attachCanvasEvents();
+}
+
+function sceneNodeHtml(s){
+  const status = s.status || 'idea';
+  return `<div class="scene-node status-${status}" id="char-${s.id}" data-id="${s.id}" style="left:${s.x}px; top:${s.y}px;" ondblclick="openEditSceneModal('${s.id}')">
+    <div class="sn-head">
+      <span class="sn-status"></span>
+      <span class="sn-title">${esc(s.title||'Без названия')}</span>
+      <button class="sn-remove" title="Удалить сцену" onclick="event.stopPropagation(); deleteScene('${s.id}')">×</button>
+    </div>
+    <div class="sn-body">${esc(s.summary||'')}</div>
+    <div class="port port-in" data-port="in" data-id="${s.id}"></div>
+    <div class="port port-out" data-port="out" data-id="${s.id}"></div>
+  </div>`;
+}
+
+function applyCanvasTransform(){
+  const inner = document.getElementById('storyCanvasInner');
+  if(!inner) return;
+  inner.style.transform = `translate(${canvasView.pan.x}px, ${canvasView.pan.y}px) scale(${canvasView.scale})`;
+  const lbl = document.getElementById('zoomLabel');
+  if(lbl) lbl.textContent = Math.round(canvasView.scale*100)+'%';
+}
+function zoomCanvas(delta){
+  canvasView.scale = Math.min(2, Math.max(0.35, canvasView.scale+delta));
+  applyCanvasTransform(); drawEdges();
+}
+function resetCanvasView(){
+  canvasView.pan = {x:120,y:80}; canvasView.scale = 1;
+  applyCanvasTransform(); drawEdges();
+}
+
+function drawEdges(){
+  const svg = document.getElementById('edgesSvg');
+  if(!svg) return;
+  const scenes = itemsOf('scenes', state.activeProjectId);
+  const links = itemsOf('sceneLinks', state.activeProjectId);
+  const byId = {}; scenes.forEach(s=>byId[s.id]=s);
+  const CARD_W = 200, CARD_MID = 45;
+  let out = `<defs><marker id="arrowHead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--gold)"/></marker></defs>`;
+  out += links.map(l=>{
+    const a = byId[l.from], b = byId[l.to];
+    if(!a||!b) return '';
+    const x1=a.x+CARD_W, y1=a.y+CARD_MID, x2=b.x, y2=b.y+CARD_MID;
+    const mx = (x1+x2)/2;
+    return `<path class="scene-edge" onclick="deleteSceneLink('${l.id}')" d="M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}" marker-end="url(#arrowHead)"/>`;
+  }).join('');
+  svg.innerHTML = out;
+}
+
+function attachCanvasEvents(){
+  const viewport = document.getElementById('storyCanvasViewport');
+  if(!viewport) return;
+  viewport.addEventListener('mousedown', onCanvasMouseDown);
+  viewport.addEventListener('wheel', onCanvasWheel, {passive:false});
+}
+
+function onCanvasWheel(e){
+  e.preventDefault();
+  const viewport = document.getElementById('storyCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const cursorX = e.clientX-rect.left, cursorY = e.clientY-rect.top;
+  const oldScale = canvasView.scale;
+  const newScale = Math.min(2, Math.max(0.35, oldScale + (e.deltaY < 0 ? 0.1 : -0.1)));
+  const localX = (cursorX - canvasView.pan.x)/oldScale;
+  const localY = (cursorY - canvasView.pan.y)/oldScale;
+  canvasView.pan.x = cursorX - localX*newScale;
+  canvasView.pan.y = cursorY - localY*newScale;
+  canvasView.scale = newScale;
+  applyCanvasTransform(); drawEdges();
+}
+
+function onCanvasMouseDown(e){
+  const viewport = document.getElementById('storyCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const portEl = e.target.closest('.port');
+  const nodeEl = e.target.closest('.scene-node');
+
+  if(portEl && portEl.dataset.port==='out'){
+    const sourceId = portEl.dataset.id;
+    const svg = document.getElementById('edgesSvg');
+    const tempPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+    tempPath.setAttribute('class','temp-edge');
+    svg.appendChild(tempPath);
+    const move = (ev)=>{
+      const s = itemsOf('scenes', state.activeProjectId).find(x=>x.id===sourceId);
+      if(!s) return;
+      const x1=s.x+200, y1=s.y+45;
+      const lx=(ev.clientX-rect.left-canvasView.pan.x)/canvasView.scale, ly=(ev.clientY-rect.top-canvasView.pan.y)/canvasView.scale;
+      tempPath.setAttribute('d', `M${x1},${y1} L${lx},${ly}`);
+    };
+    const up = (ev)=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      tempPath.remove();
+      const targetNode = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.scene-node');
+      if(targetNode && targetNode.dataset.id !== sourceId) createSceneLink(sourceId, targetNode.dataset.id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.stopPropagation(); e.preventDefault();
+    return;
+  }
+
+  if(nodeEl && !portEl){
+    const id = nodeEl.dataset.id;
+    const scene = itemsOf('scenes', state.activeProjectId).find(x=>x.id===id);
+    if(!scene) return;
+    const startX=e.clientX, startY=e.clientY, ox=scene.x, oy=scene.y;
+    let moved = false;
+    nodeEl.classList.add('dragging');
+    const move=(ev)=>{
+      moved = true;
+      scene.x = ox + (ev.clientX-startX)/canvasView.scale;
+      scene.y = oy + (ev.clientY-startY)/canvasView.scale;
+      nodeEl.style.left = scene.x+'px'; nodeEl.style.top = scene.y+'px';
+      drawEdges();
+    };
+    const up=()=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      nodeEl.classList.remove('dragging');
+      if(moved) queueSave();
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
+    return;
+  }
+
+  if(e.target.id==='storyCanvasViewport' || e.target.id==='storyCanvasInner' || e.target.id==='edgesSvg'){
+    const startX=e.clientX, startY=e.clientY, ox=canvasView.pan.x, oy=canvasView.pan.y;
+    viewport.classList.add('panning');
+    const move=(ev)=>{
+      canvasView.pan.x = ox+(ev.clientX-startX);
+      canvasView.pan.y = oy+(ev.clientY-startY);
+      applyCanvasTransform();
+    };
+    const up=()=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      viewport.classList.remove('panning');
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  }
+}
+
+function createSceneLink(from, to){
+  if(from===to) return;
+  const exists = data.sceneLinks.find(l=>l.from===from && l.to===to && l.projectId===state.activeProjectId);
+  if(exists) return;
+  data.sceneLinks.push({id:uid(), projectId: state.activeProjectId, from, to});
+  queueSave(); drawEdges();
+}
+function deleteSceneLink(id){ data.sceneLinks = data.sceneLinks.filter(l=>l.id!==id); queueSave(); drawEdges(); }
+
+function addScene(){
+  const viewport = document.getElementById('storyCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const localX = (rect.width/2 - canvasView.pan.x)/canvasView.scale - 100;
+  const localY = (rect.height/2 - canvasView.pan.y)/canvasView.scale - 40;
+  data.scenes.push({id:uid(), projectId: state.activeProjectId, title:'Новая сцена', summary:'', status:'idea', x: Math.max(0,localX), y: Math.max(0,localY), charIds:[]});
+  queueSave();
+  renderStructure(document.getElementById('tabContent'), state.activeProjectId);
+}
+function deleteScene(id){
+  data.scenes = data.scenes.filter(s=>s.id!==id);
+  data.sceneLinks = data.sceneLinks.filter(l=>l.from!==id && l.to!==id);
+  queueSave();
+  renderStructure(document.getElementById('tabContent'), state.activeProjectId);
+}
+function openEditSceneModal(id){
+  const s = data.scenes.find(x=>x.id===id);
+  const fields = [
+    {key:'title', label:'Название сцены', type:'text', required:true},
+    {key:'status', label:'Статус', type:'select', options:[['idea','Идея'],['draft','Черновик'],['final','Готово']]},
+    {key:'charIds', label:'Участники', type:'multiselect', options: itemsOf('characters', state.activeProjectId).map(c=>[c.id,c.name])},
+    {key:'summary', label:'Краткое содержание сцены', type:'textarea'},
+  ];
+  openFormModal('Сцена', fields, s, (vals)=>{
+    Object.assign(s, vals);
+    queueSave(); closeModal();
+    renderStructure(document.getElementById('tabContent'), state.activeProjectId);
+  });
+}
+
+/* ---------------- WORLD ---------------- */
+function locCard(l){
+  return `<div class="dossier">
+    <h3 style="font-size:15.5px;">${esc(l.name)}</h3>
+    ${l.faction ? `<div class="d-role">${esc(l.faction)}</div>` : ''}
+    ${l.desc ? `<div class="d-desc">${esc(l.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditLocationModal('${l.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function facCard(f){
+  return `<div class="dossier">
+    <h3 style="font-size:15.5px;">${esc(f.name)}</h3>
+    ${f.desc ? `<div class="d-desc">${esc(f.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditFactionModal('${f.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteFaction('${f.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function renderWorld(el, pid){
+  const locs = itemsOf('locations', pid), facs = itemsOf('factions', pid);
+  el.innerHTML = `
+    <div class="world-section">
+      <div class="toolbar"><h3 style="margin:0;">Локации</h3><button class="btn btn-sm btn-primary" onclick="openNewLocationModal()">+ Локация</button></div>
+      <div class="grid">${locs.length ? locs.map(locCard).join('') : '<div class="empty-tab">Локаций пока нет.</div>'}</div>
+    </div>
+    <div class="world-section">
+      <div class="toolbar"><h3 style="margin:0;">Фракции</h3><button class="btn btn-sm btn-primary" onclick="openNewFactionModal()">+ Фракция</button></div>
+      <div class="grid">${facs.length ? facs.map(facCard).join('') : '<div class="empty-tab">Фракций пока нет.</div>'}</div>
+    </div>
+  `;
+}
+function openNewLocationModal(){
+  openFormModal('Новая локация', locationFields(), {}, (vals)=>{ data.locations.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditLocationModal(id){
+  const l = data.locations.find(x=>x.id===id);
+  openFormModal('Изменить локацию', locationFields(), l, (vals)=>{ Object.assign(l, vals); queueSave(); closeModal(); renderMain(); });
+}
+function deleteLocation(id){ data.locations = data.locations.filter(l=>l.id!==id); queueSave(); renderMain(); }
+function locationFields(){
+  return [
+    {key:'name', label:'Название', type:'text', required:true},
+    {key:'faction', label:'Контролирующая фракция (если есть)', type:'text'},
+    {key:'desc', label:'Описание', type:'textarea'},
+  ];
+}
+function openNewFactionModal(){
+  openFormModal('Новая фракция', factionFields(), {}, (vals)=>{ data.factions.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditFactionModal(id){
+  const f = data.factions.find(x=>x.id===id);
+  openFormModal('Изменить фракцию', factionFields(), f, (vals)=>{ Object.assign(f, vals); queueSave(); closeModal(); renderMain(); });
+}
+function deleteFaction(id){ data.factions = data.factions.filter(f=>f.id!==id); queueSave(); renderMain(); }
+function factionFields(){
+  return [ {key:'name', label:'Название', type:'text', required:true}, {key:'desc', label:'Описание, цели, устройство', type:'textarea'} ];
+}
+
+/* ---------------- PROJECTS ---------------- */
+function openNewProjectModal(){
+  openFormModal('Новый проект', projectFields(), {}, (vals)=>{
+    const p = Object.assign({id:uid()}, vals);
+    data.projects.push(p); state.activeProjectId = p.id; state.activeTab='overview';
+    queueSave(); closeModal(); render();
+  });
+}
+function openEditProjectModal(id){
+  const p = proj(id);
+  openFormModal('Изменить проект', projectFields(), p, (vals)=>{ Object.assign(p, vals); queueSave(); closeModal(); render(); });
+}
+function deleteProject(id){
+  if(!confirm('Удалить проект целиком, со всеми персонажами, связями, событиями и лором? Это необратимо.')) return;
+  data.projects = data.projects.filter(p=>p.id!==id);
+  ['characters','relationships','events','locations','factions','scenes','sceneLinks'].forEach(coll=>{ data[coll] = data[coll].filter(x=>x.projectId!==id); });
+  if(state.activeProjectId===id){ state.activeProjectId = data.projects[0] ? data.projects[0].id : null; }
+  queueSave(); render();
+}
+function projectFields(){
+  return [
+    {key:'name', label:'Название проекта', type:'text', required:true},
+    {key:'type', label:'Тип проекта', type:'text', placeholder:'роман, манга, веб-комикс, кампания…'},
+    {key:'desc', label:'Кратко о проекте', type:'textarea'},
+  ];
+}
+
+/* ---------------- GENERIC MODAL ---------------- */
+function openFormModal(title, fields, initial, onSave){
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `<h2>${esc(title)}</h2><div id="modalFields"></div>
+    <div id="modalActions"><button class="btn" onclick="closeModal()">Отмена</button><button class="btn btn-primary" id="modalSaveBtn">Сохранить</button></div>`;
+  const fw = document.getElementById('modalFields');
+  fields.forEach(f=>{
+    const wrap = document.createElement('div'); wrap.className='field';
+    const label = document.createElement('label'); label.textContent = f.label; wrap.appendChild(label);
+    let input;
+    if(f.type==='textarea'){ input = document.createElement('textarea'); input.value = initial[f.key]||''; }
+    else if(f.type==='select'){
+      input = document.createElement('select');
+      f.options.forEach(([val,lab])=>{ const o=document.createElement('option'); o.value=val; o.textContent=lab; input.appendChild(o); });
+      input.value = initial[f.key]!==undefined ? initial[f.key] : (f.options[0]?f.options[0][0]:'');
+    } else if(f.type==='multiselect'){
+      input = document.createElement('select'); input.multiple = true; input.size = Math.min(6, Math.max(3,f.options.length));
+      f.options.forEach(([val,lab])=>{ const o=document.createElement('option'); o.value=val; o.textContent=lab; if((initial[f.key]||[]).includes(val)) o.selected=true; input.appendChild(o); });
+    } else if(f.type==='tags'){
+      input = document.createElement('input'); input.type='text'; input.value=(initial[f.key]||[]).join(', '); input.placeholder='тег1, тег2…';
+    } else {
+      input = document.createElement('input'); input.type='text'; input.value = initial[f.key]!==undefined ? initial[f.key] : ''; if(f.placeholder) input.placeholder=f.placeholder;
+    }
+    input.dataset.key = f.key; input.dataset.type = f.type;
+    wrap.appendChild(input); fw.appendChild(wrap);
+  });
+  document.getElementById('modalSaveBtn').onclick = ()=>{
+    const vals = {};
+    fw.querySelectorAll('[data-key]').forEach(inp=>{
+      if(inp.dataset.type==='multiselect'){ vals[inp.dataset.key] = Array.from(inp.selectedOptions).map(o=>o.value); }
+      else if(inp.dataset.type==='tags'){ vals[inp.dataset.key] = inp.value.split(',').map(s=>s.trim()).filter(Boolean); }
+      else { vals[inp.dataset.key] = inp.value; }
+    });
+    const req = fields.find(f=>f.required && !vals[f.key]);
+    if(req){ showToast(`Заполните поле «${req.label}»`); return; }
+    onSave(vals);
+  };
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+document.getElementById('modalOverlay').addEventListener('click', (e)=>{ if(e.target.id==='modalOverlay') closeModal(); });
+document.getElementById('newProjectBtn').addEventListener('click', openNewProjectModal);
+
+/* ---------------- GLOBAL SEARCH ---------------- */
+const searchInput = document.getElementById('globalSearch');
+const searchResultsEl = document.getElementById('searchResults');
+searchInput.addEventListener('input', ()=>{
+  const q = searchInput.value.trim().toLowerCase();
+  if(!q){ searchResultsEl.classList.remove('show'); return; }
+  const hits = [];
+  const collect = (coll, kind, nameKey, extraKey)=>{
+    data[coll].forEach(item=>{
+      const hay = ((item[nameKey]||'') + ' ' + (item[extraKey]||'') + ' ' + (item.desc||'')).toLowerCase();
+      if(hay.includes(q)) hits.push({item, kind, coll});
+    });
+  };
+  collect('characters','Персонаж','name','aliases');
+  collect('scenes','Сцена','title','summary');
+  collect('events','Событие','title','arc');
+  collect('locations','Локация','name','faction');
+  collect('factions','Фракция','name');
+  collect('projects','Проект','name','type');
+  if(!hits.length){ searchResultsEl.innerHTML = '<div class="search-empty">Ничего не найдено</div>'; searchResultsEl.classList.add('show'); return; }
+  searchResultsEl.innerHTML = hits.slice(0,30).map(h=>{
+    const pname = h.coll==='projects' ? h.item.name : (proj(h.item.projectId)||{}).name || '';
+    const name = h.item.name || h.item.title;
+    return `<div class="search-hit" onclick='jumpTo(${JSON.stringify(h.coll)}, ${JSON.stringify(h.item.id)}, ${JSON.stringify(h.item.projectId||h.item.id)})'>
+      <span class="hit-name">${esc(name)}</span>
+      <span class="hit-meta">${h.kind} · ${esc(pname)}</span>
+    </div>`;
+  }).join('');
+  searchResultsEl.classList.add('show');
+});
+document.addEventListener('click', (e)=>{ if(!document.getElementById('globalSearchWrap').contains(e.target)) searchResultsEl.classList.remove('show'); });
+
+function jumpTo(coll, itemId, projectId){
+  searchResultsEl.classList.remove('show'); searchInput.value='';
+  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', projects:'overview' };
+  state.activeProjectId = coll==='projects' ? itemId : projectId;
+  state.activeTab = tabMap[coll] || 'overview';
+  render();
+  setTimeout(()=>{
+    const el = document.getElementById('char-'+itemId);
+    if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight-flash'); }
+  }, 60);
+}
+
+/* ---------------- BACKUP ---------------- */
+const dataToggle = document.getElementById('dataToggle');
+const dataPanel = document.getElementById('dataPanel');
+const dataToggleIcon = document.getElementById('dataToggleIcon');
+dataToggle.addEventListener('click', ()=>{
+  const open = dataPanel.style.display === 'flex';
+  dataPanel.style.display = open ? 'none' : 'flex';
+  dataToggleIcon.textContent = open ? '▸' : '▾';
+});
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = `story-bible-backup-${date}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  showToast('Бэкап скачан');
+});
+document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed || !Array.isArray(parsed.projects)) throw new Error('bad format');
+      if(!confirm('Загрузить бэкап? Это заменит все текущие данные в архиве — сохраните текущий бэкап на всякий случай, если ещё не сделали.')){ e.target.value=''; return; }
+      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[] }, parsed);
+      state.activeProjectId = data.projects[0] ? data.projects[0].id : null;
+      state.activeTab = 'overview';
+      queueSave();
+      render();
+      showToast('Бэкап загружен');
+    }catch(err){
+      showToast('Не удалось прочитать файл — это не бэкап архива');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ---------------- INIT ---------------- */
+loadData();
+</script>
+</body>
+</html>
