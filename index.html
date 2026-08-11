@@ -290,10 +290,31 @@
   #mapViewport{position:relative; width:100%; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; background:var(--bg-alt); cursor:crosshair;}
   .map-bg-img{position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; pointer-events:none; user-select:none;}
   #mapPathsSvg{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
-  .map-marker{position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; cursor:grab; user-select:none; z-index:5;}
+  .map-marker{
+    position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column;
+    align-items:center; cursor:grab; user-select:none; z-index:5;
+  }
   .map-marker:active{cursor:grabbing;}
-  .map-marker-icon{font-size:22px; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));}
-  .map-marker-label{font-size:10.5px; color:#fff; background:rgba(20,21,27,.78); padding:1px 6px; border-radius:8px; margin-top:2px; white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis;}
+  .map-marker-icon{
+    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    color:#14151b; background:var(--marker-color,var(--gold)); border:2px solid rgba(20,21,27,.82);
+    box-shadow:0 3px 8px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.08);
+    transition:transform .12s, box-shadow .12s;
+  }
+  .map-marker:hover .map-marker-icon{
+    transform:scale(1.12); box-shadow:0 4px 12px rgba(0,0,0,.7), 0 0 0 2px rgba(255,255,255,.14);
+  }
+  .map-marker-icon svg{width:19px; height:19px; display:block; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .map-marker-label{
+    font-size:10.5px; color:#fff; background:rgba(20,21,27,.88); border:1px solid rgba(255,255,255,.08);
+    padding:2px 7px; border-radius:8px; margin-top:3px; white-space:nowrap; max-width:150px;
+    overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 5px rgba(0,0,0,.35);
+  }
+  .marker-card-icon{
+    width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
+    background:var(--marker-color,var(--gold)); color:#14151b; flex-shrink:0; vertical-align:middle;
+  }
+  .marker-card-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 
   /* Structure canvas (node editor) */
   .canvas-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
@@ -1659,18 +1680,96 @@ function deleteMapPath(mapId, pathId){
 }
 
 const MARKER_ICONS = [
-  ['','Авто (по типу)'],
-  ['🎭','🎭 Театр / маски'],['🎪','🎪 Цирк / шатёр'],['🎨','🎨 Искусство'],['🏹','🏹 Лук / охота'],['🎯','🎯 Мишень'],['🃏','🃏 Джокер / азарт'],
-  ['🐋','🐋 Кит'],['🐍','🐍 Змея'],['🌵','🌵 Кактус / пустыня'],['🌴','🌴 Пальма'],['🌿','🌿 Заросли'],['🍀','🍀 Клевер'],['🍄','🍄 Гриб'],['🍁','🍁 Листва'],['🥀','🥀 Увядший цветок'],
-  ['🐾','🐾 Следы зверя'],['🐅','🐅 Тигр'],['🐊','🐊 Крокодил'],['🦈','🦈 Акула'],['🐀','🐀 Крыса'],['🦟','🦟 Комары / болото'],
-  ['🏺','🏺 Руины / кувшин'],['🗿','🗿 Идол'],['🗺️','🗺️ Карта / ориентир'],['🧭','🧭 Компас'],['📿','📿 Чётки'],['🧿','🧿 Оберег'],['🔮','🔮 Магический шар'],['📜','📜 Свиток'],['🪔','🪔 Светильник'],
-  ['🕯️','🕯️ Свеча'],['🛡️','🛡️ Щит'],['⚔️','⚔️ Мечи / битва'],['🗡️','🗡️ Кинжал'],['⛏️','⛏️ Кирка / рудник'],['⚒️','⚒️ Кузня'],['⛓️','⛓️ Цепи / плен'],['🗝️','🗝️ Ключ / тайна'],
-  ['🌋','🌋 Вулкан'],['🌌','🌌 Звёздное небо'],['☄️','☄️ Комета'],['💥','💥 Взрыв'],['🔥','🔥 Огонь'],['🌪️','🌪️ Торнадо'],['🌦️','🌦️ Переменная погода'],['🌩️','🌩️ Гроза'],['⚡','⚡ Молния'],['⛈️','⛈️ Буря'],['🌫️','🌫️ Туман'],['🌨️','🌨️ Снегопад'],['💧','💧 Вода / источник'],
-  ['🌑','🌑 Новолуние'],['🌘','🌘 Убывающая луна'],['🌙','🌙 Полумесяц'],['🌗','🌗 Луна'],['🕳️','🕳️ Провал / бездна'],['🩸','🩸 Кровь'],['🧪','🧪 Зелье / лаборатория'],['🔭','🔭 Обсерватория'],['🚬','🚬 Дым'],['🧨','🧨 Взрывчатка'],['⚰️','⚰️ Могила / гроб'],
-  ['🦉','🦉 Сова'],['🦅','🦅 Орёл'],['🐉','🐉 Дракон'],['🏜️','🏜️ Пустошь'],['🕸️','🕸️ Паутина'],['🦂','🦂 Скорпион'],['🧙‍♂️','🧙‍♂️ Маг'],['🧙‍♀️','🧙‍♀️ Волшебница'],
-  ['⛺','⛺ Лагерь / палатка'],['🛖','🛖 Хижина'],['⚓','⚓ Порт / якорь'],['🏰','🏰 Замок'],['🌲','🌲 Лес'],['🌳','🌳 Дерево'],['💨','💨 Ветер'],['👁️','👁️ Наблюдение / око'],['🌀','🌀 Вихрь / портал'],
-  ['💀','💀 Череп'],['☠️','☠️ Смертельная опасность'],['👹','👹 Демон / чудовище'],['🐺','🐺 Волк'],['🦇','🦇 Летучая мышь'],['🕷️','🕷️ Паук'],['💰','💰 Сокровища'],['👑','👑 Корона / трон'],['💈','💈 Цирюльня'],
+  ['city','Город'],
+  ['village','Деревня / поселение'],
+  ['castle','Замок / крепость'],
+  ['temple','Храм / святилище'],
+  ['forest','Лес / чаща'],
+  ['mountain','Горы / вершина'],
+  ['water','Река / озеро / источник'],
+  ['port','Порт / гавань'],
+  ['camp','Лагерь'],
+  ['ruins','Руины / древнее место'],
+  ['battle','Битва / конфликт'],
+  ['grave','Могила / кладбище'],
+  ['danger','Опасность'],
+  ['magic','Магия / аномалия'],
+  ['secret','Тайна / секрет'],
+  ['treasure','Сокровище'],
+  ['person','Персонаж / встреча'],
+  ['creature','Существо (жуткое)'],
+  ['beast','Животное / зверь'],
+  ['portal','Портал / проход'],
+  ['landmark','Ориентир'],
+  ['other','Другое']
 ];
+
+const MARKER_COLORS = {
+  city:'var(--gold)', village:'var(--teal)', castle:'var(--gold)', temple:'var(--violet)',
+  forest:'var(--teal)', mountain:'var(--gray)', water:'#6a8caf', port:'#6a8caf',
+  camp:'var(--rose)', ruins:'var(--gray)', battle:'var(--thread)', grave:'var(--gray)',
+  danger:'var(--thread)', magic:'var(--violet)', secret:'var(--rose)', treasure:'var(--gold)',
+  person:'var(--teal)', creature:'var(--thread)', beast:'var(--rose)', portal:'var(--violet)', landmark:'var(--gold)',
+  other:'var(--gray)'
+};
+
+const MARKER_SVG = {
+  city:`<svg viewBox="0 0 24 24"><path d="M4 21V9l8-5 8 5v12"/><path d="M8 21v-5h3v5m2 0v-5h3v5M8 11h2m4 0h2M8 14h2m4 0h2"/></svg>`,
+  village:`<svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21v-8l4-3 4 3v8"/><path d="M13 21v-6l3-2 3 2v6"/><path d="M7 16h1m3 0h1m4 1h1"/></svg>`,
+  castle:`<svg viewBox="0 0 24 24"><path d="M3 21V7h4v3h3V7h4v3h3V7h4v14Z"/><path d="M8 21v-5h8v5M5 4v3m7-3v3m7-3v3"/></svg>`,
+  temple:`<svg viewBox="0 0 24 24"><path d="M3 21h18M5 18h14M6 10h12M4 10l8-6 8 6M8 10v8m4-8v8m4-8v8"/></svg>`,
+  forest:`<svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m12 4 5 7h-3l4 5h-5"/><path d="M12 4 7 11h3l-4 5h6"/></svg>`,
+  mountain:`<svg viewBox="0 0 24 24"><path d="m3 20 7-12 4 6 2-3 5 9Z"/><path d="m10 8 2 3 2-3"/></svg>`,
+  water:`<svg viewBox="0 0 24 24"><path d="M3 8c3 3 6 3 9 0s6-3 9 0M3 14c3 3 6 3 9 0s6-3 9 0M3 20c3 3 6 3 9 0s6-3 9 0"/></svg>`,
+  port:`<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13"/><path d="M7 11h10"/><path d="M4 13a8 8 0 0 0 16 0"/></svg>`,
+  camp:`<svg viewBox="0 0 24 24"><path d="m3 20 7-13 2 4 2-4 7 13"/><path d="M8 20h8M12 14v6"/></svg>`,
+  ruins:`<svg viewBox="0 0 24 24"><path d="M4 21V8l4-3 4 3v13M12 21V11l4-4 4 4v10"/><path d="M7 11h2m-2 4h2m7-1h2m-2 4h2"/></svg>`,
+  battle:`<svg viewBox="0 0 24 24"><path d="m5 4 15 15M19 4 4 19"/><path d="m4 4 3 3m10 10 3 3m-1-16-3 3M7 17l-3 3"/></svg>`,
+  grave:`<svg viewBox="0 0 24 24"><path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18"/><path d="M12 7v6m-3-3h6"/></svg>`,
+  danger:`<svg viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 4h.01"/></svg>`,
+  magic:`<svg viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7Z"/><path d="m19 3 .7 2.3L22 6l-2.3.7L19 9l-.7-2.3L16 6l2.3-.7Z"/></svg>`,
+  secret:`<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>`,
+  treasure:`<svg viewBox="0 0 24 24"><path d="M3 10 5 5h14l2 5"/><rect x="3" y="10" width="18" height="9" rx="1"/><path d="M3 14h18"/><path d="M11 12.5h2v2h-2z"/></svg>`,
+  person:`<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>`,
+  creature:`<svg viewBox="0 0 24 24"><path d="M5 8 3 3l5 2M19 8l2-5-5 2"/><path d="M5 8c0-4 3-6 7-6s7 2 7 6c0 6-3 11-7 11S5 14 5 8Z"/><path d="M9 9v2M15 9v2"/><path d="M7.5 15l1.5 2 1.5-2 1.5 2 1.5-2 1.5 2"/></svg>`,
+  beast:`<svg viewBox="0 0 24 24"><path d="M6 7 4 4m14 3 2-3"/><circle cx="12" cy="13" r="7"/><ellipse cx="12" cy="15" rx="3" ry="1.8"/><path d="M10.5 15h.01M13.5 15h.01M9 10h.01M15 10h.01"/></svg>`,
+  portal:`<svg viewBox="0 0 24 24"><path d="M12 3a8 9 0 0 1 0 18 8 9 0 0 1 0-18Z"/><path d="M12 6a5 6 0 0 1 0 12 5 6 0 0 1 0-12Z"/></svg>`,
+  landmark:`<svg viewBox="0 0 24 24"><path d="M4 21h16M6 21V9h12v12M4 9l8-5 8 5M9 13h6"/></svg>`,
+  other:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v.01M12 11v5"/></svg>`
+};
+
+const LEGACY_MARKER_ICONS = {
+  '⭐':'landmark','📍':'landmark','🏙️':'city','🏘️':'village','🏰':'castle','⛪':'temple',
+  '🌲':'forest','🌳':'forest','🌴':'forest','🌿':'forest','🌵':'forest','🏜️':'landmark',
+  '⛰️':'mountain','🌋':'mountain','💧':'water','⚓':'port','⛺':'camp','🛖':'village',
+  '🏺':'ruins','🗿':'ruins','⚔️':'battle','🛡️':'battle','🏹':'battle','🎯':'battle',
+  '⚰️':'grave','💀':'grave','☠️':'danger','👹':'creature','🐉':'creature','🐺':'beast','🐅':'beast',
+  '🐊':'beast','🦈':'beast','🐀':'beast','🦂':'creature','🦇':'beast','🕷️':'creature','🐍':'creature',
+  '🔮':'magic','🧪':'magic','🌀':'portal','🗝️':'secret','🧿':'secret','📜':'secret',
+  '💰':'treasure','👑':'landmark','👁️':'secret','🗺️':'landmark','🧭':'landmark',
+  '🎭':'landmark','🎪':'landmark','🎨':'landmark','🕯️':'landmark','⛏️':'landmark','⚒️':'landmark',
+  '⛓️':'danger','🔥':'danger','💥':'danger','⚡':'danger','🌩️':'danger','⛈️':'danger','🌪️':'danger',
+  '🌫️':'landmark','🌨️':'landmark','🩸':'danger','🕳️':'danger','🦉':'beast','🦅':'beast','🐷':'beast',
+  '🌑':'landmark','🌘':'landmark','🌙':'landmark','🌗':'landmark'
+};
+
+function markerIconKey(mk){
+  const raw = mk && mk.icon;
+  if(raw && MARKER_SVG[raw]) return raw;
+  if(raw && LEGACY_MARKER_ICONS[raw]) return LEGACY_MARKER_ICONS[raw];
+  if(mk && mk.type==='city') return 'city';
+  if(mk && mk.type==='poi') return 'landmark';
+  return 'other';
+}
+
+function markerIcon(mk, size='map'){
+  const key = markerIconKey(mk);
+  const svg = MARKER_SVG[key] || MARKER_SVG.other;
+  const color = MARKER_COLORS[key] || MARKER_COLORS.other;
+  const cls = size==='card' ? 'marker-card-icon' : 'map-marker-icon';
+  return `<span class="${cls}" style="--marker-color:${color}" aria-hidden="true">${svg}</span>`;
+}
+
 function markerFields(){
   return [
     {key:'name', label:'Название', type:'text', required:true},
@@ -1680,8 +1779,9 @@ function markerFields(){
   ];
 }
 function openNewMarkerModal(m, x, y){
-  openFormModal('Новая метка', markerFields(), {type:'poi'}, (vals)=>{
+  openFormModal('Новая метка', markerFields(), {type:'poi', icon:'landmark'}, (vals)=>{
     if(!m.markers) m.markers = [];
+    if(!vals.icon) vals.icon = vals.type==='city' ? 'city' : 'landmark';
     m.markers.push(Object.assign({id:uid(), x, y}, vals));
     queueSave(); closeModal(); refreshMapEditor();
   });
@@ -1691,6 +1791,7 @@ function openEditMarkerModal(mapId, markerId){
   if(!m) return;
   const mk = (m.markers||[]).find(x=>x.id===markerId);
   if(!mk) return;
+  if(mk.icon && !MARKER_SVG[mk.icon] && LEGACY_MARKER_ICONS[mk.icon]) mk.icon = LEGACY_MARKER_ICONS[mk.icon];
   openFormModal('Изменить метку', markerFields(), mk, (vals)=>{ Object.assign(mk, vals); queueSave(); closeModal(); refreshMapEditor(); },
     { label:'Удалить метку', onClick: ()=>{ closeModal(); deleteMarker(mapId, markerId); } });
 }
@@ -1702,20 +1803,19 @@ function deleteMarker(mapId, markerId){
 }
 function onMarkerClick(id){ openEditMarkerModal(state.activeMapId, id); }
 
-function markerIcon(mk){
-  return mk.icon || (mk.type==='poi' ? '⭐' : '📍');
-}
 function markerHtml(mk){
   const icon = markerIcon(mk);
-  return `<div class="map-marker" data-id="${mk.id}" style="left:${mk.x}%; top:${mk.y}%;" title="${esc(mk.name)}">
-    <span class="map-marker-icon">${icon}</span>
+  const key = markerIconKey(mk);
+  const color = MARKER_COLORS[key] || MARKER_COLORS.other;
+  return `<div class="map-marker" data-id="${mk.id}" style="left:${mk.x}%; top:${mk.y}%; --marker-color:${color}" title="${esc(mk.name)}">
+    ${icon}
     <span class="map-marker-label">${esc(mk.name)}</span>
   </div>`;
 }
 function markerCard(mk){
   const typeLabel = mk.type==='city' ? 'Город' : mk.type==='poi' ? 'Точка интереса' : 'Другое';
   return `<div class="dossier">
-    <h3 style="font-size:15px;">${markerIcon(mk)} ${esc(mk.name)}</h3>
+    <h3 style="font-size:15px; display:flex; align-items:center; gap:9px;">${markerIcon(mk,'card')} <span>${esc(mk.name)}</span></h3>
     <div class="d-role">${esc(typeLabel)}</div>
     ${mk.desc ? `<div class="d-desc">${esc(mk.desc)}</div>` : ''}
     <div class="d-actions">
