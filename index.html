@@ -73,18 +73,18 @@
   /* Layout */
   #app{display:flex; flex-direction:column; min-height:100vh;}
   #sidebar{
-    width:100%; flex-shrink:0; background:var(--bg-alt); border-bottom:1px solid var(--border-soft);
-    display:flex; flex-direction:column; padding:14px 32px; gap:12px; position:sticky; top:0; z-index:30;
+    width:100%; flex-shrink:0; background:var(--bg-alt);
+    display:flex; flex-direction:column; padding:14px 32px 0 32px; gap:12px; position:sticky; top:0; z-index:30;
     transition:padding .18s ease;
   }
-  .sidebar-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+  .sidebar-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap; border-bottom:1px solid var(--border-soft); padding-bottom:12px;}
   #sidebarToggle{
     width:26px; height:26px; border-radius:50%; flex-shrink:0;
     background:var(--card); border:1px solid var(--border); color:var(--text-dim); font-size:12px;
     display:flex; align-items:center; justify-content:center; cursor:pointer; margin-left:auto;
   }
   #sidebarToggle:hover{ color:var(--text); border-color:var(--text-faint); }
-  #sidebar.collapsed{ padding:10px 32px; gap:0; }
+  #sidebar.collapsed{ padding:10px 32px 0 32px; gap:0; }
   #sidebar.collapsed .brand h1,
   #sidebar.collapsed #globalSearchWrap,
   #sidebar.collapsed #dataSection,
@@ -94,8 +94,8 @@
   #activeProjectChip .p-name{ font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
   #main{flex:1; min-width:0; padding:34px 42px 80px;}
   @media (max-width:900px){
-    #sidebar{padding:12px 16px;}
-    #sidebar.collapsed{padding:8px 16px;}
+    #sidebar{padding:12px 16px 0 16px;}
+    #sidebar.collapsed{padding:8px 16px 0 16px;}
     #main{padding:22px 16px 60px;}
   }
 
@@ -114,19 +114,23 @@
   .search-hit .hit-meta{color:var(--text-faint); font-size:11px;}
   .search-empty{padding:12px; font-size:12.5px; color:var(--text-faint);}
 
-  #dataSection{position:relative; flex-shrink:0; margin-left:auto;}
-  #dataToggle{display:flex; align-items:center; gap:6px; background:none; border:1px solid var(--border); color:var(--text-dim); padding:7px 12px; border-radius:var(--radius); font-size:12.5px; white-space:nowrap;}
-  #dataToggle:hover{color:var(--text); border-color:var(--text-faint);}
+  #dataSection{position:relative; flex-shrink:0;}
+  #dataToggle{
+    width:26px; height:26px; padding:0; border-radius:50%;
+    background:var(--card); border:1px solid var(--border); color:var(--text-dim);
+    display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  #dataToggle:hover{ color:var(--text); border-color:var(--text-faint); }
   #dataPanel{position:absolute; top:calc(100% + 8px); right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:10px; box-shadow:var(--shadow); display:none; flex-direction:column; gap:8px; min-width:210px; z-index:60;}
   #dataPanel.show{display:flex;}
 
   .side-section-label{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:2px;}
-  #projectsRow{display:flex; align-items:center; gap:10px;}
-  #projectList{display:flex; flex-direction:row; gap:8px; overflow-x:auto; flex:1; min-width:0; padding-bottom:2px;}
+  #projectsRow{display:flex; align-items:flex-end; gap:10px; min-width:0;}
+  #projectList{display:flex; flex-direction:row; gap:8px; overflow-x:auto; flex:0 1 auto; min-width:0; max-width:100%; padding-bottom:2px;}
   #projectList::-webkit-scrollbar{height:5px;}
   #projectList::-webkit-scrollbar-thumb{background:var(--border); border-radius:3px;}
   .project-item{
-    display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:var(--radius); cursor:pointer;
+    display:flex; align-items:center; gap:8px; padding:8px 12px; border-radius:10px 10px 0 0; cursor:pointer;
     border:1px solid var(--border-soft); border-bottom:3px solid var(--pcolor, var(--gray)); background:var(--bg);
     transition:background .15s, transform .15s, box-shadow .15s; flex-shrink:0; white-space:nowrap;
     position:relative; top:0;
@@ -134,28 +138,26 @@
   .project-item:hover{background:var(--card-hover);}
   .project-item:not(.active):hover{ transform:translateY(-1px); }
   .project-item.active{
-    background:var(--bg);
-    border-color:var(--border) var(--border) var(--bg) var(--border);
-    border-radius:9px 9px 3px 3px;
-    transform:translateY(-4px);
-    box-shadow:0 -6px 16px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.04);
-    padding-bottom:11px;
+    background:var(--pcolor, var(--gray));
+    border:1px solid var(--pcolor, var(--gray));
+    border-radius:10px 10px 0 0;
+    padding-top:16px;
+    box-shadow:0 -4px 14px rgba(0,0,0,.3);
     z-index:5;
   }
-  .project-item.active::before{
-    content:''; position:absolute; top:-4px; left:14px; right:14px; height:4px;
-    border-radius:3px 3px 0 0; background:var(--pcolor, var(--gray));
-  }
+  .project-item.active .p-name{ color:#14151b; }
+  .project-item.active .p-type{ color:rgba(20,21,27,.65); }
+  .project-item.active .p-dot{ background:rgba(20,21,27,.22) !important; color:#14151b; }
   .p-dot{width:22px; height:22px; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:#14151b;}
   .p-info{min-width:0;}
   .project-item .p-name{font-size:13px; font-weight:600; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .project-item .p-type{font-size:9px; font-family:'IBM Plex Mono',monospace; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em;}
   #newProjectBtn{
-    flex-shrink:0; width:34px; height:34px; padding:0; background:none; border:1px dashed var(--border);
-    color:var(--text-dim); border-radius:50%; font-size:18px; line-height:1; margin-left:-8px;
-    display:flex; align-items:center; justify-content:center;
+    flex-shrink:0; width:38px; height:38px; padding:0; background:none; border:none;
+    color:var(--text-faint); border-radius:8px; font-size:24px; font-weight:300; line-height:1;
+    display:flex; align-items:center; justify-content:center; align-self:center;
   }
-  #newProjectBtn:hover{border-color:var(--thread); color:var(--text); border-style:solid;}
+  #newProjectBtn:hover{background:var(--card-hover); color:var(--text);}
 
   .btn{border:1px solid var(--border); background:var(--card); color:var(--text); padding:9px 15px; border-radius:var(--radius); font-size:13px; font-weight:500; transition:all .15s;}
   .btn:hover{background:var(--card-hover); border-color:var(--text-faint);}
@@ -269,8 +271,29 @@
   .rel-port:hover{background:var(--thread);}
 
   /* World (locations/factions) */
-  .world-section{margin-bottom:34px;}
+  .world-section{margin-bottom:14px; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden;}
   .world-section h3{font-size:15px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; margin-bottom:14px; font-weight:500;}
+  .world-section-head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; cursor:pointer; background:var(--bg-alt);}
+  .world-section-head:hover{background:var(--card-hover);}
+  .world-section-head-left{display:flex; align-items:center; gap:10px;}
+  .world-section-chevron{color:var(--text-faint); transition:transform .18s; display:flex; flex-shrink:0;}
+  .world-section.open .world-section-chevron{transform:rotate(90deg);}
+  .world-section-title{font-size:13px; color:var(--text); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; font-weight:500;}
+  .world-section-count{font-size:11px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;}
+  .world-section-body{display:none; padding:18px 16px 20px;}
+  .world-section.open .world-section-body{display:block;}
+  .world-section-addbtn{position:relative; z-index:2;}
+
+  /* Map (lore) */
+  .map-dossier{cursor:pointer;}
+  .map-thumb{width:100%; height:120px; border-radius:4px; background-size:cover; background-position:center; border:1px solid var(--border-soft); margin-bottom:2px; background-color:var(--bg-alt);}
+  #mapViewport{position:relative; width:100%; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; background:var(--bg-alt); cursor:crosshair;}
+  .map-bg-img{position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; pointer-events:none; user-select:none;}
+  #mapPathsSvg{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
+  .map-marker{position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column; align-items:center; cursor:grab; user-select:none; z-index:5;}
+  .map-marker:active{cursor:grabbing;}
+  .map-marker-icon{font-size:22px; line-height:1; filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));}
+  .map-marker-label{font-size:10.5px; color:#fff; background:rgba(20,21,27,.78); padding:1px 6px; border-radius:8px; margin-top:2px; white-space:nowrap; max-width:130px; overflow:hidden; text-overflow:ellipsis;}
 
   /* Structure canvas (node editor) */
   .canvas-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
@@ -335,19 +358,23 @@
         <div id="searchResults"></div>
       </div>
       <div id="activeProjectChip"></div>
-      <div id="dataSection">
-        <button id="dataToggle">⭳ Данные</button>
-        <div id="dataPanel">
-          <button id="exportBtn" class="btn btn-sm" style="width:100%;">⭳ Скачать бэкап</button>
-          <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
-          <input type="file" id="importFile" accept="application/json" style="display:none;">
+      <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
+        <div id="dataSection">
+          <button id="dataToggle" title="Данные — бэкап и восстановление">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+          </button>
+          <div id="dataPanel">
+            <button id="exportBtn" class="btn btn-sm" style="width:100%;">⭳ Скачать бэкап</button>
+            <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
+            <input type="file" id="importFile" accept="application/json" style="display:none;">
+          </div>
         </div>
+        <button id="sidebarToggle" onclick="toggleSidebar()" title="Свернуть панель">▴</button>
       </div>
-      <button id="sidebarToggle" onclick="toggleSidebar()" title="Свернуть панель">▴</button>
     </div>
     <div id="projectsRow">
-      <button id="newProjectBtn" title="Новый проект">+</button>
       <div id="projectList"></div>
+      <button id="newProjectBtn" title="Новый проект">+</button>
     </div>
   </div>
   <div id="main"></div>
@@ -359,7 +386,7 @@
 <script>
 /* ---------------- DATA LAYER ---------------- */
 const STORAGE_KEY = 'story-bible-data';
-let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [] };
+let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [], creatures: [], myths: [], magicSystems: [], deities: [], maps: [] };
 let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null };
 let canvasView = { pan:{x:120,y:80}, scale:1 };
 let saveTimer = null;
@@ -393,7 +420,7 @@ async function loadData(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[] }, parsed);
+      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[] }, parsed);
     }
   }catch(e){ /* no data yet, or storage unavailable */ }
   if(data.projects.length && !state.activeProjectId){ state.activeProjectId = data.projects[0].id; }
@@ -518,7 +545,7 @@ function renderActiveProjectChip(){
   chipEl.innerHTML = `${projectDotHtml(p)}<span class="p-name">${esc(p.name)}</span>`;
 }
 
-function selectProject(id){ state.activeProjectId = id; state.activeTab='overview'; render(); }
+function selectProject(id){ state.activeProjectId = id; state.activeTab='overview'; state.activeMapId = null; render(); }
 function toggleSidebar(){
   const sidebar = document.getElementById('sidebar');
   const collapsed = sidebar.classList.toggle('collapsed');
@@ -572,7 +599,7 @@ function renderMain(){
 function tabBtn(key,label){
   return `<button class="tab-btn ${state.activeTab===key?'active':''}" onclick="switchTab('${key}')">${label}</button>`;
 }
-function switchTab(key){ state.activeTab = key; renderMain(); }
+function switchTab(key){ state.activeTab = key; if(key!=='world') state.activeMapId = null; renderMain(); }
 
 function renderTabContent(){
   const el = document.getElementById('tabContent');
@@ -1304,19 +1331,506 @@ function facCard(f){
     </div>
   </div>`;
 }
-function renderWorld(el, pid){
-  const locs = itemsOf('locations', pid), facs = itemsOf('factions', pid);
-  el.innerHTML = `
-    <div class="world-section">
-      <div class="toolbar"><h3 style="margin:0;">Локации</h3><button class="btn btn-sm btn-primary" onclick="openNewLocationModal()">+ Локация</button></div>
-      <div class="grid">${locs.length ? locs.map(locCard).join('') : '<div class="empty-tab">Локаций пока нет.</div>'}</div>
+function creatureCard(c){
+  const avatar = c.photo
+    ? `<img class="d-avatar" src="${c.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(c.name))}</div>`;
+  return `<div class="dossier">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;"><h3 style="font-size:15.5px;">${esc(c.name)}</h3></div>
+      </div>
     </div>
-    <div class="world-section">
-      <div class="toolbar"><h3 style="margin:0;">Фракции</h3><button class="btn btn-sm btn-primary" onclick="openNewFactionModal()">+ Фракция</button></div>
-      <div class="grid">${facs.length ? facs.map(facCard).join('') : '<div class="empty-tab">Фракций пока нет.</div>'}</div>
+    ${c.desc ? `<div class="d-desc">${esc(c.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditCreatureModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCreature('${c.id}')">Удалить</button>
     </div>
-  `;
+  </div>`;
 }
+function openNewCreatureModal(){
+  openFormModal('Новое существо', creatureFields(), {}, (vals)=>{ data.creatures.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditCreatureModal(id){
+  const c = data.creatures.find(x=>x.id===id);
+  openFormModal('Изменить существо', creatureFields(), c, (vals)=>{ Object.assign(c, vals); queueSave(); closeModal(); renderMain(); });
+}
+function deleteCreature(id){ data.creatures = data.creatures.filter(c=>c.id!==id); queueSave(); renderMain(); }
+function creatureFields(){
+  return [
+    {key:'name', label:'Название монстра / существа', type:'text', required:true},
+    {key:'photo', label:'Изображение', type:'image'},
+    {key:'desc', label:'Описание, повадки, слабости', type:'textarea'},
+  ];
+}
+function mythCard(m){
+  return `<div class="dossier">
+    <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
+    ${m.origin ? `<div class="d-role">${esc(m.origin)}</div>` : ''}
+    ${m.desc ? `<div class="d-desc">${esc(m.desc)}</div>` : ''}
+    ${m.truth ? `<div class="d-alias" style="margin-top:8px;">Правда за легендой: ${esc(m.truth)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditMythModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMyth('${m.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewMythModal(){
+  openFormModal('Новый миф или легенда', mythFields(), {}, (vals)=>{ data.myths.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditMythModal(id){
+  const m = data.myths.find(x=>x.id===id);
+  openFormModal('Изменить миф или легенду', mythFields(), m, (vals)=>{ Object.assign(m, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить', onClick: ()=>{ closeModal(); deleteMyth(id); } });
+}
+function deleteMyth(id){ data.myths = data.myths.filter(m=>m.id!==id); queueSave(); renderMain(); }
+function mythFields(){
+  return [
+    {key:'name', label:'Название мифа / легенды', type:'text', required:true},
+    {key:'origin', label:'Кто рассказывает / откуда пошла', type:'text', placeholder:'народное предание, культ, придворные летописи…'},
+    {key:'desc', label:'Пересказ легенды', type:'textarea'},
+    {key:'truth', label:'Что из этого правда на самом деле (необязательно)', type:'textarea'},
+  ];
+}
+function magicCard(m){
+  return `<div class="dossier">
+    <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
+    ${m.source ? `<div class="d-role">${esc(m.source)}</div>` : ''}
+    ${m.desc ? `<div class="d-desc">${esc(m.desc)}</div>` : ''}
+    ${m.limits ? `<div class="d-alias" style="margin-top:8px;">Цена / ограничения: ${esc(m.limits)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditMagicModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMagic('${m.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewMagicModal(){
+  openFormModal('Новая магическая система / правило', magicFields(), {}, (vals)=>{ data.magicSystems.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditMagicModal(id){
+  const m = data.magicSystems.find(x=>x.id===id);
+  openFormModal('Изменить магическую систему / правило', magicFields(), m, (vals)=>{ Object.assign(m, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить', onClick: ()=>{ closeModal(); deleteMagic(id); } });
+}
+function deleteMagic(id){ data.magicSystems = data.magicSystems.filter(m=>m.id!==id); queueSave(); renderMain(); }
+function magicFields(){
+  return [
+    {key:'name', label:'Название системы / правила', type:'text', required:true},
+    {key:'source', label:'Источник силы', type:'text', placeholder:'кровь, звёзды, духи, технологии…'},
+    {key:'desc', label:'Как это работает', type:'textarea'},
+    {key:'limits', label:'Цена, ограничения, правила и исключения', type:'textarea'},
+  ];
+}
+function deityCard(d){
+  return `<div class="dossier">
+    <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
+    ${d.domain ? `<div class="d-role">${esc(d.domain)}</div>` : ''}
+    ${d.desc ? `<div class="d-desc">${esc(d.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditDeityModal('${d.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDeity('${d.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewDeityModal(){
+  openFormModal('Новое божество / культ', deityFields(), {}, (vals)=>{ data.deities.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditDeityModal(id){
+  const d = data.deities.find(x=>x.id===id);
+  openFormModal('Изменить божество / культ', deityFields(), d, (vals)=>{ Object.assign(d, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить', onClick: ()=>{ closeModal(); deleteDeity(id); } });
+}
+function deleteDeity(id){ data.deities = data.deities.filter(d=>d.id!==id); queueSave(); renderMain(); }
+function deityFields(){
+  return [
+    {key:'name', label:'Имя божества / название культа', type:'text', required:true},
+    {key:'domain', label:'Сфера покровительства', type:'text', placeholder:'война, урожай, смерть, ремёсла…'},
+    {key:'desc', label:'Описание, история, обряды, последователи', type:'textarea'},
+  ];
+}
+const WORLD_SECTIONS = [
+  {key:'maps', title:'Карта', addLabel:'+ Добавить', addFn:'openNewMapModal', card:mapCardRef, emptyLabel:'Карт пока нет.'},
+  {key:'magicSystems', title:'Магическая система / правила мира', addLabel:'+ Добавить', addFn:'openNewMagicModal', card:magicCardRef, emptyLabel:'Правил пока нет.'},
+  {key:'deities', title:'Религии / пантеон богов', addLabel:'+ Добавить', addFn:'openNewDeityModal', card:deityCardRef, emptyLabel:'Божеств пока нет.'},
+  {key:'locations', title:'Локации', addLabel:'+ Добавить', addFn:'openNewLocationModal', card:locCardRef, emptyLabel:'Локаций пока нет.'},
+  {key:'factions', title:'Фракции', addLabel:'+ Добавить', addFn:'openNewFactionModal', card:facCardRef, emptyLabel:'Фракций пока нет.'},
+  {key:'creatures', title:'Бестиарий', addLabel:'+ Добавить', addFn:'openNewCreatureModal', card:creatureCardRef, emptyLabel:'Существ пока нет.'},
+  {key:'myths', title:'Мифы и легенды', addLabel:'+ Добавить', addFn:'openNewMythModal', card:mythCardRef, emptyLabel:'Мифов и легенд пока нет.'},
+];
+function locCardRef(x){ return locCard(x); }
+function facCardRef(x){ return facCard(x); }
+function creatureCardRef(x){ return creatureCard(x); }
+function mythCardRef(x){ return mythCard(x); }
+function magicCardRef(x){ return magicCard(x); }
+function deityCardRef(x){ return deityCard(x); }
+function mapCardRef(x){ return mapCard(x); }
+
+function toggleWorldSection(key){
+  if(!state.worldOpen) state.worldOpen = {};
+  state.worldOpen[key] = !state.worldOpen[key];
+  const sec = document.getElementById('world-sec-'+key);
+  if(sec) sec.classList.toggle('open', !!state.worldOpen[key]);
+}
+
+function renderWorld(el, pid){
+  if(!state.worldOpen) state.worldOpen = {};
+  if(state.activeMapId){
+    const activeMap = data.maps.find(x=>x.id===state.activeMapId && x.projectId===pid);
+    if(activeMap) return renderMapEditor(el, activeMap);
+    state.activeMapId = null;
+  }
+  const dataByKey = {
+    maps: itemsOf('maps', pid),
+    magicSystems: itemsOf('magicSystems', pid),
+    deities: itemsOf('deities', pid),
+    locations: itemsOf('locations', pid),
+    factions: itemsOf('factions', pid),
+    creatures: itemsOf('creatures', pid),
+    myths: itemsOf('myths', pid),
+  };
+  el.innerHTML = WORLD_SECTIONS.map(sec=>{
+    const items = dataByKey[sec.key];
+    const open = !!state.worldOpen[sec.key];
+    return `<div class="world-section ${open?'open':''}" id="world-sec-${sec.key}">
+      <div class="world-section-head" onclick="toggleWorldSection('${sec.key}')">
+        <div class="world-section-head-left">
+          <span class="world-section-chevron"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></span>
+          <span class="world-section-title">${esc(sec.title)}</span>
+          <span class="world-section-count">${items.length}</span>
+        </div>
+        <button class="btn btn-sm btn-primary world-section-addbtn" onclick="event.stopPropagation(); ${sec.addFn}()">${esc(sec.addLabel)}</button>
+      </div>
+      <div class="world-section-body">
+        <div class="grid">${items.length ? items.map(sec.card).join('') : `<div class="empty-tab">${esc(sec.emptyLabel)}</div>`}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------------- MAP (lore) ---------------- */
+function mapCard(m){
+  const thumbStyle = m.image ? `background-image:url('${m.image}');` : '';
+  return `<div class="dossier map-dossier" onclick="openMapEditor('${m.id}')">
+    <div class="map-thumb" style="${thumbStyle}"></div>
+    <h3 style="font-size:15.5px; margin-top:10px;">${esc(m.name)}</h3>
+    <div class="d-alias">${(m.markers||[]).length} меток · ${(m.paths||[]).length} путей</div>
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openMapEditor('${m.id}')">Открыть</button>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditMapModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="event.stopPropagation(); deleteMap('${m.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+
+function getImageDimensions(dataUrl){
+  return new Promise((resolve, reject)=>{
+    const img = new Image();
+    img.onload = ()=> resolve({ w: img.naturalWidth || img.width, h: img.naturalHeight || img.height });
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+
+function openMapFormModal(existingMap){
+  const isEdit = !!existingMap;
+  let pendingImage = isEdit ? { dataUrl: existingMap.image, w: null, h: null } : null;
+  const box = document.getElementById('modalBox');
+  box.innerHTML = `<h2>${isEdit ? 'Изменить карту' : 'Новая карта'}</h2>
+    <div class="field"><label>Название карты</label><input type="text" id="mapNameInput" value="${isEdit ? esc(existingMap.name) : ''}" placeholder="Карта мира, Континент…"></div>
+    <div class="field"><label>Изображение карты</label>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <input type="file" id="mapImageInput" accept="image/*" style="display:none;">
+        <button class="btn btn-ghost btn-sm" id="mapImagePickBtn" style="align-self:flex-start;">${isEdit ? 'Заменить изображение' : 'Выбрать изображение'}</button>
+        <div id="mapImagePreviewWrap" style="display:${isEdit ? 'block' : 'none'};"><img id="mapImagePreview" src="${isEdit ? existingMap.image : ''}" style="max-width:100%; max-height:220px; border-radius:4px; border:1px solid var(--border); display:block;"></div>
+      </div>
+    </div>
+    <div id="modalActions">
+      <div id="modalLeftActions">${isEdit ? `<button class="btn btn-danger btn-sm" id="mapDangerBtn">Удалить карту</button>` : ''}</div>
+      <div id="modalRightActions" style="display:flex; gap:10px;">
+        <button class="btn" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" id="mapSaveBtn">${isEdit ? 'Сохранить' : 'Создать'}</button>
+      </div>
+    </div>`;
+  document.getElementById('mapImagePickBtn').onclick = ()=> document.getElementById('mapImageInput').click();
+  document.getElementById('mapImageInput').onchange = ()=>{
+    const file = document.getElementById('mapImageInput').files[0];
+    if(!file) return;
+    resizeImageFile(file, 1600, 1600, 0.85).then(dataUrl=>{
+      return getImageDimensions(dataUrl).then(dim=>{
+        pendingImage = { dataUrl, w: dim.w, h: dim.h };
+        document.getElementById('mapImagePreviewWrap').style.display = 'block';
+        document.getElementById('mapImagePreview').src = dataUrl;
+      });
+    }).catch(()=>showToast('Не удалось загрузить изображение'));
+  };
+  document.getElementById('mapSaveBtn').onclick = ()=>{
+    const name = document.getElementById('mapNameInput').value.trim();
+    if(!name){ showToast('Введите название карты'); return; }
+    if(!pendingImage){ showToast('Загрузите изображение карты'); return; }
+    if(isEdit){
+      existingMap.name = name;
+      if(pendingImage.dataUrl !== existingMap.image){
+        existingMap.image = pendingImage.dataUrl;
+        if(pendingImage.w && pendingImage.h) existingMap.aspect = pendingImage.w / pendingImage.h;
+      }
+      queueSave(); closeModal(); renderMain();
+    } else {
+      const m = { id: uid(), projectId: state.activeProjectId, name, image: pendingImage.dataUrl, aspect: (pendingImage.w && pendingImage.h) ? pendingImage.w/pendingImage.h : 1.6, markers: [], paths: [] };
+      data.maps.push(m);
+      queueSave(); closeModal();
+      openMapEditor(m.id);
+    }
+  };
+  if(isEdit){ document.getElementById('mapDangerBtn').onclick = ()=>{ closeModal(); deleteMap(existingMap.id); }; }
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function openNewMapModal(){ openMapFormModal(null); }
+function openEditMapModal(id){ const m = data.maps.find(x=>x.id===id); if(m) openMapFormModal(m); }
+function deleteMap(id){
+  askConfirm('Удалить карту вместе со всеми метками и путями? Это необратимо.', 'Удалить карту', ()=>{
+    data.maps = data.maps.filter(m=>m.id!==id);
+    if(state.activeMapId===id) state.activeMapId = null;
+    queueSave(); renderMain();
+  });
+}
+
+function openMapEditor(id){
+  state.activeMapId = id;
+  if(!state.mapMode) state.mapMode = 'marker';
+  state.mapDrawingPath = null;
+  renderMain();
+}
+function closeMapEditor(){
+  state.activeMapId = null;
+  state.mapDrawingPath = null;
+  renderMain();
+}
+function refreshMapEditor(){
+  const el = document.getElementById('tabContent');
+  if(!el) return;
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(m) renderMapEditor(el, m); else renderMain();
+}
+function setMapMode(mode){
+  state.mapMode = mode;
+  if(mode!=='path') state.mapDrawingPath = null;
+  refreshMapEditor();
+}
+function startMapPath(){ state.mapDrawingPath = { points: [] }; refreshMapEditor(); }
+function cancelMapPath(){ state.mapDrawingPath = null; refreshMapEditor(); }
+function finishMapPath(){
+  if(!state.mapDrawingPath || state.mapDrawingPath.points.length < 2){ showToast('Добавьте хотя бы 2 точки маршрута'); return; }
+  openNewPathModal(state.mapDrawingPath.points);
+}
+function openNewPathModal(points){
+  const box = document.getElementById('modalBox');
+  const defaultColors = ['#c1443b','#c9a24c','#5fa8a0','#b5698f','#8c7ec9','#7fb069'];
+  const color = defaultColors[Math.floor(Math.random()*defaultColors.length)];
+  box.innerHTML = `<h2>Новый путь</h2>
+    <div class="field"><label>Название пути</label><input type="text" id="pathNameInput" placeholder="Путь героя от деревни до крепости…"></div>
+    <div class="field"><label>Цвет линии</label><input type="color" id="pathColorInput" value="${color}" style="width:60px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"></div>
+    <div class="field"><label>Заметка (необязательно)</label><textarea id="pathDescInput" placeholder="что происходит в пути…"></textarea></div>
+    <div id="modalActions">
+      <div id="modalLeftActions"></div>
+      <div id="modalRightActions" style="display:flex; gap:10px;">
+        <button class="btn" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" id="pathSaveBtn">Сохранить путь</button>
+      </div>
+    </div>`;
+  document.getElementById('pathSaveBtn').onclick = ()=>{
+    const name = document.getElementById('pathNameInput').value.trim();
+    if(!name){ showToast('Введите название пути'); return; }
+    const m = data.maps.find(x=>x.id===state.activeMapId);
+    if(!m) return;
+    if(!m.paths) m.paths = [];
+    m.paths.push({ id:uid(), name, color: document.getElementById('pathColorInput').value, desc: document.getElementById('pathDescInput').value, points });
+    queueSave(); closeModal();
+    state.mapDrawingPath = null;
+    refreshMapEditor();
+  };
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function deleteMapPath(mapId, pathId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  m.paths = (m.paths||[]).filter(p=>p.id!==pathId);
+  queueSave(); refreshMapEditor();
+}
+
+function markerFields(){
+  return [
+    {key:'name', label:'Название', type:'text', required:true},
+    {key:'type', label:'Тип', type:'select', options:[['city','Город'],['poi','Точка интереса'],['other','Другое']]},
+    {key:'desc', label:'Описание', type:'textarea'},
+  ];
+}
+function openNewMarkerModal(m, x, y){
+  openFormModal('Новая метка', markerFields(), {type:'poi'}, (vals)=>{
+    if(!m.markers) m.markers = [];
+    m.markers.push(Object.assign({id:uid(), x, y}, vals));
+    queueSave(); closeModal(); refreshMapEditor();
+  });
+}
+function openEditMarkerModal(mapId, markerId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  const mk = (m.markers||[]).find(x=>x.id===markerId);
+  if(!mk) return;
+  openFormModal('Изменить метку', markerFields(), mk, (vals)=>{ Object.assign(mk, vals); queueSave(); closeModal(); refreshMapEditor(); },
+    { label:'Удалить метку', onClick: ()=>{ closeModal(); deleteMarker(mapId, markerId); } });
+}
+function deleteMarker(mapId, markerId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  m.markers = (m.markers||[]).filter(x=>x.id!==markerId);
+  queueSave(); refreshMapEditor();
+}
+function onMarkerClick(id){ openEditMarkerModal(state.activeMapId, id); }
+
+function markerHtml(mk){
+  const icon = mk.type==='city' ? '🏙️' : mk.type==='poi' ? '⭐' : '📍';
+  return `<div class="map-marker" data-id="${mk.id}" style="left:${mk.x}%; top:${mk.y}%;" title="${esc(mk.name)}">
+    <span class="map-marker-icon">${icon}</span>
+    <span class="map-marker-label">${esc(mk.name)}</span>
+  </div>`;
+}
+function markerCard(mk){
+  const typeLabel = mk.type==='city' ? 'Город' : mk.type==='poi' ? 'Точка интереса' : 'Другое';
+  return `<div class="dossier">
+    <h3 style="font-size:15px;">${esc(mk.name)}</h3>
+    <div class="d-role">${esc(typeLabel)}</div>
+    ${mk.desc ? `<div class="d-desc">${esc(mk.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditMarkerModal('${state.activeMapId}','${mk.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMarker('${state.activeMapId}','${mk.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function pathCard(p){
+  return `<div class="dossier">
+    <div class="d-top"><h3 style="font-size:15px; display:flex; align-items:center; gap:8px;"><span style="width:14px; height:14px; border-radius:50%; background:${p.color||'var(--gold)'}; display:inline-block; flex-shrink:0;"></span>${esc(p.name)}</h3></div>
+    <div class="d-alias">${(p.points||[]).length} точек маршрута</div>
+    ${p.desc ? `<div class="d-desc">${esc(p.desc)}</div>` : ''}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMapPath('${state.activeMapId}','${p.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+
+function renderMapEditor(el, m){
+  if(!m.markers) m.markers = [];
+  if(!m.paths) m.paths = [];
+  const pathToolbar = state.mapMode==='path'
+    ? (state.mapDrawingPath
+        ? `<button class="btn btn-sm btn-primary" onclick="finishMapPath()">Завершить путь (${state.mapDrawingPath.points.length})</button><button class="btn btn-sm" onclick="cancelMapPath()">Отменить</button>`
+        : `<button class="btn btn-sm" onclick="startMapPath()">Начать новый путь</button>`)
+    : '';
+  const hint = state.mapMode==='marker'
+    ? 'Кликните по карте, чтобы поставить метку. Перетаскивайте метки, чтобы переместить. Клик по метке — изменить.'
+    : (state.mapDrawingPath ? 'Кликайте по карте, чтобы добавлять точки пути. Когда закончите — нажмите «Завершить путь».' : 'Нажмите «Начать новый путь», затем кликайте по карте, чтобы отметить маршрут героя.');
+  el.innerHTML = `
+    <div class="canvas-toolbar">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <button class="btn btn-sm" onclick="closeMapEditor()">← Назад к картам</button>
+        <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</h3>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <div class="canvas-zoom-controls" style="gap:6px;">
+          <button class="btn btn-sm ${state.mapMode==='marker'?'btn-primary':''}" onclick="setMapMode('marker')">📍 Метки</button>
+          <button class="btn btn-sm ${state.mapMode==='path'?'btn-primary':''}" onclick="setMapMode('path')">〜 Путь</button>
+        </div>
+        ${pathToolbar}
+      </div>
+    </div>
+    <div class="eyebrow" style="margin-bottom:10px;">${hint}</div>
+    <div id="mapViewport" style="aspect-ratio:${m.aspect||1.6};" onclick="onMapClick(event)">
+      <img src="${m.image}" class="map-bg-img" draggable="false" alt="">
+      <svg id="mapPathsSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+      ${m.markers.map(markerHtml).join('')}
+    </div>
+    <div class="side-section-label" style="margin:22px 0 10px;">Метки (${m.markers.length})</div>
+    <div class="grid">${m.markers.length ? m.markers.map(markerCard).join('') : '<div class="empty-tab">Меток пока нет — кликните по карте.</div>'}</div>
+    <div class="side-section-label" style="margin:26px 0 10px;">Пути героев (${m.paths.length})</div>
+    <div class="grid">${m.paths.length ? m.paths.map(pathCard).join('') : '<div class="empty-tab">Путей пока нет.</div>'}</div>
+  `;
+  drawMapPaths(m);
+  attachMapMarkerDrag(m);
+}
+
+function onMapClick(e){
+  if(e.target.closest('.map-marker')) return;
+  const viewport = document.getElementById('mapViewport');
+  const rect = viewport.getBoundingClientRect();
+  const xPct = ((e.clientX-rect.left)/rect.width)*100;
+  const yPct = ((e.clientY-rect.top)/rect.height)*100;
+  if(xPct<0 || xPct>100 || yPct<0 || yPct>100) return;
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  if(state.mapMode==='marker'){
+    openNewMarkerModal(m, xPct, yPct);
+  } else if(state.mapMode==='path'){
+    if(!state.mapDrawingPath){ showToast('Сначала нажмите «Начать новый путь»'); return; }
+    state.mapDrawingPath.points.push({x:xPct, y:yPct});
+    refreshMapEditor();
+  }
+}
+
+function drawMapPaths(m){
+  const svg = document.getElementById('mapPathsSvg');
+  if(!svg) return;
+  let out = '';
+  (m.paths||[]).forEach(p=>{
+    const pts = (p.points||[]).map(pt=>`${pt.x},${pt.y}`).join(' ');
+    out += `<polyline points="${pts}" fill="none" stroke="${p.color||'var(--gold)'}" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+    (p.points||[]).forEach((pt,i)=>{
+      out += `<circle cx="${pt.x}" cy="${pt.y}" r="${i===0||i===p.points.length-1?1.1:0.7}" fill="${p.color||'var(--gold)'}"/>`;
+    });
+  });
+  if(state.mapDrawingPath){
+    const pts = state.mapDrawingPath.points;
+    const ptsStr = pts.map(pt=>`${pt.x},${pt.y}`).join(' ');
+    out += `<polyline points="${ptsStr}" fill="none" stroke="var(--thread)" stroke-width="0.6" stroke-dasharray="1.5 1" stroke-linecap="round"/>`;
+    pts.forEach(pt=>{ out += `<circle cx="${pt.x}" cy="${pt.y}" r="0.9" fill="var(--thread)"/>`; });
+  }
+  svg.innerHTML = out;
+}
+
+function attachMapMarkerDrag(m){
+  const viewport = document.getElementById('mapViewport');
+  if(!viewport) return;
+  viewport.querySelectorAll('.map-marker').forEach(nodeEl=>{
+    nodeEl.addEventListener('mousedown', (e)=>{
+      e.stopPropagation();
+      const id = nodeEl.dataset.id;
+      const marker = (m.markers||[]).find(x=>x.id===id);
+      if(!marker) return;
+      const rect = viewport.getBoundingClientRect();
+      const startX=e.clientX, startY=e.clientY, ox=marker.x, oy=marker.y;
+      let moved = false;
+      const move=(ev)=>{
+        if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
+        let nx = ox + ((ev.clientX-startX)/rect.width)*100;
+        let ny = oy + ((ev.clientY-startY)/rect.height)*100;
+        nx = Math.min(100, Math.max(0, nx));
+        ny = Math.min(100, Math.max(0, ny));
+        marker.x = nx; marker.y = ny;
+        nodeEl.style.left = nx+'%'; nodeEl.style.top = ny+'%';
+        drawMapPaths(m);
+      };
+      const up=()=>{
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        if(moved) queueSave();
+        else onMarkerClick(id);
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+      e.preventDefault();
+    });
+  });
+}
+
 function openNewLocationModal(){
   openFormModal('Новая локация', locationFields(), {}, (vals)=>{ data.locations.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
 }
@@ -1360,7 +1874,7 @@ function openEditProjectModal(id){
 function deleteProject(id){
   askConfirm('Удалить проект целиком, со всеми персонажами, связями, событиями и лором? Это необратимо.', 'Удалить проект', ()=>{
     data.projects = data.projects.filter(p=>p.id!==id);
-    ['characters','relationships','events','locations','factions','scenes','sceneLinks'].forEach(coll=>{ data[coll] = data[coll].filter(x=>x.projectId!==id); });
+    ['characters','relationships','events','locations','factions','scenes','sceneLinks','creatures','myths','magicSystems','deities','maps'].forEach(coll=>{ data[coll] = data[coll].filter(x=>x.projectId!==id); });
     if(state.activeProjectId===id){ state.activeProjectId = data.projects[0] ? data.projects[0].id : null; }
     queueSave(); render();
   });
@@ -1397,23 +1911,36 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
       const previewWrap = document.createElement('div');
       previewWrap.style.cssText = 'display:flex; align-items:center; gap:12px; margin-top:2px;';
       const img = document.createElement('img');
-      img.style.cssText = 'width:60px; height:60px; border-radius:50%; object-fit:cover; border:1px solid var(--border); background:var(--bg-alt); display:'+(input.value?'block':'none')+';';
+      img.style.cssText = 'width:60px; height:60px; border-radius:50%; object-fit:cover; border:1px solid var(--border); background:var(--bg-alt); flex-shrink:0; display:'+(input.value?'block':'none')+';';
       if(input.value) img.src = input.value;
+      const placeholder = document.createElement('div');
+      placeholder.style.cssText = 'width:60px; height:60px; border-radius:50%; border:1px solid var(--border); background:var(--bg-alt); flex-shrink:0; align-items:center; justify-content:center; font-family:\'IBM Plex Mono\',monospace; font-size:17px; color:var(--text-faint); display:'+(input.value?'none':'flex')+';';
+      const nameInput = fw.querySelector('[data-key="name"]');
+      placeholder.textContent = initials((nameInput ? nameInput.value : initial.name) || '') || '?';
+      if(nameInput){ nameInput.addEventListener('input', ()=>{ placeholder.textContent = initials(nameInput.value) || '?'; }); }
       const controls = document.createElement('div'); controls.style.cssText = 'display:flex; flex-direction:column; gap:6px;';
-      const fileInput = document.createElement('input'); fileInput.type='file'; fileInput.accept='image/*';
+      const fileInput = document.createElement('input'); fileInput.type='file'; fileInput.accept='image/*'; fileInput.style.display='none';
+      const addBtn = document.createElement('button'); addBtn.type='button'; addBtn.className='btn btn-ghost btn-sm';
+      addBtn.style.cssText = 'align-self:flex-start;';
+      addBtn.textContent = input.value ? 'Изменить фото' : 'Добавить фото';
+      addBtn.onclick = ()=> fileInput.click();
       const removeBtn = document.createElement('button'); removeBtn.type='button'; removeBtn.className='btn btn-ghost btn-sm';
       removeBtn.textContent = 'Убрать фото';
       removeBtn.style.cssText = 'align-self:flex-start; display:'+(input.value?'inline-block':'none')+';';
-      removeBtn.onclick = ()=>{ input.value=''; img.src=''; img.style.display='none'; removeBtn.style.display='none'; };
+      removeBtn.onclick = ()=>{
+        input.value=''; img.src=''; img.style.display='none'; placeholder.style.display='flex';
+        removeBtn.style.display='none'; addBtn.textContent='Добавить фото';
+      };
       fileInput.onchange = ()=>{
         const file = fileInput.files[0];
         if(!file) return;
         resizeImageFile(file, 260, 260, 0.82).then(dataUrl=>{
-          input.value = dataUrl; img.src = dataUrl; img.style.display='block'; removeBtn.style.display='inline-block';
+          input.value = dataUrl; img.src = dataUrl; img.style.display='block'; placeholder.style.display='none';
+          removeBtn.style.display='inline-block'; addBtn.textContent='Изменить фото';
         }).catch(()=>showToast('Не удалось загрузить изображение'));
       };
-      controls.appendChild(fileInput); controls.appendChild(removeBtn);
-      previewWrap.appendChild(img); previewWrap.appendChild(controls);
+      controls.appendChild(fileInput); controls.appendChild(addBtn); controls.appendChild(removeBtn);
+      previewWrap.appendChild(img); previewWrap.appendChild(placeholder); previewWrap.appendChild(controls);
       wrap.appendChild(previewWrap);
     }
     else if(f.type==='color'){
@@ -1441,8 +1968,30 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
       f.options.forEach(([val,lab])=>{ const o=document.createElement('option'); o.value=val; o.textContent=lab; input.appendChild(o); });
       input.value = initial[f.key]!==undefined ? initial[f.key] : (f.options[0]?f.options[0][0]:'');
     } else if(f.type==='multiselect'){
-      input = document.createElement('select'); input.multiple = true; input.size = Math.min(6, Math.max(3,f.options.length));
-      f.options.forEach(([val,lab])=>{ const o=document.createElement('option'); o.value=val; o.textContent=lab; if((initial[f.key]||[]).includes(val)) o.selected=true; input.appendChild(o); });
+      input = document.createElement('input'); input.type='hidden';
+      const selected = new Set(initial[f.key] || []);
+      input.value = JSON.stringify(Array.from(selected));
+      const box = document.createElement('div');
+      box.style.cssText = 'display:flex; flex-direction:column; gap:2px; max-height:190px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius); padding:6px 4px; background:var(--bg-alt);';
+      if(!f.options.length){
+        box.innerHTML = '<div style="font-size:12.5px; color:var(--text-faint); padding:6px 8px;">Нет доступных вариантов</div>';
+      }
+      f.options.forEach(([val,lab])=>{
+        const row = document.createElement('label');
+        row.style.cssText = 'display:flex; align-items:center; gap:9px; font-size:13.5px; color:var(--text); cursor:pointer; padding:6px 8px; border-radius:4px;';
+        row.onmouseenter = ()=>{ row.style.background='var(--card-hover)'; };
+        row.onmouseleave = ()=>{ row.style.background='transparent'; };
+        const cb = document.createElement('input'); cb.type='checkbox'; cb.value=val; cb.checked = selected.has(val);
+        cb.style.cssText = 'width:17px; height:17px; accent-color:var(--gold); cursor:pointer; flex-shrink:0;';
+        cb.addEventListener('change', ()=>{
+          if(cb.checked) selected.add(val); else selected.delete(val);
+          input.value = JSON.stringify(Array.from(selected));
+        });
+        const span = document.createElement('span'); span.textContent = lab;
+        row.appendChild(cb); row.appendChild(span);
+        box.appendChild(row);
+      });
+      wrap.appendChild(box);
     } else if(f.type==='tags'){
       input = document.createElement('input'); input.type='text'; input.value=(initial[f.key]||[]).join(', '); input.placeholder='тег1, тег2…';
     } else {
@@ -1454,7 +2003,7 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
   document.getElementById('modalSaveBtn').onclick = ()=>{
     const vals = {};
     fw.querySelectorAll('[data-key]').forEach(inp=>{
-      if(inp.dataset.type==='multiselect'){ vals[inp.dataset.key] = Array.from(inp.selectedOptions).map(o=>o.value); }
+      if(inp.dataset.type==='multiselect'){ try{ vals[inp.dataset.key] = JSON.parse(inp.value || '[]'); }catch(e){ vals[inp.dataset.key] = []; } }
       else if(inp.dataset.type==='tags'){ vals[inp.dataset.key] = inp.value.split(',').map(s=>s.trim()).filter(Boolean); }
       else { vals[inp.dataset.key] = inp.value; }
     });
@@ -1507,6 +2056,11 @@ searchInput.addEventListener('input', ()=>{
   collect('events','Событие','title','arc');
   collect('locations','Локация','name','faction');
   collect('factions','Фракция','name');
+  collect('creatures','Существо','name');
+  collect('myths','Миф / легенда','name','origin');
+  collect('magicSystems','Магия / правило','name','source');
+  collect('deities','Божество / культ','name','domain');
+  collect('maps','Карта','name');
   collect('projects','Проект','name','type');
   if(!hits.length){ searchResultsEl.innerHTML = '<div class="search-empty">Ничего не найдено</div>'; searchResultsEl.classList.add('show'); return; }
   searchResultsEl.innerHTML = hits.slice(0,30).map(h=>{
@@ -1523,7 +2077,7 @@ document.addEventListener('click', (e)=>{ if(!document.getElementById('globalSea
 
 function jumpTo(coll, itemId, projectId){
   searchResultsEl.classList.remove('show'); searchInput.value='';
-  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', projects:'overview' };
+  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', creatures:'world', myths:'world', magicSystems:'world', deities:'world', maps:'world', projects:'overview' };
   state.activeProjectId = coll==='projects' ? itemId : projectId;
   state.activeTab = tabMap[coll] || 'overview';
   render();
@@ -1563,7 +2117,7 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
       const parsed = JSON.parse(reader.result);
       if(!parsed || !Array.isArray(parsed.projects)) throw new Error('bad format');
       askConfirm('Загрузить бэкап? Это заменит все текущие данные в архиве — сохраните текущий бэкап на всякий случай, если ещё не сделали.', 'Загрузить', ()=>{
-        data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[] }, parsed);
+        data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[] }, parsed);
         state.activeProjectId = data.projects[0] ? data.projects[0].id : null;
         state.activeTab = 'overview';
         queueSave();
