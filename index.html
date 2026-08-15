@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Мастерская">
 <meta name="description" content="Инструмент для управления большими историями: персонажи, связи, структура сюжета, таймлайн и лор.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=MedievalSharp&family=Uncial+Antiqua&family=IM+Fell+English+SC&family=Almendra+SC&family=Pirata+One&family=Marcellus+SC&family=Caveat:wght@400;500;600;700&family=Pacifico&family=Ruslan+Display&family=Marck+Script&family=Bad+Script&family=Underdog&family=Yeseva+One&family=Neucha&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#14151b;
@@ -121,6 +121,16 @@
     display:flex; align-items:center; justify-content:center; cursor:pointer;
   }
   #dataToggle:hover{ color:var(--text); border-color:var(--text-faint); }
+  #dataToggle.backup-due-soon{ animation: backupBlinkYellow 1.4s ease-in-out infinite; }
+  #dataToggle.backup-overdue{ animation: backupBlinkRed 1s ease-in-out infinite; }
+  @keyframes backupBlinkYellow{
+    0%,100%{ background:var(--card); border-color:var(--border); color:var(--text-dim); box-shadow:none; }
+    50%{ background:#c9a24c; border-color:#c9a24c; color:#14151b; box-shadow:0 0 10px rgba(201,162,76,.7); }
+  }
+  @keyframes backupBlinkRed{
+    0%,100%{ background:var(--card); border-color:var(--border); color:var(--text-dim); box-shadow:none; }
+    50%{ background:#c1443b; border-color:#c1443b; color:#fff; box-shadow:0 0 12px rgba(193,68,59,.8); }
+  }
   #dataPanel{position:absolute; top:calc(100% + 8px); right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:10px; box-shadow:var(--shadow); display:none; flex-direction:column; gap:8px; min-width:210px; z-index:60;}
   #dataPanel.show{display:flex;}
 
@@ -231,6 +241,13 @@
   .status-alive{color:var(--teal); border-color:var(--teal);}
   .status-dead{color:var(--thread); border-color:var(--thread);}
   .dossier .d-desc{font-size:12.5px; color:var(--text-dim); line-height:1.55; margin-top:10px; max-height:80px; overflow:hidden;}
+  .tl-collapsible{margin-top:10px;}
+  .tl-collapsible-label{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; font-family:'IBM Plex Mono',monospace; margin-bottom:4px;}
+  .tl-collapsible-text{font-size:12.5px; color:var(--text-dim); line-height:1.55; max-height:64px; overflow:hidden; position:relative;}
+  .tl-collapsible:not(.expanded) .tl-collapsible-text::after{content:''; position:absolute; left:0; right:0; bottom:0; height:26px; background:linear-gradient(transparent, var(--card));}
+  .tl-collapsible.expanded .tl-collapsible-text{max-height:none;}
+  .tl-collapsible-toggle{background:none; border:none; color:var(--gold); font-size:11px; padding:5px 0 0; cursor:pointer; font-family:inherit;}
+  .tl-collapsible-toggle:hover{text-decoration:underline;}
   .d-tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;}
   .d-tag{font-size:10px; background:var(--bg-alt); border:1px solid var(--border-soft); padding:2px 7px; border-radius:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace;}
   .d-actions{display:flex; gap:4px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-soft);}
@@ -238,8 +255,9 @@
   /* Timeline */
   #timelineList{position:relative; padding-left:26px; margin-top:6px;}
   #timelineList::before{content:''; position:absolute; left:6px; top:6px; bottom:6px; width:1px; background:linear-gradient(var(--border), var(--border-soft));}
-  .tl-event{position:relative; padding-bottom:22px;}
-  .tl-event::before{content:''; position:absolute; left:-26px; top:5px; width:9px; height:9px; border-radius:50%; background:var(--thread); box-shadow:0 0 0 3px var(--bg);}
+  .tl-event{position:relative; padding-bottom:22px; scroll-margin-top:24px;}
+  .tl-event .tl-marker-dot{position:absolute; left:-26px; top:5px; width:9px; height:9px; border-radius:50%; background:var(--thread); box-shadow:0 0 0 3px var(--bg); transition:background .15s, box-shadow .15s, transform .15s;}
+  .tl-event .tl-marker-dot.active{background:var(--gold); box-shadow:0 0 0 3px var(--bg), 0 0 0 5px rgba(201,162,76,0.25); transform:scale(1.2);}
   .tl-card{background:var(--card); border:1px solid var(--border-soft); border-radius:var(--radius); padding:14px 16px;}
   .tl-card .tl-date{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--gold); letter-spacing:.05em;}
   .tl-card h3{font-size:15.5px; margin-top:4px;}
@@ -270,6 +288,33 @@
   .rel-port{position:absolute; bottom:2px; right:10px; width:14px; height:14px; border-radius:50%; background:var(--gold); border:2px solid var(--bg-alt); cursor:crosshair;}
   .rel-port:hover{background:var(--thread);}
 
+  /* Dynasty card tree button */
+  .tree-add-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--text-faint); flex-shrink:0; padding:2px;}
+  .tree-add-btn:hover{color:var(--gold);}
+  .tree-add-icon{width:26px; height:26px; border-radius:50%; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:300; line-height:1; transition:border-color .15s, color .15s;}
+  .tree-add-btn:hover .tree-add-icon{border-color:var(--gold); color:var(--gold);}
+  .tree-add-label{font-size:9px; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;}
+
+  /* Genealogy tree canvas */
+  #treeCanvasViewport{
+    position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
+    background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
+    height:560px; cursor:grab; touch-action:none;
+  }
+  #treeCanvasViewport.panning{cursor:grabbing;}
+  #treeCanvasInner{position:absolute; top:0; left:0; width:4000px; height:3000px; transform-origin:0 0;}
+  #treeEdgesSvg{position:absolute; top:0; left:0; pointer-events:none; overflow:visible;}
+  .tree-edge{stroke:var(--gold); stroke-width:2.2; fill:none; cursor:pointer; pointer-events:stroke; transition:opacity .2s;}
+  .tree-edge:hover{stroke-width:3.4;}
+  .tree-node{position:absolute; width:96px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; transition:opacity .2s;}
+  .tree-node.dragging{cursor:grabbing; z-index:20;}
+  .tree-avatar{width:54px; height:54px; border-radius:50%; overflow:hidden; border:2px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
+  .tree-avatar img{width:100%; height:100%; object-fit:cover;}
+  .tree-name{font-size:11px; color:var(--text); text-align:center; max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
+  .tree-dates{font-size:9.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; text-align:center;}
+  .tree-port{position:absolute; bottom:2px; right:14px; width:14px; height:14px; border-radius:50%; background:var(--gold); border:2px solid var(--bg-alt); cursor:crosshair;}
+  .tree-port:hover{background:var(--thread);}
+
   /* World (locations/factions) */
   .world-section{margin-bottom:14px; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden;}
   .world-section h3{font-size:15px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; margin-bottom:14px; font-weight:500;}
@@ -287,27 +332,40 @@
   /* Map (lore) */
   .map-dossier{cursor:pointer;}
   .map-thumb{width:100%; height:120px; border-radius:4px; background-size:cover; background-position:center; border:1px solid var(--border-soft); margin-bottom:2px; background-color:var(--bg-alt);}
-  #mapViewport{position:relative; width:100%; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; background:var(--bg-alt); cursor:crosshair;}
+  #mapViewport{position:relative; width:100%; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; background:var(--bg-alt); cursor:crosshair; touch-action:none;}
+  #mapViewport.panning{cursor:grabbing;}
+  #mapCanvasInner{position:absolute; top:0; left:0; width:100%; height:100%; transform-origin:0 0;}
   .map-bg-img{position:absolute; top:0; left:0; width:100%; height:100%; object-fit:fill; pointer-events:none; user-select:none;}
   #mapPathsSvg{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
+  #mapEditorRoot.map-editor-fullscreen{
+    position:fixed; inset:0; z-index:60; background:var(--bg);
+    padding:18px 24px 24px; overflow-y:auto; display:flex; flex-direction:column;
+  }
+  #mapEditorRoot.map-editor-fullscreen .map-stage{
+    flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
+    overflow:hidden; margin:6px 0 14px;
+  }
+  #mapEditorRoot.map-editor-fullscreen #mapViewport{
+    width:100%; height:100%; flex-shrink:0;
+  }
   .map-marker{
     position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column;
     align-items:center; cursor:grab; user-select:none; z-index:5;
   }
   .map-marker:active{cursor:grabbing;}
   .map-marker-icon{
-    width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center;
-    color:#14151b; background:var(--marker-color,var(--gold)); border:2px solid rgba(20,21,27,.82);
-    box-shadow:0 3px 8px rgba(0,0,0,.55), 0 0 0 2px rgba(255,255,255,.08);
+    width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    color:#14151b; background:var(--marker-color,var(--gold)); border:1.5px solid rgba(20,21,27,.82);
+    box-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 0 1.5px rgba(255,255,255,.08);
     transition:transform .12s, box-shadow .12s;
   }
   .map-marker:hover .map-marker-icon{
-    transform:scale(1.12); box-shadow:0 4px 12px rgba(0,0,0,.7), 0 0 0 2px rgba(255,255,255,.14);
+    transform:scale(1.18); box-shadow:0 4px 10px rgba(0,0,0,.7), 0 0 0 1.5px rgba(255,255,255,.14);
   }
-  .map-marker-icon svg{width:19px; height:19px; display:block; stroke:currentColor; fill:none; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round;}
+  .map-marker-icon svg{width:9px; height:9px; display:block; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .map-marker-label{
-    font-size:10.5px; color:#fff; background:rgba(20,21,27,.88); border:1px solid rgba(255,255,255,.08);
-    padding:2px 7px; border-radius:8px; margin-top:3px; white-space:nowrap; max-width:150px;
+    font-size:8px; color:#fff; background:rgba(20,21,27,.88); border:1px solid rgba(255,255,255,.08);
+    padding:1px 5px; border-radius:6px; margin-top:2px; white-space:nowrap; max-width:110px;
     overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 5px rgba(0,0,0,.35);
   }
   .marker-card-icon{
@@ -316,9 +374,38 @@
   }
   .marker-card-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 
+  /* Map — curved country/region labels: draggable + on-canvas rotation */
+  #mapLabelsLayer{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:4;}
+  .map-label{ position:absolute; width:0; height:0; overflow:visible; pointer-events:none; }
+  .map-label-group{ position:absolute; left:0; top:0; transform-origin:center center; }
+  .map-label-svgwrap{
+    display:inline-block; cursor:grab; user-select:none; pointer-events:auto;
+    padding:4px 8px; border-radius:5px; transition:background .12s, outline-color .12s; outline:1px dashed transparent;
+  }
+  .map-label-svgwrap:hover{ background:rgba(201,162,76,0.10); outline-color:rgba(201,162,76,.55); }
+  .map-label-svgwrap:active{ cursor:grabbing; }
+  .map-label-svgwrap svg{ display:block; pointer-events:none; }
+  .map-label-rotate-handle{
+    position:absolute; left:50%; top:-28px; width:12px; height:12px; margin:-6px 0 0 -6px;
+    border-radius:50%; background:var(--gold); border:2px solid rgba(20,21,27,.85);
+    box-shadow:0 2px 6px rgba(0,0,0,.5); cursor:alias; opacity:0; transition:opacity .15s, transform .1s;
+    pointer-events:auto; z-index:2;
+  }
+  .map-label-rotate-handle::before{
+    content:''; position:absolute; left:50%; top:100%; width:1px; height:22px; background:rgba(201,162,76,.55); transform:translateX(-50%);
+  }
+  .map-label-group:hover .map-label-rotate-handle, .map-label-rotate-handle.active{ opacity:1; }
+  .map-label-rotate-handle:hover{ transform:scale(1.3); }
+  input[type="range"]{ accent-color:var(--gold); width:100%; padding:0; background:none; border:none; }
+  .lbl-swatch{ transition:transform .12s; }
+  .lbl-swatch:hover{ transform:scale(1.15); }
+
   /* Structure canvas (node editor) */
   .canvas-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
   .canvas-zoom-controls{display:flex; gap:4px; align-items:center;}
+  .layer-toggle{ transition:opacity .15s, background .15s, border-color .15s; }
+  .layer-toggle.off{ opacity:.42; background:none; }
+  .layer-toggle.off:hover{ opacity:.7; }
   #storyCanvasViewport{
     position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
     background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
@@ -363,10 +450,35 @@
   #modalActions{display:flex; justify-content:space-between; align-items:center; margin-top:20px;}
 
   .empty-tab{padding:50px 20px; text-align:center; color:var(--text-faint); font-size:13.5px;}
+  .read-modal-body{max-height:62vh; overflow-y:auto; padding-right:6px; margin:-4px 0 4px;}
+  .read-field{margin-bottom:18px;}
+  .read-field:last-child{margin-bottom:0;}
+  .read-field-label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; font-family:'IBM Plex Mono',monospace; margin-bottom:5px;}
+  .read-field-value{font-size:14px; color:var(--text); line-height:1.65; white-space:pre-wrap;}
   .toast{position:fixed; bottom:22px; right:22px; background:var(--card); border:1px solid var(--border); padding:11px 16px; border-radius:var(--radius); font-size:13px; box-shadow:var(--shadow); z-index:200; opacity:0; transform:translateY(8px); transition:all .25s;}
   .toast.show{opacity:1; transform:translateY(0);}
   .highlight-flash{animation:flash 1.4s ease;}
   @keyframes flash{0%{box-shadow:0 0 0 2px var(--thread);} 100%{box-shadow:0 0 0 0 transparent;}}
+
+  /* Timeline navigation list */
+  .tl-layout{display:flex; align-items:flex-start; gap:18px;}
+  .tl-navlist{
+    position:sticky; top:90px; width:200px; flex-shrink:0; z-index:5;
+    max-height:min(70vh, 640px); overflow-y:auto; display:none;
+    border:1px solid var(--border-soft); border-radius:var(--radius); background:var(--card);
+  }
+  .tl-navlist.has-events{display:block;}
+  .tl-navitem{
+    display:flex; align-items:baseline; gap:8px; padding:9px 12px; cursor:pointer;
+    border-left:2px solid transparent; font-size:12.5px; color:var(--text-dim); line-height:1.4;
+    transition:background .15s, color .15s, border-color .15s;
+  }
+  .tl-navitem:hover{background:var(--card-hover); color:var(--text);}
+  .tl-navitem.active{background:var(--card-hover); color:var(--gold); border-left-color:var(--gold);}
+  .tl-navitem-num{font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--text-faint); flex-shrink:0;}
+  .tl-navitem.active .tl-navitem-num{color:var(--gold);}
+  .tl-navitem-title{overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
+  @media (max-width:700px){ .tl-navlist{display:none !important;} }
 </style>
 </head>
 <body>
@@ -407,9 +519,11 @@
 <script>
 /* ---------------- DATA LAYER ---------------- */
 const STORAGE_KEY = 'story-bible-data';
-let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [], creatures: [], myths: [], magicSystems: [], deities: [], maps: [] };
+let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [], creatures: [], myths: [], magicSystems: [], deities: [], maps: [], countries: [], dynasties: [], dynastyMembers: [], dynastyMemberLinks: [], artifacts: [] };
 let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null };
 let canvasView = { pan:{x:120,y:80}, scale:1 };
+let mapCanvasView = { pan:{x:0,y:0}, scale:1 };
+let mapFullscreenNeedsCenter = false;
 let saveTimer = null;
 
 function uid(){ return Math.random().toString(36).slice(2,10) + Date.now().toString(36).slice(-4); }
@@ -441,7 +555,7 @@ async function loadData(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(raw){
       const parsed = JSON.parse(raw);
-      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[] }, parsed);
+      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
     }
   }catch(e){ /* no data yet, or storage unavailable */ }
   if(data.projects.length && !state.activeProjectId){ state.activeProjectId = data.projects[0].id; }
@@ -566,7 +680,7 @@ function renderActiveProjectChip(){
   chipEl.innerHTML = `${projectDotHtml(p)}<span class="p-name">${esc(p.name)}</span>`;
 }
 
-function selectProject(id){ state.activeProjectId = id; state.activeTab='overview'; state.activeMapId = null; render(); }
+function selectProject(id){ state.activeProjectId = id; state.activeTab='overview'; state.activeMapId = null; state.activeTreeId = null; exitMapFullscreen(); render(); }
 function toggleSidebar(){
   const sidebar = document.getElementById('sidebar');
   const collapsed = sidebar.classList.toggle('collapsed');
@@ -620,7 +734,10 @@ function renderMain(){
 function tabBtn(key,label){
   return `<button class="tab-btn ${state.activeTab===key?'active':''}" onclick="switchTab('${key}')">${label}</button>`;
 }
-function switchTab(key){ state.activeTab = key; if(key!=='world') state.activeMapId = null; renderMain(); }
+function switchTab(key){
+  if(state.activeTab==='timeline' && key!=='timeline') teardownTimelineNav();
+  state.activeTab = key; if(key!=='world'){ state.activeMapId = null; state.activeTreeId = null; exitMapFullscreen(); } renderMain();
+}
 
 function renderTabContent(){
   const el = document.getElementById('tabContent');
@@ -686,6 +803,7 @@ function characterCard(c){
     ${c.desc ? `<div class="d-desc">${esc(c.desc)}</div>` : ''}
     ${c.tags && c.tags.length ? `<div class="d-tags">${c.tags.map(t=>`<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('characters','${c.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditCharacterModal('${c.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCharacter('${c.id}')">Удалить</button>
     </div>
@@ -1026,6 +1144,7 @@ function relCard(r){
     ${r.evolveNote ? `<div class="d-alias" style="margin-top:6px;">${esc(r.evolveNote)}</div>` : ''}
     ${r.desc ? `<div class="d-desc">${esc(r.desc)}</div>` : ''}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('relationships','${r.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditRelationshipModal('${r.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteRelationship('${r.id}')">Удалить</button>
     </div>
@@ -1060,27 +1179,84 @@ function relationshipFields(){
 
 /* ---------------- TIMELINE ---------------- */
 function eventCard(e){
-  return `<div class="tl-event"><div class="tl-card">
+  return `<div class="tl-event" id="tlevent-${e.id}" data-id="${e.id}"><span class="tl-marker-dot"></span><div class="tl-card">
     <div class="tl-date">${esc(e.date||'дата не указана')}</div>
     <h3>${esc(e.title)}</h3>
     ${e.arc ? `<div class="tl-arc">Арка: ${esc(e.arc)}</div>` : ''}
-    ${e.desc ? `<div class="d-desc">${esc(e.desc)}</div>` : ''}
+    ${collapsibleBlock('event-desc-'+e.id, 'Что произошло', e.desc)}
     ${e.charIds && e.charIds.length ? `<div class="d-tags">${e.charIds.map(id=>`<span class="d-tag">${esc(charName(id))}</span>`).join('')}</div>` : ''}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('events','${e.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${e.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteEvent('${e.id}')">Удалить</button>
     </div>
   </div></div>`;
 }
+let timelineScrollHandler = null;
+function teardownTimelineNav(){
+  if(timelineScrollHandler){ window.removeEventListener('scroll', timelineScrollHandler); timelineScrollHandler = null; }
+}
 function renderTimeline(el, pid){
+  teardownTimelineNav();
   const events = itemsOf('events', pid).slice().sort((a,b)=>(a.order||0)-(b.order||0));
   el.innerHTML = `
     <div class="toolbar">
       <div class="eyebrow">Отсортировано по порядковому номеру события</div>
       <button class="btn btn-primary" onclick="openNewEventModal()">+ Новое событие</button>
     </div>
-    <div id="timelineList" style="max-width:720px;">${events.length ? events.map(eventCard).join('') : '<div class="empty-tab">Событий пока нет.</div>'}</div>
+    <div class="tl-layout">
+      <div class="tl-navlist ${events.length ? 'has-events' : ''}" id="tlNavList">
+        ${events.map((e,i)=>`<div class="tl-navitem" data-id="${e.id}" onclick="scrollToTimelineEvent('${e.id}')" title="${esc(e.title)}">
+          <span class="tl-navitem-num">${i+1}</span><span class="tl-navitem-title">${esc(e.title)}</span>
+        </div>`).join('')}
+      </div>
+      <div id="timelineList" style="max-width:720px; flex:1; min-width:0;">${events.length ? events.map(eventCard).join('') : '<div class="empty-tab">Событий пока нет.</div>'}</div>
+    </div>
   `;
+  if(events.length){
+    updateTimelineNavActive(events[0].id);
+    timelineScrollHandler = ()=>{ updateTimelineNavActive(); };
+    window.addEventListener('scroll', timelineScrollHandler, {passive:true});
+  }
+}
+function updateTimelineNavActive(forceId){
+  const list = document.getElementById('tlNavList');
+  if(!list) return;
+  const items = Array.from(list.querySelectorAll('.tl-navitem'));
+  if(!items.length) return;
+  let activeId = forceId;
+  if(!activeId){
+    const refY = window.innerHeight * 0.3;
+    let closestDist = Infinity;
+    items.forEach(item=>{
+      const card = document.getElementById('tlevent-'+item.dataset.id);
+      if(!card) return;
+      const marker = card.querySelector('.tl-marker-dot');
+      const y = (marker||card).getBoundingClientRect().top;
+      const dist = Math.abs(y - refY);
+      if(dist < closestDist){ closestDist = dist; activeId = item.dataset.id; }
+    });
+  }
+  items.forEach(item=>{
+    const active = item.dataset.id===activeId;
+    item.classList.toggle('active', active);
+    if(active) item.scrollIntoView({block:'nearest'});
+  });
+  document.querySelectorAll('#timelineList .tl-marker-dot').forEach(m=>{
+    const card = m.closest('.tl-event');
+    m.classList.toggle('active', !!(card && card.dataset.id===activeId));
+  });
+}
+function scrollToTimelineEvent(id){
+  const card = document.getElementById('tlevent-'+id);
+  if(!card) return;
+  const sidebar = document.getElementById('sidebar');
+  const offset = (sidebar ? sidebar.offsetHeight : 0) + 20;
+  const targetY = window.scrollY + card.getBoundingClientRect().top - offset;
+  window.scrollTo({top: Math.max(0, targetY), behavior:'smooth'});
+  card.classList.add('highlight-flash');
+  setTimeout(()=>card.classList.remove('highlight-flash'), 1500);
+  updateTimelineNavActive(id);
 }
 function openNewEventModal(){
   const maxOrder = Math.max(0, ...itemsOf('events', state.activeProjectId).map(e=>e.order||0));
@@ -1332,21 +1508,41 @@ function openEditSceneModal(id){
 
 /* ---------------- WORLD ---------------- */
 function locCard(l){
-  return `<div class="dossier">
-    <h3 style="font-size:15.5px;">${esc(l.name)}</h3>
-    ${l.faction ? `<div class="d-role">${esc(l.faction)}</div>` : ''}
-    ${l.desc ? `<div class="d-desc">${esc(l.desc)}</div>` : ''}
+  const avatar = l.photo
+    ? `<img class="d-avatar" src="${l.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(l.name))}</div>`;
+  return `<div class="dossier" data-id="${l.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;">
+          <h3 style="font-size:15.5px;">${esc(l.name)}</h3>
+          ${l.faction ? `<div class="d-role">${esc(l.faction)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+    ${collapsibleBlock('loc-desc-'+l.id, 'Описание', l.desc)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('locations','${l.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditLocationModal('${l.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Удалить</button>
     </div>
   </div>`;
 }
 function facCard(f){
-  return `<div class="dossier">
-    <h3 style="font-size:15.5px;">${esc(f.name)}</h3>
-    ${f.desc ? `<div class="d-desc">${esc(f.desc)}</div>` : ''}
+  const avatar = f.photo
+    ? `<img class="d-avatar" src="${f.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(f.name))}</div>`;
+  return `<div class="dossier" data-id="${f.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;"><h3 style="font-size:15.5px;">${esc(f.name)}</h3></div>
+      </div>
+    </div>
+    ${collapsibleBlock('fac-desc-'+f.id, 'Описание', f.desc)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('factions','${f.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditFactionModal('${f.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteFaction('${f.id}')">Удалить</button>
     </div>
@@ -1356,22 +1552,23 @@ function creatureCard(c){
   const avatar = c.photo
     ? `<img class="d-avatar" src="${c.photo}" alt="">`
     : `<div class="d-avatar d-avatar-placeholder">${esc(initials(c.name))}</div>`;
-  return `<div class="dossier">
+  return `<div class="dossier" data-id="${c.id}">
     <div class="d-top">
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;"><h3 style="font-size:15.5px;">${esc(c.name)}</h3></div>
       </div>
     </div>
-    ${c.desc ? `<div class="d-desc">${esc(c.desc)}</div>` : ''}
+    ${collapsibleBlock('creature-desc-'+c.id, 'Описание, повадки, слабости', c.desc)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('creatures','${c.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditCreatureModal('${c.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCreature('${c.id}')">Удалить</button>
     </div>
   </div>`;
 }
 function openNewCreatureModal(){
-  openFormModal('Новое существо', creatureFields(), {}, (vals)=>{ data.creatures.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новое существо', creatureFields(), {}, (vals)=>{ data.creatures.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('creatures', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditCreatureModal(id){
   const c = data.creatures.find(x=>x.id===id);
@@ -1385,20 +1582,36 @@ function creatureFields(){
     {key:'desc', label:'Описание, повадки, слабости', type:'textarea'},
   ];
 }
+function collapsibleBlock(id, label, text){
+  if(!text) return '';
+  return `<div class="tl-collapsible" id="${id}">
+    <div class="tl-collapsible-label">${esc(label)}</div>
+    <div class="tl-collapsible-text">${esc(text)}</div>
+    <button class="tl-collapsible-toggle" onclick="event.stopPropagation(); toggleCollapsible('${id}')">Показать полностью</button>
+  </div>`;
+}
+function toggleCollapsible(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const expanded = el.classList.toggle('expanded');
+  const btn = el.querySelector('.tl-collapsible-toggle');
+  if(btn) btn.textContent = expanded ? 'Свернуть' : 'Показать полностью';
+}
 function mythCard(m){
-  return `<div class="dossier">
+  return `<div class="dossier" data-id="${m.id}">
     <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
     ${m.origin ? `<div class="d-role">${esc(m.origin)}</div>` : ''}
-    ${m.desc ? `<div class="d-desc">${esc(m.desc)}</div>` : ''}
-    ${m.truth ? `<div class="d-alias" style="margin-top:8px;">Правда за легендой: ${esc(m.truth)}</div>` : ''}
+    ${collapsibleBlock('myth-desc-'+m.id, 'Пересказ легенды', m.desc)}
+    ${collapsibleBlock('myth-truth-'+m.id, 'Правда за легендой', m.truth)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('myths','${m.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditMythModal('${m.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMyth('${m.id}')">Удалить</button>
     </div>
   </div>`;
 }
 function openNewMythModal(){
-  openFormModal('Новый миф или легенда', mythFields(), {}, (vals)=>{ data.myths.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новый миф или легенда', mythFields(), {}, (vals)=>{ data.myths.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('myths', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditMythModal(id){
   const m = data.myths.find(x=>x.id===id);
@@ -1415,19 +1628,20 @@ function mythFields(){
   ];
 }
 function magicCard(m){
-  return `<div class="dossier">
+  return `<div class="dossier" data-id="${m.id}">
     <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
     ${m.source ? `<div class="d-role">${esc(m.source)}</div>` : ''}
-    ${m.desc ? `<div class="d-desc">${esc(m.desc)}</div>` : ''}
-    ${m.limits ? `<div class="d-alias" style="margin-top:8px;">Цена / ограничения: ${esc(m.limits)}</div>` : ''}
+    ${collapsibleBlock('magic-desc-'+m.id, 'Как это работает', m.desc)}
+    ${collapsibleBlock('magic-limits-'+m.id, 'Цена / ограничения', m.limits)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('magicSystems','${m.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditMagicModal('${m.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMagic('${m.id}')">Удалить</button>
     </div>
   </div>`;
 }
 function openNewMagicModal(){
-  openFormModal('Новая магическая система / правило', magicFields(), {}, (vals)=>{ data.magicSystems.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новая магическая система / правило', magicFields(), {}, (vals)=>{ data.magicSystems.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('magicSystems', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditMagicModal(id){
   const m = data.magicSystems.find(x=>x.id===id);
@@ -1443,19 +1657,71 @@ function magicFields(){
     {key:'limits', label:'Цена, ограничения, правила и исключения', type:'textarea'},
   ];
 }
-function deityCard(d){
-  return `<div class="dossier">
-    <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
-    ${d.domain ? `<div class="d-role">${esc(d.domain)}</div>` : ''}
-    ${d.desc ? `<div class="d-desc">${esc(d.desc)}</div>` : ''}
+function artifactCard(a){
+  const avatar = a.photo
+    ? `<img class="d-avatar" src="${a.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(a.name))}</div>`;
+  return `<div class="dossier" data-id="${a.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;">
+          <h3 style="font-size:15.5px;">${esc(a.name)}</h3>
+          ${a.owner ? `<div class="d-role">Владелец: ${esc(a.owner)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+    ${collapsibleBlock('artifact-powers-'+a.id, 'Свойства и способности', a.powers)}
+    ${collapsibleBlock('artifact-origin-'+a.id, 'Происхождение и история', a.origin)}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('artifacts','${a.id}')">Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditArtifactModal('${a.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteArtifact('${a.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewArtifactModal(){
+  openFormModal('Новый артефакт / реликвия', artifactFields(), {}, (vals)=>{ data.artifacts.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('artifacts', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditArtifactModal(id){
+  const a = data.artifacts.find(x=>x.id===id);
+  openFormModal('Изменить артефакт / реликвию', artifactFields(), a, (vals)=>{ Object.assign(a, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить', onClick: ()=>{ closeModal(); deleteArtifact(id); } });
+}
+function deleteArtifact(id){ data.artifacts = data.artifacts.filter(a=>a.id!==id); queueSave(); renderMain(); }
+function artifactFields(){
+  return [
+    {key:'name', label:'Название артефакта / реликвии', type:'text', required:true},
+    {key:'photo', label:'Изображение', type:'image'},
+    {key:'owner', label:'Текущий владелец / местонахождение', type:'text', placeholder:'кто владеет, где хранится, или "утерян"…'},
+    {key:'powers', label:'Свойства и способности', type:'textarea'},
+    {key:'origin', label:'Происхождение и история', type:'textarea'},
+  ];
+}
+function deityCard(d){
+  const avatar = d.photo
+    ? `<img class="d-avatar" src="${d.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(d.name))}</div>`;
+  return `<div class="dossier" data-id="${d.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;">
+          <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
+          ${d.domain ? `<div class="d-role">${esc(d.domain)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+    ${collapsibleBlock('deity-desc-'+d.id, 'Описание, история, обряды', d.desc)}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('deities','${d.id}')">Читать</button>
       <button class="btn btn-ghost btn-sm" onclick="openEditDeityModal('${d.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDeity('${d.id}')">Удалить</button>
     </div>
   </div>`;
 }
 function openNewDeityModal(){
-  openFormModal('Новое божество / культ', deityFields(), {}, (vals)=>{ data.deities.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новое божество / культ', deityFields(), {}, (vals)=>{ data.deities.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('deities', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditDeityModal(id){
   const d = data.deities.find(x=>x.id===id);
@@ -1466,14 +1732,384 @@ function deleteDeity(id){ data.deities = data.deities.filter(d=>d.id!==id); queu
 function deityFields(){
   return [
     {key:'name', label:'Имя божества / название культа', type:'text', required:true},
+    {key:'photo', label:'Изображение', type:'image'},
     {key:'domain', label:'Сфера покровительства', type:'text', placeholder:'война, урожай, смерть, ремёсла…'},
     {key:'desc', label:'Описание, история, обряды, последователи', type:'textarea'},
   ];
 }
+function countryCard(c){
+  const avatar = c.photo
+    ? `<img class="d-avatar" src="${c.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(c.name))}</div>`;
+  return `<div class="dossier" data-id="${c.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;">
+          <h3 style="font-size:15.5px;">${esc(c.name)}</h3>
+          ${c.capital ? `<div class="d-role">Столица: ${esc(c.capital)}</div>` : ''}
+        </div>
+      </div>
+    </div>
+    ${c.ruler ? `<div class="d-alias">Правитель: ${esc(c.ruler)}</div>` : ''}
+    ${collapsibleBlock('country-desc-'+c.id, 'Описание, территория, устройство', c.desc)}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('countries','${c.id}')">Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditCountryModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCountry('${c.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewCountryModal(){
+  openFormModal('Новая страна', countryFields(), {}, (vals)=>{ data.countries.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('countries', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditCountryModal(id){
+  const c = data.countries.find(x=>x.id===id);
+  openFormModal('Изменить страну', countryFields(), c, (vals)=>{ Object.assign(c, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить страну', onClick: ()=>{ closeModal(); deleteCountry(id); } });
+}
+function deleteCountry(id){ data.countries = data.countries.filter(c=>c.id!==id); queueSave(); renderMain(); }
+function countryFields(){
+  return [
+    {key:'name', label:'Название страны', type:'text', required:true},
+    {key:'photo', label:'Флаг / герб', type:'image'},
+    {key:'capital', label:'Столица', type:'text'},
+    {key:'ruler', label:'Правитель / форма правления', type:'text', placeholder:'король Эдрик III, республика, совет старейшин…'},
+    {key:'desc', label:'Территория, устройство, история', type:'textarea'},
+  ];
+}
+function dynastyCard(d){
+  const avatar = d.photo
+    ? `<img class="d-avatar" src="${d.photo}" alt="">`
+    : `<div class="d-avatar d-avatar-placeholder">${esc(initials(d.name))}</div>`;
+  const memberCount = data.dynastyMembers.filter(m=>m.dynastyId===d.id).length;
+  const treeBtnLabel = memberCount ? 'Открыть древо' : 'Добавить древо';
+  return `<div class="dossier" data-id="${d.id}">
+    <div class="d-top">
+      <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
+        ${avatar}
+        <div style="min-width:0;">
+          <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
+          ${d.country ? `<div class="d-role">${esc(d.country)}</div>` : ''}
+        </div>
+      </div>
+      <button class="tree-add-btn" onclick="event.stopPropagation(); openTreeEditor('${d.id}')" title="${esc(treeBtnLabel)}">
+        <span class="tree-add-icon">+</span>
+        <span class="tree-add-label">${esc(treeBtnLabel)}</span>
+      </button>
+    </div>
+    ${d.founder ? `<div class="d-alias">Основатель: ${esc(d.founder)}</div>` : ''}
+    ${collapsibleBlock('dynasty-desc-'+d.id, 'История рода', d.desc)}
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('dynasties','${d.id}')">Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditDynastyModal('${d.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDynasty('${d.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+function openNewDynastyModal(){
+  openFormModal('Новая династия', dynastyFields(), {}, (vals)=>{ data.dynasties.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('dynasties', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
+}
+function openEditDynastyModal(id){
+  const d = data.dynasties.find(x=>x.id===id);
+  openFormModal('Изменить династию', dynastyFields(), d, (vals)=>{ Object.assign(d, vals); queueSave(); closeModal(); renderMain(); },
+    { label:'Удалить династию', onClick: ()=>{ closeModal(); deleteDynasty(id); } });
+}
+function deleteDynasty(id){
+  data.dynasties = data.dynasties.filter(d=>d.id!==id);
+  data.dynastyMembers = data.dynastyMembers.filter(m=>m.dynastyId!==id);
+  data.dynastyMemberLinks = data.dynastyMemberLinks.filter(l=>l.dynastyId!==id);
+  if(state.activeTreeId===id) state.activeTreeId = null;
+  queueSave(); renderMain();
+}
+function dynastyFields(){
+  return [
+    {key:'name', label:'Название династии / рода', type:'text', required:true},
+    {key:'photo', label:'Герб рода', type:'image'},
+    {key:'country', label:'Страна / престол', type:'text', placeholder:'к какой стране относится'},
+    {key:'founder', label:'Основатель рода', type:'text'},
+    {key:'desc', label:'История, наследование, известные представители', type:'textarea'},
+  ];
+}
+
+/* ---------------- DYNASTY GENEALOGY TREE ---------------- */
+let treeCanvasView = { pan:{x:220,y:90}, scale:1 };
+let treeSelected = null;
+
+function openTreeEditor(id){
+  state.activeTreeId = id;
+  renderMain();
+}
+function closeTreeEditor(){
+  state.activeTreeId = null;
+  renderMain();
+}
+function refreshTreeEditor(){
+  const el = document.getElementById('tabContent');
+  if(!el) return;
+  const d = data.dynasties.find(x=>x.id===state.activeTreeId);
+  if(d) renderTreeEditor(el, d); else renderMain();
+}
+
+function ensureTreePositions(members){
+  let changed = false;
+  const cx=260, cy=200, R=150;
+  members.forEach((m,i)=>{
+    if(m.tx===undefined || m.ty===undefined){
+      const angle = (i/Math.max(1,members.length))*Math.PI*2 - Math.PI/2;
+      m.tx = Math.round(cx + R*Math.cos(angle) - 48);
+      m.ty = Math.round(cy + R*Math.sin(angle) - 27);
+      changed = true;
+    }
+  });
+  if(changed) queueSave();
+}
+
+function renderTreeEditor(el, dynasty){
+  const members = data.dynastyMembers.filter(m=>m.dynastyId===dynasty.id);
+  const links = data.dynastyMemberLinks.filter(l=>l.dynastyId===dynasty.id);
+  ensureTreePositions(members);
+  el.innerHTML = `
+    <div class="canvas-toolbar">
+      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+        <button class="btn btn-sm" onclick="closeTreeEditor()">← Назад к династиям</button>
+        <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Древо: ${esc(dynasty.name)}</h3>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <div class="canvas-zoom-controls">
+          <button class="btn btn-sm" onclick="zoomTreeCanvas(-0.15)">−</button>
+          <span class="mono" id="treeZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
+          <button class="btn btn-sm" onclick="zoomTreeCanvas(0.15)">+</button>
+        </div>
+        <button class="btn btn-sm" onclick="resetTreeCanvasView()">Сброс вида</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewMemberModal('${dynasty.id}')">+ Участник</button>
+      </div>
+    </div>
+    <div class="eyebrow" style="margin-bottom:10px;">Тащите карточки, чтобы расставить как хотите. Тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.</div>
+    ${members.length===0 ? `<div class="empty-tab" style="margin-bottom:14px;">Пусто. Добавьте первого члена рода.</div>` : ''}
+    <div id="treeCanvasViewport">
+      <div id="treeCanvasInner">
+        <svg id="treeEdgesSvg" width="4000" height="3000"></svg>
+        ${members.map(treeNodeHtml).join('')}
+      </div>
+    </div>
+    <div class="side-section-label" style="margin:26px 0 10px;">Связи «родитель → ребёнок»</div>
+    <div class="grid">${links.length ? links.map(l=>treeLinkCard(l, members)).join('') : '<div class="empty-tab">Связей пока нет.</div>'}</div>
+  `;
+  applyTreeCanvasTransform();
+  drawTreeEdges();
+  attachTreeCanvasEvents();
+}
+
+function treeNodeHtml(m){
+  const avatarInner = m.photo ? `<img src="${m.photo}" alt="">` : `<span>${esc(initials(m.name))}</span>`;
+  const dates = [m.birth, m.death].filter(Boolean).join(' — ');
+  return `<div class="tree-node" data-id="${m.id}" style="left:${m.tx}px; top:${m.ty}px;" ondblclick="openEditMemberModal('${m.dynastyId}','${m.id}')">
+    <div class="tree-avatar">${avatarInner}</div>
+    <div class="tree-name">${esc(m.name)}</div>
+    ${dates ? `<div class="tree-dates">${esc(dates)}</div>` : ''}
+    <div class="tree-port" data-id="${m.id}" title="Тяните к ребёнку, чтобы создать связь"></div>
+  </div>`;
+}
+
+function applyTreeCanvasTransform(){
+  const inner = document.getElementById('treeCanvasInner');
+  if(!inner) return;
+  inner.style.transform = `translate(${treeCanvasView.pan.x}px, ${treeCanvasView.pan.y}px) scale(${treeCanvasView.scale})`;
+  const lbl = document.getElementById('treeZoomLabel');
+  if(lbl) lbl.textContent = Math.round(treeCanvasView.scale*100)+'%';
+}
+function zoomTreeCanvas(delta){ treeCanvasView.scale = Math.min(2, Math.max(0.35, treeCanvasView.scale+delta)); applyTreeCanvasTransform(); drawTreeEdges(); }
+function resetTreeCanvasView(){ treeCanvasView.pan = {x:220,y:90}; treeCanvasView.scale = 1; applyTreeCanvasTransform(); drawTreeEdges(); }
+
+function drawTreeEdges(){
+  const svg = document.getElementById('treeEdgesSvg');
+  if(!svg) return;
+  const dynastyId = state.activeTreeId;
+  const members = data.dynastyMembers.filter(m=>m.dynastyId===dynastyId);
+  const links = data.dynastyMemberLinks.filter(l=>l.dynastyId===dynastyId);
+  const byId = {}; members.forEach(m=>byId[m.id]=m);
+  const NCX=48, NCY=27;
+  let out = `<defs><marker id="treeArrowHead" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--gold)"/></marker></defs>`;
+  links.forEach(l=>{
+    const a = byId[l.fromId], b = byId[l.toId];
+    if(!a||!b) return;
+    const x1=a.tx+NCX, y1=a.ty+NCY, x2=b.tx+NCX, y2=b.ty+NCY;
+    const mx=(x1+x2)/2, my=(y1+y2)/2 - 22;
+    out += `<path class="tree-edge" data-id="${l.id}" data-a="${l.fromId}" data-b="${l.toId}" onclick="event.stopPropagation(); deleteMemberLinkConfirm('${l.id}')" d="M${x1},${y1} Q${mx},${my} ${x2},${y2}" stroke="var(--gold)" marker-end="url(#treeArrowHead)" fill="none"/>`;
+  });
+  svg.innerHTML = out;
+}
+
+function attachTreeCanvasEvents(){
+  const viewport = document.getElementById('treeCanvasViewport');
+  if(!viewport) return;
+  viewport.addEventListener('mousedown', onTreeCanvasMouseDown);
+  viewport.addEventListener('wheel', onTreeCanvasWheel, {passive:false});
+}
+
+function onTreeCanvasWheel(e){
+  e.preventDefault();
+  const viewport = document.getElementById('treeCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const cursorX = e.clientX-rect.left, cursorY = e.clientY-rect.top;
+  const oldScale = treeCanvasView.scale;
+  const newScale = Math.min(2, Math.max(0.35, oldScale + (e.deltaY<0?0.1:-0.1)));
+  const localX=(cursorX-treeCanvasView.pan.x)/oldScale, localY=(cursorY-treeCanvasView.pan.y)/oldScale;
+  treeCanvasView.pan.x = cursorX-localX*newScale;
+  treeCanvasView.pan.y = cursorY-localY*newScale;
+  treeCanvasView.scale = newScale;
+  applyTreeCanvasTransform(); drawTreeEdges();
+}
+
+function onTreeCanvasMouseDown(e){
+  const viewport = document.getElementById('treeCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const portEl = e.target.closest('.tree-port');
+  const nodeEl = e.target.closest('.tree-node');
+  const dynastyId = state.activeTreeId;
+
+  if(portEl){
+    const sourceId = portEl.dataset.id;
+    const svg = document.getElementById('treeEdgesSvg');
+    const tempPath = document.createElementNS('http://www.w3.org/2000/svg','path');
+    tempPath.setAttribute('class','temp-edge');
+    svg.appendChild(tempPath);
+    const move=(ev)=>{
+      const s = data.dynastyMembers.find(x=>x.id===sourceId);
+      if(!s) return;
+      const x1=s.tx+48, y1=s.ty+27;
+      const lx=(ev.clientX-rect.left-treeCanvasView.pan.x)/treeCanvasView.scale, ly=(ev.clientY-rect.top-treeCanvasView.pan.y)/treeCanvasView.scale;
+      tempPath.setAttribute('d', `M${x1},${y1} L${lx},${ly}`);
+    };
+    const up=(ev)=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      tempPath.remove();
+      const targetNode = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.tree-node');
+      if(targetNode && targetNode.dataset.id !== sourceId) createMemberLink(dynastyId, sourceId, targetNode.dataset.id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.stopPropagation(); e.preventDefault();
+    return;
+  }
+
+  if(nodeEl){
+    const id = nodeEl.dataset.id;
+    const m = data.dynastyMembers.find(x=>x.id===id);
+    if(!m) return;
+    const startX=e.clientX, startY=e.clientY, ox=m.tx, oy=m.ty;
+    let moved = false;
+    nodeEl.classList.add('dragging');
+    const move=(ev)=>{
+      if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
+      m.tx = ox + (ev.clientX-startX)/treeCanvasView.scale;
+      m.ty = oy + (ev.clientY-startY)/treeCanvasView.scale;
+      nodeEl.style.left = m.tx+'px'; nodeEl.style.top = m.ty+'px';
+      drawTreeEdges();
+    };
+    const up=()=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      nodeEl.classList.remove('dragging');
+      if(moved) queueSave(); else treeToggleSelect(id);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    e.preventDefault();
+    return;
+  }
+
+  const startX=e.clientX, startY=e.clientY, ox=treeCanvasView.pan.x, oy=treeCanvasView.pan.y;
+  viewport.classList.add('panning');
+  const move=(ev)=>{
+    treeCanvasView.pan.x = ox+(ev.clientX-startX);
+    treeCanvasView.pan.y = oy+(ev.clientY-startY);
+    applyTreeCanvasTransform();
+  };
+  const up=()=>{
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    viewport.classList.remove('panning');
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+}
+
+function treeToggleSelect(id){
+  treeSelected = treeSelected===id ? null : id;
+  document.querySelectorAll('.tree-node').forEach(n=>{ n.classList.toggle('dim', treeSelected && n.dataset.id !== treeSelected); });
+  document.querySelectorAll('.tree-edge').forEach(ed=>{
+    const connected = !treeSelected || ed.dataset.a===treeSelected || ed.dataset.b===treeSelected;
+    ed.classList.toggle('dim', !connected);
+  });
+}
+
+function createMemberLink(dynastyId, fromId, toId){
+  if(fromId===toId) return;
+  const exists = data.dynastyMemberLinks.find(l=>l.dynastyId===dynastyId && l.fromId===fromId && l.toId===toId);
+  if(exists) return;
+  data.dynastyMemberLinks.push({id:uid(), projectId: state.activeProjectId, dynastyId, fromId, toId});
+  queueSave();
+  refreshTreeEditor();
+}
+function deleteMemberLinkConfirm(id){
+  askConfirm('Удалить эту связь между членами рода?', 'Удалить', ()=>{
+    data.dynastyMemberLinks = data.dynastyMemberLinks.filter(l=>l.id!==id);
+    queueSave();
+    refreshTreeEditor();
+  });
+}
+function treeMemberName(id, members){
+  const m = (members || data.dynastyMembers).find(x=>x.id===id);
+  return m ? m.name : '???';
+}
+function treeLinkCard(l, members){
+  return `<div class="dossier">
+    <div class="d-top"><h3 style="font-size:14.5px;">${esc(treeMemberName(l.fromId, members))} → ${esc(treeMemberName(l.toId, members))}</h3></div>
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMemberLinkConfirm('${l.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+
+function openNewMemberModal(dynastyId){
+  openFormModal('Новый член рода', memberFields(), {}, (vals)=>{
+    data.dynastyMembers.push(Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals));
+    queueSave(); closeModal(); refreshTreeEditor();
+  });
+}
+function openEditMemberModal(dynastyId, id){
+  const m = data.dynastyMembers.find(x=>x.id===id);
+  if(!m) return;
+  openFormModal('Изменить члена рода', memberFields(), m, (vals)=>{ Object.assign(m, vals); queueSave(); closeModal(); refreshTreeEditor(); },
+    { label:'Удалить из древа', onClick: ()=>{ closeModal(); deleteMember(dynastyId, id); } });
+}
+function deleteMember(dynastyId, id){
+  askConfirm('Удалить этого члена рода из древа? Связанные связи тоже будут удалены.', 'Удалить', ()=>{
+    data.dynastyMembers = data.dynastyMembers.filter(m=>m.id!==id);
+    data.dynastyMemberLinks = data.dynastyMemberLinks.filter(l=>l.fromId!==id && l.toId!==id);
+    queueSave(); refreshTreeEditor();
+  });
+}
+function memberFields(){
+  return [
+    {key:'name', label:'Имя', type:'text', required:true},
+    {key:'photo', label:'Фото', type:'image'},
+    {key:'birth', label:'Дата рождения', type:'text', placeholder:'год, дата в мире истории'},
+    {key:'death', label:'Дата смерти (если применимо)', type:'text'},
+    {key:'note', label:'Заметки', type:'textarea'},
+  ];
+}
+
 const WORLD_SECTIONS = [
   {key:'maps', title:'Карта', addLabel:'+ Добавить', addFn:'openNewMapModal', card:mapCardRef, emptyLabel:'Карт пока нет.'},
   {key:'magicSystems', title:'Магическая система / правила мира', addLabel:'+ Добавить', addFn:'openNewMagicModal', card:magicCardRef, emptyLabel:'Правил пока нет.'},
+  {key:'artifacts', title:'Артефакты и реликвии', addLabel:'+ Добавить', addFn:'openNewArtifactModal', card:artifactCardRef, emptyLabel:'Артефактов пока нет.'},
   {key:'deities', title:'Религии / пантеон богов', addLabel:'+ Добавить', addFn:'openNewDeityModal', card:deityCardRef, emptyLabel:'Божеств пока нет.'},
+  {key:'countries', title:'Страны', addLabel:'+ Добавить', addFn:'openNewCountryModal', card:countryCardRef, emptyLabel:'Стран пока нет.'},
+  {key:'dynasties', title:'Династии', addLabel:'+ Добавить', addFn:'openNewDynastyModal', card:dynastyCardRef, emptyLabel:'Династий пока нет.'},
   {key:'locations', title:'Локации', addLabel:'+ Добавить', addFn:'openNewLocationModal', card:locCardRef, emptyLabel:'Локаций пока нет.'},
   {key:'factions', title:'Фракции', addLabel:'+ Добавить', addFn:'openNewFactionModal', card:facCardRef, emptyLabel:'Фракций пока нет.'},
   {key:'creatures', title:'Бестиарий', addLabel:'+ Добавить', addFn:'openNewCreatureModal', card:creatureCardRef, emptyLabel:'Существ пока нет.'},
@@ -1486,6 +2122,9 @@ function mythCardRef(x){ return mythCard(x); }
 function magicCardRef(x){ return magicCard(x); }
 function deityCardRef(x){ return deityCard(x); }
 function mapCardRef(x){ return mapCard(x); }
+function countryCardRef(x){ return countryCard(x); }
+function dynastyCardRef(x){ return dynastyCard(x); }
+function artifactCardRef(x){ return artifactCard(x); }
 
 function toggleWorldSection(key){
   if(!state.worldOpen) state.worldOpen = {};
@@ -1494,8 +2133,51 @@ function toggleWorldSection(key){
   if(sec) sec.classList.toggle('open', !!state.worldOpen[key]);
 }
 
+function sortByOrder(list){
+  return [...list].sort((a,b)=>(a.order??0)-(b.order??0));
+}
+function nextOrder(coll, pid){
+  return Math.max(-1, ...itemsOf(coll, pid).map(x=>x.order??0)) + 1;
+}
+function reorderWorldItem(coll, dragId, targetId, pid){
+  const list = sortByOrder(itemsOf(coll, pid));
+  const fromIdx = list.findIndex(x=>x.id===dragId);
+  const toIdx = list.findIndex(x=>x.id===targetId);
+  if(fromIdx===-1 || toIdx===-1 || fromIdx===toIdx) return;
+  const [moved] = list.splice(fromIdx,1);
+  list.splice(toIdx,0,moved);
+  list.forEach((x,i)=>{ x.order = i; });
+  queueSave();
+  renderWorld(document.getElementById('tabContent'), pid);
+}
+function attachWorldGridDrag(gridEl, coll, pid){
+  if(!gridEl) return;
+  let dragId = null;
+  gridEl.querySelectorAll('.dossier[data-id]').forEach(card=>{
+    card.draggable = true;
+    card.addEventListener('dragstart', ()=>{ dragId = card.dataset.id; card.classList.add('dragging-card'); });
+    card.addEventListener('dragend', ()=>{
+      card.classList.remove('dragging-card');
+      gridEl.querySelectorAll('.dossier').forEach(c=>c.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover', (e)=>{ e.preventDefault(); if(card.dataset.id===dragId) return; card.classList.add('drag-over'); });
+    card.addEventListener('dragleave', ()=>{ card.classList.remove('drag-over'); });
+    card.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      card.classList.remove('drag-over');
+      const targetId = card.dataset.id;
+      if(!dragId || dragId===targetId) return;
+      reorderWorldItem(coll, dragId, targetId, pid);
+    });
+  });
+}
 function renderWorld(el, pid){
   if(!state.worldOpen) state.worldOpen = {};
+  if(state.activeTreeId){
+    const activeDynasty = data.dynasties.find(x=>x.id===state.activeTreeId && x.projectId===pid);
+    if(activeDynasty) return renderTreeEditor(el, activeDynasty);
+    state.activeTreeId = null;
+  }
   if(state.activeMapId){
     const activeMap = data.maps.find(x=>x.id===state.activeMapId && x.projectId===pid);
     if(activeMap) return renderMapEditor(el, activeMap);
@@ -1503,12 +2185,15 @@ function renderWorld(el, pid){
   }
   const dataByKey = {
     maps: itemsOf('maps', pid),
-    magicSystems: itemsOf('magicSystems', pid),
-    deities: itemsOf('deities', pid),
-    locations: itemsOf('locations', pid),
-    factions: itemsOf('factions', pid),
-    creatures: itemsOf('creatures', pid),
-    myths: itemsOf('myths', pid),
+    magicSystems: sortByOrder(itemsOf('magicSystems', pid)),
+    deities: sortByOrder(itemsOf('deities', pid)),
+    countries: sortByOrder(itemsOf('countries', pid)),
+    dynasties: sortByOrder(itemsOf('dynasties', pid)),
+    artifacts: sortByOrder(itemsOf('artifacts', pid)),
+    locations: sortByOrder(itemsOf('locations', pid)),
+    factions: sortByOrder(itemsOf('factions', pid)),
+    creatures: sortByOrder(itemsOf('creatures', pid)),
+    myths: sortByOrder(itemsOf('myths', pid)),
   };
   el.innerHTML = WORLD_SECTIONS.map(sec=>{
     const items = dataByKey[sec.key];
@@ -1523,10 +2208,14 @@ function renderWorld(el, pid){
         <button class="btn btn-sm btn-primary world-section-addbtn" onclick="event.stopPropagation(); ${sec.addFn}()">${esc(sec.addLabel)}</button>
       </div>
       <div class="world-section-body">
-        <div class="grid">${items.length ? items.map(sec.card).join('') : `<div class="empty-tab">${esc(sec.emptyLabel)}</div>`}</div>
+        <div class="grid" id="world-grid-${sec.key}">${items.length ? items.map(sec.card).join('') : `<div class="empty-tab">${esc(sec.emptyLabel)}</div>`}</div>
       </div>
     </div>`;
   }).join('');
+  WORLD_SECTIONS.forEach(sec=>{
+    if(sec.key==='maps') return;
+    attachWorldGridDrag(document.getElementById('world-grid-'+sec.key), sec.key, pid);
+  });
 }
 
 /* ---------------- MAP (lore) ---------------- */
@@ -1611,7 +2300,7 @@ function openEditMapModal(id){ const m = data.maps.find(x=>x.id===id); if(m) ope
 function deleteMap(id){
   askConfirm('Удалить карту вместе со всеми метками и путями? Это необратимо.', 'Удалить карту', ()=>{
     data.maps = data.maps.filter(m=>m.id!==id);
-    if(state.activeMapId===id) state.activeMapId = null;
+    if(state.activeMapId===id){ state.activeMapId = null; exitMapFullscreen(); }
     queueSave(); renderMain();
   });
 }
@@ -1620,12 +2309,44 @@ function openMapEditor(id){
   state.activeMapId = id;
   if(!state.mapMode) state.mapMode = 'marker';
   state.mapDrawingPath = null;
+  mapCanvasView = { pan:{x:0,y:0}, scale:1 };
+  exitMapFullscreen();
   renderMain();
 }
 function closeMapEditor(){
   state.activeMapId = null;
   state.mapDrawingPath = null;
+  exitMapFullscreen();
   renderMain();
+}
+function exitMapFullscreen(){
+  if(state.mapFullscreen){
+    state.mapFullscreen = false;
+    window.removeEventListener('keydown', mapFullscreenEscHandler);
+    window.removeEventListener('resize', mapFullscreenResizeHandler);
+    mapCanvasView = { pan:{x:0,y:0}, scale:1 };
+  }
+}
+function mapFullscreenEscHandler(e){
+  if(e.key==='Escape'){ exitMapFullscreen(); refreshMapEditor(); }
+}
+function mapFullscreenResizeHandler(){
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  layoutMapStage(m);
+  centerMapCanvasView(m);
+  applyMapCanvasTransform();
+}
+function toggleMapFullscreen(){
+  if(state.mapFullscreen){
+    exitMapFullscreen();
+  } else {
+    state.mapFullscreen = true;
+    window.addEventListener('keydown', mapFullscreenEscHandler);
+    window.addEventListener('resize', mapFullscreenResizeHandler);
+    mapFullscreenNeedsCenter = true;
+  }
+  refreshMapEditor();
 }
 function refreshMapEditor(){
   const el = document.getElementById('tabContent');
@@ -1636,6 +2357,22 @@ function refreshMapEditor(){
 function setMapMode(mode){
   state.mapMode = mode;
   if(mode!=='path') state.mapDrawingPath = null;
+  // Editing a layer implies wanting to see it — auto-reveal it if it was hidden.
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(m){
+    if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+    if(mode==='marker' && !m.layers.markers){ m.layers.markers = true; queueSave(); }
+    if(mode==='label' && !m.layers.labels){ m.layers.labels = true; queueSave(); }
+    if(mode==='path' && !m.layers.paths){ m.layers.paths = true; queueSave(); }
+  }
+  refreshMapEditor();
+}
+function toggleMapLayer(key){
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+  m.layers[key] = !m.layers[key];
+  queueSave();
   refreshMapEditor();
 }
 function startMapPath(){ state.mapDrawingPath = { points: [] }; refreshMapEditor(); }
@@ -1838,54 +2575,220 @@ function pathCard(p){
 function renderMapEditor(el, m){
   if(!m.markers) m.markers = [];
   if(!m.paths) m.paths = [];
+  if(!m.labels) m.labels = [];
+  if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+  else m.layers = Object.assign({ markers:true, labels:true, paths:true }, m.layers);
   const pathToolbar = state.mapMode==='path'
     ? (state.mapDrawingPath
         ? `<button class="btn btn-sm btn-primary" onclick="finishMapPath()">Завершить путь (${state.mapDrawingPath.points.length})</button><button class="btn btn-sm" onclick="cancelMapPath()">Отменить</button>`
         : `<button class="btn btn-sm" onclick="startMapPath()">Начать новый путь</button>`)
     : '';
   const hint = state.mapMode==='marker'
-    ? 'Кликните по карте, чтобы поставить метку. Перетаскивайте метки, чтобы переместить. Клик по метке — изменить.'
+    ? 'Дважды кликните по карте, чтобы поставить метку. Перетаскивайте метки, чтобы переместить. Клик по метке — изменить. Колесо мыши — масштаб, перетаскивание фона — панорама.'
+    : state.mapMode==='label'
+    ? 'Дважды кликните по карте, чтобы добавить название страны или региона. Тяните за текст, чтобы переместить, за золотой кружок над ним — чтобы повернуть (виден при наведении). Двойной клик по кружку — сбросить поворот. Клик по тексту без перетаскивания — изменить шрифт, цвет и изгиб.'
     : (state.mapDrawingPath ? 'Кликайте по карте, чтобы добавлять точки пути. Когда закончите — нажмите «Завершить путь».' : 'Нажмите «Начать новый путь», затем кликайте по карте, чтобы отметить маршрут героя.');
+  const fullscreen = !!state.mapFullscreen;
   el.innerHTML = `
-    <div class="canvas-toolbar">
-      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <button class="btn btn-sm" onclick="closeMapEditor()">← Назад к картам</button>
-        <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</h3>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-        <div class="canvas-zoom-controls" style="gap:6px;">
-          <button class="btn btn-sm ${state.mapMode==='marker'?'btn-primary':''}" onclick="setMapMode('marker')">📍 Метки</button>
-          <button class="btn btn-sm ${state.mapMode==='path'?'btn-primary':''}" onclick="setMapMode('path')">〜 Путь</button>
+    <div id="mapEditorRoot" class="${fullscreen ? 'map-editor-fullscreen' : ''}">
+      <div class="canvas-toolbar">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <button class="btn btn-sm" onclick="closeMapEditor()">← Назад к картам</button>
+          <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</h3>
         </div>
-        ${pathToolbar}
+        <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+          <div class="canvas-zoom-controls" style="gap:6px;">
+            <button class="btn btn-sm ${state.mapMode==='marker'?'btn-primary':''}" onclick="setMapMode('marker')">📍 Метки</button>
+            <button class="btn btn-sm ${state.mapMode==='label'?'btn-primary':''}" onclick="setMapMode('label')">🔤 Название</button>
+            <button class="btn btn-sm ${state.mapMode==='path'?'btn-primary':''}" onclick="setMapMode('path')">〜 Путь</button>
+          </div>
+          ${pathToolbar}
+          <div class="canvas-zoom-controls">
+            <button class="btn btn-sm" onclick="zoomMapCanvas(-0.2)">−</button>
+            <span class="mono" id="mapZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
+            <button class="btn btn-sm" onclick="zoomMapCanvas(0.2)">+</button>
+          </div>
+          <button class="btn btn-sm" onclick="resetMapCanvasView()">Сброс вида</button>
+          <button class="btn btn-sm" onclick="toggleMapFullscreen()">${fullscreen ? '✕ Свернуть' : '⛶ Во весь экран'}</button>
+        </div>
       </div>
+      <div class="canvas-toolbar" style="margin-top:-4px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="eyebrow" style="margin-right:2px;">Показать на карте:</span>
+          <button class="btn btn-sm layer-toggle ${m.layers.markers?'':'off'}" onclick="toggleMapLayer('markers')">${m.layers.markers?'👁':'🙈'} Метки</button>
+          <button class="btn btn-sm layer-toggle ${m.layers.labels?'':'off'}" onclick="toggleMapLayer('labels')">${m.layers.labels?'👁':'🙈'} Названия</button>
+          <button class="btn btn-sm layer-toggle ${m.layers.paths?'':'off'}" onclick="toggleMapLayer('paths')">${m.layers.paths?'👁':'🙈'} Пути</button>
+        </div>
+      </div>
+      <div class="eyebrow" style="margin-bottom:10px;">${hint}</div>
+      <div class="map-stage" id="mapStage">
+        <div id="mapViewport" style="${fullscreen ? '' : `aspect-ratio:${m.aspect||1.6};`}">
+          <div id="mapCanvasInner">
+            <img src="${m.image}" class="map-bg-img" draggable="false" alt="">
+            <svg id="mapPathsSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+            <div id="mapLabelsLayer"></div>
+            ${m.layers.markers ? m.markers.map(markerHtml).join('') : ''}
+          </div>
+        </div>
+      </div>
+      ${fullscreen ? '' : `
+      <div class="side-section-label" style="margin:22px 0 10px;">Метки (${m.markers.length})${m.layers.markers?'':' — скрыты на карте'}</div>
+      <div class="grid">${m.markers.length ? m.markers.map(markerCard).join('') : '<div class="empty-tab">Меток пока нет — кликните по карте.</div>'}</div>
+      <div class="side-section-label" style="margin:26px 0 10px;">Названия стран и регионов (${(m.labels||[]).length})${m.layers.labels?'':' — скрыты на карте'}</div>
+      <div class="grid">${(m.labels||[]).length ? m.labels.map(labelCard).join('') : '<div class="empty-tab">Названий пока нет — переключитесь на «Название» и кликните по карте.</div>'}</div>
+      <div class="side-section-label" style="margin:26px 0 10px;">Пути героев (${m.paths.length})${m.layers.paths?'':' — скрыты на карте'}</div>
+      <div class="grid">${m.paths.length ? m.paths.map(pathCard).join('') : '<div class="empty-tab">Путей пока нет.</div>'}</div>
+      `}
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${hint}</div>
-    <div id="mapViewport" style="aspect-ratio:${m.aspect||1.6};" onclick="onMapClick(event)">
-      <img src="${m.image}" class="map-bg-img" draggable="false" alt="">
-      <svg id="mapPathsSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
-      ${m.markers.map(markerHtml).join('')}
-    </div>
-    <div class="side-section-label" style="margin:22px 0 10px;">Метки (${m.markers.length})</div>
-    <div class="grid">${m.markers.length ? m.markers.map(markerCard).join('') : '<div class="empty-tab">Меток пока нет — кликните по карте.</div>'}</div>
-    <div class="side-section-label" style="margin:26px 0 10px;">Пути героев (${m.paths.length})</div>
-    <div class="grid">${m.paths.length ? m.paths.map(pathCard).join('') : '<div class="empty-tab">Путей пока нет.</div>'}</div>
   `;
+  layoutMapStage(m);
+  if(state.mapFullscreen && mapFullscreenNeedsCenter){
+    centerMapCanvasView(m);
+    mapFullscreenNeedsCenter = false;
+  }
+  applyMapCanvasTransform();
   drawMapPaths(m);
+  drawMapLabels(m);
+  attachMapCanvasEvents();
   attachMapMarkerDrag(m);
+  attachMapLabelDrag(m);
+  if(document.fonts && document.fonts.ready){
+    document.fonts.ready.then(()=>{
+      if(state.activeMapId!==m.id) return;
+      drawMapLabels(m);
+      attachMapLabelDrag(m); // re-attach: drawMapLabels rebuilds the DOM, dropping old listeners
+    }).catch(()=>{});
+  }
 }
 
-function onMapClick(e){
-  if(e.target.closest('.map-marker')) return;
+// Sizes the inner canvas (image + markers + paths) so it always keeps the
+// map's true aspect ratio — never stretched. In fullscreen it's sized with
+// a "cover" fit so it fills the whole viewport edge-to-edge (cropping any
+// excess instead of leaving empty bars or distorting the image).
+function layoutMapStage(m){
+  const viewport = document.getElementById('mapViewport');
+  const inner = document.getElementById('mapCanvasInner');
+  if(!viewport || !inner) return;
+  if(!state.mapFullscreen){
+    inner.style.width = '';
+    inner.style.height = '';
+    return;
+  }
+  const availW = viewport.clientWidth;
+  const availH = viewport.clientHeight;
+  if(availW<=0 || availH<=0) return;
+  const aspect = m.aspect || 1.6;
+  const w = Math.max(availW, availH * aspect);
+  const h = w / aspect;
+  inner.style.width = Math.round(w) + 'px';
+  inner.style.height = Math.round(h) + 'px';
+}
+
+// Centers the (larger) cover-fit canvas inside the fullscreen viewport.
+function centerMapCanvasView(m){
+  const viewport = document.getElementById('mapViewport');
+  const inner = document.getElementById('mapCanvasInner');
+  if(!viewport || !inner) return;
+  const availW = viewport.clientWidth, availH = viewport.clientHeight;
+  const w = parseFloat(inner.style.width) || availW;
+  const h = parseFloat(inner.style.height) || availH;
+  mapCanvasView = { pan:{ x:(availW-w)/2, y:(availH-h)/2 }, scale:1 };
+}
+
+function applyMapCanvasTransform(){
+  const inner = document.getElementById('mapCanvasInner');
+  if(!inner) return;
+  inner.style.transform = `translate(${mapCanvasView.pan.x}px, ${mapCanvasView.pan.y}px) scale(${mapCanvasView.scale})`;
+  const lbl = document.getElementById('mapZoomLabel');
+  if(lbl) lbl.textContent = Math.round(mapCanvasView.scale*100)+'%';
+}
+function zoomMapCanvas(delta){
+  mapCanvasView.scale = Math.min(4, Math.max(0.4, mapCanvasView.scale+delta));
+  applyMapCanvasTransform();
+}
+function resetMapCanvasView(){
+  if(state.mapFullscreen){
+    const m = data.maps.find(x=>x.id===state.activeMapId);
+    if(m) centerMapCanvasView(m);
+  } else {
+    mapCanvasView = { pan:{x:0,y:0}, scale:1 };
+  }
+  applyMapCanvasTransform();
+}
+
+function attachMapCanvasEvents(){
+  const viewport = document.getElementById('mapViewport');
+  if(!viewport) return;
+  viewport.addEventListener('mousedown', onMapCanvasMouseDown);
+  viewport.addEventListener('dblclick', onMapCanvasDblClick);
+  viewport.addEventListener('wheel', onMapCanvasWheel, {passive:false});
+}
+
+function onMapCanvasWheel(e){
+  e.preventDefault();
   const viewport = document.getElementById('mapViewport');
   const rect = viewport.getBoundingClientRect();
-  const xPct = ((e.clientX-rect.left)/rect.width)*100;
-  const yPct = ((e.clientY-rect.top)/rect.height)*100;
+  const cursorX = e.clientX-rect.left, cursorY = e.clientY-rect.top;
+  const oldScale = mapCanvasView.scale;
+  const newScale = Math.min(4, Math.max(0.4, oldScale + (e.deltaY<0?0.12:-0.12)));
+  const localX = (cursorX-mapCanvasView.pan.x)/oldScale, localY = (cursorY-mapCanvasView.pan.y)/oldScale;
+  mapCanvasView.pan.x = cursorX-localX*newScale;
+  mapCanvasView.pan.y = cursorY-localY*newScale;
+  mapCanvasView.scale = newScale;
+  applyMapCanvasTransform();
+}
+
+function onMapCanvasMouseDown(e){
+  if(e.target.closest('.map-marker')) return; // marker dragging is handled separately
+  const viewport = document.getElementById('mapViewport');
+  let lastX = e.clientX, lastY = e.clientY;
+  let moved = false;
+  const move=(ev)=>{
+    if(Math.abs(ev.clientX-lastX)>3 || Math.abs(ev.clientY-lastY)>3 || moved){
+      moved = true;
+      mapCanvasView.pan.x += (ev.clientX-lastX);
+      mapCanvasView.pan.y += (ev.clientY-lastY);
+      applyMapCanvasTransform();
+      viewport.classList.add('panning');
+    }
+    lastX = ev.clientX; lastY = ev.clientY;
+  };
+  const up=(ev)=>{
+    document.removeEventListener('mousemove', move);
+    document.removeEventListener('mouseup', up);
+    viewport.classList.remove('panning');
+    // Marker and label placement now require a double-click (see onMapCanvasDblClick);
+    // a plain single click only still places path points, since drawing a route
+    // point-by-point with double-clicks would be awkward.
+    if(!moved && state.mapMode==='path') handleMapPlacementClick(ev);
+  };
+  document.addEventListener('mousemove', move);
+  document.addEventListener('mouseup', up);
+  e.preventDefault();
+}
+
+function onMapCanvasDblClick(e){
+  if(e.target.closest('.map-marker') || e.target.closest('.map-label')) return;
+  if(state.mapMode==='marker' || state.mapMode==='label'){
+    handleMapPlacementClick(e);
+  }
+}
+
+function handleMapPlacementClick(e){
+  const viewport = document.getElementById('mapViewport');
+  const inner = document.getElementById('mapCanvasInner');
+  const rect = viewport.getBoundingClientRect();
+  const localX = (e.clientX-rect.left-mapCanvasView.pan.x)/mapCanvasView.scale;
+  const localY = (e.clientY-rect.top-mapCanvasView.pan.y)/mapCanvasView.scale;
+  const xPct = (localX/inner.offsetWidth)*100;
+  const yPct = (localY/inner.offsetHeight)*100;
   if(xPct<0 || xPct>100 || yPct<0 || yPct>100) return;
   const m = data.maps.find(x=>x.id===state.activeMapId);
   if(!m) return;
   if(state.mapMode==='marker'){
     openNewMarkerModal(m, xPct, yPct);
+  } else if(state.mapMode==='label'){
+    openNewLabelModal(m, xPct, yPct);
   } else if(state.mapMode==='path'){
     if(!state.mapDrawingPath){ showToast('Сначала нажмите «Начать новый путь»'); return; }
     state.mapDrawingPath.points.push({x:xPct, y:yPct});
@@ -1897,13 +2800,16 @@ function drawMapPaths(m){
   const svg = document.getElementById('mapPathsSvg');
   if(!svg) return;
   let out = '';
-  (m.paths||[]).forEach(p=>{
-    const pts = (p.points||[]).map(pt=>`${pt.x},${pt.y}`).join(' ');
-    out += `<polyline points="${pts}" fill="none" stroke="${p.color||'var(--gold)'}" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>`;
-    (p.points||[]).forEach((pt,i)=>{
-      out += `<circle cx="${pt.x}" cy="${pt.y}" r="${i===0||i===p.points.length-1?1.1:0.7}" fill="${p.color||'var(--gold)'}"/>`;
+  const showPaths = !m.layers || m.layers.paths !== false;
+  if(showPaths){
+    (m.paths||[]).forEach(p=>{
+      const pts = (p.points||[]).map(pt=>`${pt.x},${pt.y}`).join(' ');
+      out += `<polyline points="${pts}" fill="none" stroke="${p.color||'var(--gold)'}" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+      (p.points||[]).forEach((pt,i)=>{
+        out += `<circle cx="${pt.x}" cy="${pt.y}" r="${i===0||i===p.points.length-1?1.1:0.7}" fill="${p.color||'var(--gold)'}"/>`;
+      });
     });
-  });
+  }
   if(state.mapDrawingPath){
     const pts = state.mapDrawingPath.points;
     const ptsStr = pts.map(pt=>`${pt.x},${pt.y}`).join(' ');
@@ -1922,13 +2828,13 @@ function attachMapMarkerDrag(m){
       const id = nodeEl.dataset.id;
       const marker = (m.markers||[]).find(x=>x.id===id);
       if(!marker) return;
-      const rect = viewport.getBoundingClientRect();
+      const inner = document.getElementById('mapCanvasInner');
       const startX=e.clientX, startY=e.clientY, ox=marker.x, oy=marker.y;
       let moved = false;
       const move=(ev)=>{
         if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
-        let nx = ox + ((ev.clientX-startX)/rect.width)*100;
-        let ny = oy + ((ev.clientY-startY)/rect.height)*100;
+        let nx = ox + ((ev.clientX-startX)/mapCanvasView.scale/inner.offsetWidth)*100;
+        let ny = oy + ((ev.clientY-startY)/mapCanvasView.scale/inner.offsetHeight)*100;
         nx = Math.min(100, Math.max(0, nx));
         ny = Math.min(100, Math.max(0, ny));
         marker.x = nx; marker.y = ny;
@@ -1948,8 +2854,272 @@ function attachMapMarkerDrag(m){
   });
 }
 
+/* ---------------- MAP LABELS (curved country / region names) ---------------- */
+const MAP_LABEL_FONTS = {
+  ruslan:        { label:'Ruslan Display — древнерусский устав (кириллица)', family:'Ruslan Display' },
+  marckScript:   { label:'Marck Script — рукописный росчерк (кириллица)', family:'Marck Script' },
+  badScript:     { label:'Bad Script — небрежный почерк (кириллица)', family:'Bad Script' },
+  underdog:      { label:'Underdog — круглый жирный (кириллица)', family:'Underdog' },
+  yesevaOne:     { label:'Yeseva One — декоративный заголовочный (кириллица)', family:'Yeseva One' },
+  neucha:        { label:'Neucha — от руки (кириллица)', family:'Neucha' },
+  cinzel:        { label:'Cinzel — классика',        family:'Cinzel' },
+  cinzelDeco:    { label:'Cinzel Decorative — вычурный', family:'Cinzel Decorative' },
+  medieval:      { label:'MedievalSharp — острый',    family:'MedievalSharp' },
+  uncial:        { label:'Uncial Antiqua — рукопись',  family:'Uncial Antiqua' },
+  fellEnglish:   { label:'IM Fell English SC — гравюра', family:'IM Fell English SC' },
+  almendra:      { label:'Almendra SC — изящный',     family:'Almendra SC' },
+  pirata:        { label:'Pirata One — пиратская карта', family:'Pirata One' },
+  marcellus:     { label:'Marcellus SC — римский',    family:'Marcellus SC' },
+  spectral:      { label:'Spectral — как в проекте',  family:'Spectral' },
+  caveat:        { label:'Caveat — рукописный',       family:'Caveat' },
+  pacifico:      { label:'Pacifico — курсивный',      family:'Pacifico' },
+};
+
+let _labelMeasureCanvas = null;
+function measureLabelWidth(text, size, family, spacing){
+  if(!_labelMeasureCanvas) _labelMeasureCanvas = document.createElement('canvas');
+  const ctx = _labelMeasureCanvas.getContext('2d');
+  ctx.font = `${size}px "${family}"`;
+  const t = text && text.length ? text : ' ';
+  const w = ctx.measureText(t).width;
+  const extra = Math.max(0, t.length-1) * (spacing||0);
+  return w + extra;
+}
+
+// Builds an inline SVG for one label, curving the text along a quadratic
+// path whose bend is driven by lb.curve (-100..100): negative bows the
+// text downward like a valley, positive arches it upward, 0 stays straight.
+function labelSvgMarkup(lb){
+  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.cinzel;
+  const size = Math.max(10, Math.min(72, Number(lb.size)||26));
+  const color = lb.color || '#e9e4d8';
+  const spacing = Number(lb.spacing)||0;
+  const curve = Math.max(-100, Math.min(100, Number(lb.curve)||0));
+  const text = lb.text || '';
+  const textW = measureLabelWidth(text, size, fontDef.family, spacing);
+  const pad = size*0.9;
+  const svgW = Math.max(40, textW + pad*2);
+  const bend = (curve/100) * size * 1.35;
+  const svgH = Math.max(size*2.2, size*1.5 + Math.abs(bend)*2);
+  const midY = svgH/2;
+  const pathId = 'lblpath-'+(lb.id||'preview');
+  const d = `M ${pad.toFixed(1)},${midY.toFixed(1)} Q ${(svgW/2).toFixed(1)},${(midY-bend).toFixed(1)} ${(svgW-pad).toFixed(1)},${midY.toFixed(1)}`;
+  return `<svg width="${svgW.toFixed(0)}" height="${svgH.toFixed(0)}" viewBox="0 0 ${svgW.toFixed(1)} ${svgH.toFixed(1)}" style="overflow:visible;">
+    <path id="${pathId}" d="${d}" fill="none" stroke="none"/>
+    <text font-family="${esc(fontDef.family)}" font-size="${size}" letter-spacing="${spacing}" fill="${color}"
+      style="paint-order:stroke; stroke:rgba(20,21,27,.6); stroke-width:${Math.max(1,size*0.05).toFixed(1)}px; stroke-linejoin:round;">
+      <textPath href="#${pathId}" startOffset="50%" text-anchor="middle" dominant-baseline="middle">${esc(text)}</textPath>
+    </text>
+  </svg>`;
+}
+
+function drawMapLabels(m){
+  const layer = document.getElementById('mapLabelsLayer');
+  if(!layer) return;
+  const show = !m.layers || m.layers.labels !== false;
+  layer.innerHTML = !show ? '' : (m.labels||[]).map(lb=>{
+    const rot = Number(lb.rotation)||0;
+    return `<div class="map-label" data-id="${lb.id}" style="left:${lb.x}%; top:${lb.y}%;">
+      <div class="map-label-group" data-id="${lb.id}" style="transform:translate(-50%,-50%) rotate(${rot}deg);">
+        <div class="map-label-rotate-handle" data-id="${lb.id}" title="Перетащите, чтобы повернуть надпись"></div>
+        <div class="map-label-svgwrap" data-id="${lb.id}" title="${esc(lb.text)}">${labelSvgMarkup(lb)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function attachMapLabelDrag(m){
+  const layer = document.getElementById('mapLabelsLayer');
+  if(!layer) return;
+  // Drag on the text itself moves the label around the map.
+  layer.querySelectorAll('.map-label-svgwrap').forEach(svgwrap=>{
+    svgwrap.addEventListener('mousedown', (e)=>{
+      e.stopPropagation();
+      const id = svgwrap.dataset.id;
+      const lb = (m.labels||[]).find(x=>x.id===id);
+      if(!lb) return;
+      const outer = svgwrap.closest('.map-label');
+      const inner = document.getElementById('mapCanvasInner');
+      const startX=e.clientX, startY=e.clientY, ox=lb.x, oy=lb.y;
+      let moved = false;
+      const move=(ev)=>{
+        if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
+        let nx = ox + ((ev.clientX-startX)/mapCanvasView.scale/inner.offsetWidth)*100;
+        let ny = oy + ((ev.clientY-startY)/mapCanvasView.scale/inner.offsetHeight)*100;
+        nx = Math.min(100, Math.max(0, nx));
+        ny = Math.min(100, Math.max(0, ny));
+        lb.x = nx; lb.y = ny;
+        outer.style.left = nx+'%'; outer.style.top = ny+'%';
+      };
+      const up=()=>{
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        if(moved) queueSave();
+        else openEditLabelModal(state.activeMapId, id);
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+      e.preventDefault();
+    });
+  });
+  // Drag on the small handle above the label rotates it in place, live.
+  layer.querySelectorAll('.map-label-rotate-handle').forEach(handle=>{
+    handle.addEventListener('mousedown', (e)=>{
+      e.stopPropagation();
+      const id = handle.dataset.id;
+      const lb = (m.labels||[]).find(x=>x.id===id);
+      if(!lb) return;
+      const outer = handle.closest('.map-label');
+      const group = handle.closest('.map-label-group');
+      const rect = outer.getBoundingClientRect();
+      const cx = rect.left, cy = rect.top;
+      handle.classList.add('active');
+      let moved = false;
+      const move=(ev)=>{
+        moved = true;
+        const dx = ev.clientX-cx, dy = ev.clientY-cy;
+        let deg = Math.atan2(dy,dx)*180/Math.PI + 90;
+        deg = ((deg+180)%360+360)%360-180;
+        if(ev.shiftKey) deg = Math.round(deg/15)*15;
+        lb.rotation = Math.round(deg*10)/10;
+        group.style.transform = `translate(-50%,-50%) rotate(${lb.rotation}deg)`;
+      };
+      const up=()=>{
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+        handle.classList.remove('active');
+        if(moved) queueSave();
+      };
+      document.addEventListener('mousemove', move);
+      document.addEventListener('mouseup', up);
+      e.preventDefault();
+    });
+    handle.addEventListener('dblclick', (e)=>{
+      e.stopPropagation();
+      const id = handle.dataset.id;
+      const lb = (m.labels||[]).find(x=>x.id===id);
+      if(!lb) return;
+      lb.rotation = 0;
+      const group = handle.closest('.map-label-group');
+      group.style.transform = 'translate(-50%,-50%) rotate(0deg)';
+      queueSave();
+    });
+  });
+}
+
+function labelCard(lb){
+  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.cinzel;
+  const previewLb = Object.assign({}, lb, { size: Math.min(Number(lb.size)||26, 30) });
+  const rot = Number(lb.rotation)||0;
+  return `<div class="dossier">
+    <div style="background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:4px; padding:10px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; min-height:64px; overflow:hidden;"><div style="transform:rotate(${rot}deg);">${labelSvgMarkup(previewLb)}</div></div>
+    <h3 style="font-size:14px;">${esc(lb.text)}</h3>
+    <div class="d-role">${esc(fontDef.label)}</div>
+    <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditLabelModal('${state.activeMapId}','${lb.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMapLabel('${state.activeMapId}','${lb.id}')">Удалить</button>
+    </div>
+  </div>`;
+}
+
+function openLabelFormModal(m, existingLabel, x, y){
+  const isEdit = !!existingLabel;
+  const d0 = isEdit ? Object.assign({}, existingLabel) : { text:'', font:'cinzel', size:28, color:'#e9e4d8', spacing:1, curve:0 };
+  const box = document.getElementById('modalBox');
+  box.style.maxWidth = '460px';
+  const fontOptions = Object.entries(MAP_LABEL_FONTS).map(([key,f])=>
+    `<option value="${key}" style="font-family:'${f.family}'" ${d0.font===key?'selected':''}>${esc(f.label)}</option>`
+  ).join('');
+  const swatches = ['#e9e4d8','#c9a24c','#c1443b','#5fa8a0','#b5698f','#8c7ec9','#ffffff','#14151b'];
+  box.innerHTML = `
+    <h2>${isEdit ? 'Изменить название' : 'Новое название страны / региона'}</h2>
+    <div class="field"><label>Текст</label><input type="text" id="lblTextInput" value="${esc(d0.text)}" placeholder="Название страны, региона…"></div>
+    <div class="field"><label>Шрифт</label><select id="lblFontInput">${fontOptions}</select></div>
+    <div class="field">
+      <label>Размер (<span id="lblSizeVal">${d0.size}</span>px)</label>
+      <input type="range" id="lblSizeInput" min="12" max="64" step="1" value="${d0.size}">
+    </div>
+    <div class="field">
+      <label>Межбуквенный интервал (<span id="lblSpacingVal">${d0.spacing}</span>px)</label>
+      <input type="range" id="lblSpacingInput" min="-1" max="10" step="0.5" value="${d0.spacing}">
+    </div>
+    <div class="field">
+      <label>Изгиб текста — направление и сила (<span id="lblCurveVal">${d0.curve}</span>)</label>
+      <input type="range" id="lblCurveInput" min="-100" max="100" step="5" value="${d0.curve}">
+      <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); margin-top:-2px;">
+        <span>◡ вниз</span><span>прямо</span><span>◠ вверх</span>
+      </div>
+    </div>
+    <div class="field"><label>Цвет</label>
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <input type="color" id="lblColorInput" value="${d0.color}" style="width:44px; height:32px; padding:2px; border-radius:6px; cursor:pointer;">
+        ${swatches.map(c=>`<button type="button" class="lbl-swatch" data-c="${c}" style="width:20px; height:20px; border-radius:50%; background:${c}; border:1px solid var(--border); cursor:pointer;"></button>`).join('')}
+      </div>
+    </div>
+    <div class="field"><label>Предпросмотр</label>
+      <div id="lblPreviewWrap" style="background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:4px; padding:16px; display:flex; align-items:center; justify-content:center; min-height:100px; overflow:hidden;"></div>
+    </div>
+    <div id="modalActions">
+      <div id="modalLeftActions">${isEdit ? `<button class="btn btn-danger btn-sm" id="lblDeleteBtn">Удалить</button>` : ''}</div>
+      <div id="modalRightActions" style="display:flex; gap:10px;">
+        <button class="btn" onclick="closeModal()">Отмена</button>
+        <button class="btn btn-primary" id="lblSaveBtn">${isEdit ? 'Сохранить' : 'Добавить'}</button>
+      </div>
+    </div>
+  `;
+  const textI = document.getElementById('lblTextInput');
+  const fontI = document.getElementById('lblFontInput');
+  const sizeI = document.getElementById('lblSizeInput');
+  const spacingI = document.getElementById('lblSpacingInput');
+  const curveI = document.getElementById('lblCurveInput');
+  const colorI = document.getElementById('lblColorInput');
+  const preview = document.getElementById('lblPreviewWrap');
+  const updatePreview = ()=>{
+    document.getElementById('lblSizeVal').textContent = sizeI.value;
+    document.getElementById('lblSpacingVal').textContent = spacingI.value;
+    document.getElementById('lblCurveVal').textContent = curveI.value;
+    const draft = { id: 'previewonly-'+(d0.id||'new'), text: textI.value || 'Название', font: fontI.value, size: Number(sizeI.value), spacing: Number(spacingI.value), curve: Number(curveI.value), color: colorI.value };
+    preview.innerHTML = labelSvgMarkup(draft);
+  };
+  [textI, fontI, sizeI, spacingI, curveI, colorI].forEach(inp=> inp.addEventListener('input', updatePreview));
+  document.querySelectorAll('.lbl-swatch').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ colorI.value = btn.dataset.c; updatePreview(); });
+  });
+  updatePreview();
+  document.getElementById('lblSaveBtn').onclick = ()=>{
+    const text = textI.value.trim();
+    if(!text){ showToast('Введите текст названия'); return; }
+    const vals = { text, font: fontI.value, size: Number(sizeI.value), spacing: Number(spacingI.value), curve: Number(curveI.value), color: colorI.value };
+    if(isEdit){
+      Object.assign(existingLabel, vals);
+    } else {
+      if(!m.labels) m.labels = [];
+      m.labels.push(Object.assign({id:uid(), x, y}, vals));
+    }
+    queueSave(); closeModal(); refreshMapEditor();
+  };
+  if(isEdit){
+    document.getElementById('lblDeleteBtn').onclick = ()=>{ closeModal(); deleteMapLabel(m.id, existingLabel.id); };
+  }
+  document.getElementById('modalOverlay').classList.add('show');
+}
+function openNewLabelModal(m, x, y){ openLabelFormModal(m, null, x, y); }
+function openEditLabelModal(mapId, labelId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  const lb = (m.labels||[]).find(x=>x.id===labelId);
+  if(!lb) return;
+  openLabelFormModal(m, lb, lb.x, lb.y);
+}
+function deleteMapLabel(mapId, labelId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  m.labels = (m.labels||[]).filter(x=>x.id!==labelId);
+  queueSave(); refreshMapEditor();
+}
+
 function openNewLocationModal(){
-  openFormModal('Новая локация', locationFields(), {}, (vals)=>{ data.locations.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новая локация', locationFields(), {}, (vals)=>{ data.locations.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('locations', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditLocationModal(id){
   const l = data.locations.find(x=>x.id===id);
@@ -1959,12 +3129,13 @@ function deleteLocation(id){ data.locations = data.locations.filter(l=>l.id!==id
 function locationFields(){
   return [
     {key:'name', label:'Название', type:'text', required:true},
+    {key:'photo', label:'Изображение', type:'image'},
     {key:'faction', label:'Контролирующая фракция (если есть)', type:'text'},
     {key:'desc', label:'Описание', type:'textarea'},
   ];
 }
 function openNewFactionModal(){
-  openFormModal('Новая фракция', factionFields(), {}, (vals)=>{ data.factions.push(Object.assign({id:uid(), projectId: state.activeProjectId}, vals)); queueSave(); closeModal(); renderMain(); });
+  openFormModal('Новая фракция', factionFields(), {}, (vals)=>{ data.factions.push(Object.assign({id:uid(), projectId: state.activeProjectId, order: nextOrder('factions', state.activeProjectId)}, vals)); queueSave(); closeModal(); renderMain(); });
 }
 function openEditFactionModal(id){
   const f = data.factions.find(x=>x.id===id);
@@ -1972,7 +3143,11 @@ function openEditFactionModal(id){
 }
 function deleteFaction(id){ data.factions = data.factions.filter(f=>f.id!==id); queueSave(); renderMain(); }
 function factionFields(){
-  return [ {key:'name', label:'Название', type:'text', required:true}, {key:'desc', label:'Описание, цели, устройство', type:'textarea'} ];
+  return [
+    {key:'name', label:'Название', type:'text', required:true},
+    {key:'photo', label:'Изображение / герб', type:'image'},
+    {key:'desc', label:'Описание, цели, устройство', type:'textarea'},
+  ];
 }
 
 /* ---------------- PROJECTS ---------------- */
@@ -1991,7 +3166,7 @@ function openEditProjectModal(id){
 function deleteProject(id){
   askConfirm('Удалить проект целиком, со всеми персонажами, связями, событиями и лором? Это необратимо.', 'Удалить проект', ()=>{
     data.projects = data.projects.filter(p=>p.id!==id);
-    ['characters','relationships','events','locations','factions','scenes','sceneLinks','creatures','myths','magicSystems','deities','maps'].forEach(coll=>{ data[coll] = data[coll].filter(x=>x.projectId!==id); });
+    ['characters','relationships','events','locations','factions','scenes','sceneLinks','creatures','myths','magicSystems','deities','maps','countries','dynasties','dynastyMembers','dynastyMemberLinks','artifacts'].forEach(coll=>{ data[coll] = data[coll].filter(x=>x.projectId!==id); });
     if(state.activeProjectId===id){ state.activeProjectId = data.projects[0] ? data.projects[0].id : null; }
     queueSave(); render();
   });
@@ -2009,6 +3184,7 @@ function projectFields(){
 /* ---------------- GENERIC MODAL ---------------- */
 function openFormModal(title, fields, initial, onSave, dangerAction){
   const box = document.getElementById('modalBox');
+  box.style.maxWidth = '';
   box.innerHTML = `<h2>${esc(title)}</h2><div id="modalFields"></div>
     <div id="modalActions">
       <div id="modalLeftActions">${dangerAction ? `<button class="btn btn-danger btn-sm" id="modalDangerBtn">${esc(dangerAction.label)}</button>` : ''}</div>
@@ -2134,6 +3310,7 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
 function askConfirm(message, confirmLabel, onConfirm){
   const box = document.getElementById('modalBox');
+  box.style.maxWidth = '';
   box.innerHTML = `<h2>Подтверждение</h2>
     <p style="font-size:13.5px; color:var(--text-dim); line-height:1.65; margin:0;">${esc(message)}</p>
     <div id="modalActions">
@@ -2144,6 +3321,76 @@ function askConfirm(message, confirmLabel, onConfirm){
       </div>
     </div>`;
   document.getElementById('confirmDangerBtn').onclick = ()=>{ closeModal(); onConfirm(); };
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+/* ---------------- READ MODAL (full untruncated text) ---------------- */
+const READ_MODAL_CONFIG = {
+  characters: { getItem:(id)=>data.characters.find(x=>x.id===id), fields:()=>characterFields(), title:(it)=>it.name },
+  relationships: { getItem:(id)=>data.relationships.find(x=>x.id===id), fields:()=>relationshipFields(), title:(it)=>`${charName(it.charA)} ↔ ${charName(it.charB)}`,
+    prepare:(it)=>Object.assign({}, it, { types: relTypes(it), evolvesTo: relEvolves(it) }) },
+  events: { getItem:(id)=>data.events.find(x=>x.id===id), fields:()=>eventFields(), title:(it)=>it.title },
+  locations: { getItem:(id)=>data.locations.find(x=>x.id===id), fields:()=>locationFields(), title:(it)=>it.name },
+  factions: { getItem:(id)=>data.factions.find(x=>x.id===id), fields:()=>factionFields(), title:(it)=>it.name },
+  creatures: { getItem:(id)=>data.creatures.find(x=>x.id===id), fields:()=>creatureFields(), title:(it)=>it.name },
+  myths: { getItem:(id)=>data.myths.find(x=>x.id===id), fields:()=>mythFields(), title:(it)=>it.name },
+  magicSystems: { getItem:(id)=>data.magicSystems.find(x=>x.id===id), fields:()=>magicFields(), title:(it)=>it.name },
+  deities: { getItem:(id)=>data.deities.find(x=>x.id===id), fields:()=>deityFields(), title:(it)=>it.name },
+  countries: { getItem:(id)=>data.countries.find(x=>x.id===id), fields:()=>countryFields(), title:(it)=>it.name },
+  dynasties: { getItem:(id)=>data.dynasties.find(x=>x.id===id), fields:()=>dynastyFields(), title:(it)=>it.name },
+  artifacts: { getItem:(id)=>data.artifacts.find(x=>x.id===id), fields:()=>artifactFields(), title:(it)=>it.name },
+};
+function renderReadFieldValue(f, val){
+  if(f.type==='image'){
+    if(!val) return null;
+    return `<img src="${val}" alt="" style="max-width:100%; max-height:340px; border-radius:6px; border:1px solid var(--border); display:block;">`;
+  }
+  if(f.type==='color'){
+    if(!val) return null;
+    return `<span style="display:inline-flex; align-items:center; gap:8px;"><span style="width:18px; height:18px; border-radius:4px; background:${val}; border:1px solid var(--border); display:inline-block;"></span>${esc(val)}</span>`;
+  }
+  if(f.type==='select'){
+    if(val===undefined || val===null || val==='') return null;
+    const opt = (f.options||[]).find(o=>o[0]===val);
+    return esc(opt ? opt[1] : val);
+  }
+  if(f.type==='multiselect'){
+    if(!val || !val.length) return null;
+    const labels = val.map(v=>{ const opt=(f.options||[]).find(o=>o[0]===v); return opt ? opt[1] : v; });
+    return `<div class="d-tags">${labels.map(l=>`<span class="d-tag">${esc(l)}</span>`).join('')}</div>`;
+  }
+  if(f.type==='tags'){
+    if(!val || !val.length) return null;
+    return `<div class="d-tags">${val.map(t=>`<span class="d-tag">${esc(t)}</span>`).join('')}</div>`;
+  }
+  if(val===undefined || val===null || val==='') return null;
+  return esc(String(val));
+}
+function openReadModal(kind, id){
+  const cfg = READ_MODAL_CONFIG[kind];
+  if(!cfg) return;
+  let item = cfg.getItem(id);
+  if(!item) return;
+  if(cfg.prepare) item = cfg.prepare(item);
+  const fields = cfg.fields(item);
+  const rowsHtml = fields.map(f=>{
+    const rendered = renderReadFieldValue(f, item[f.key]);
+    if(rendered===null) return '';
+    return `<div class="read-field">
+      <div class="read-field-label">${esc(f.label)}</div>
+      <div class="read-field-value">${rendered}</div>
+    </div>`;
+  }).join('');
+  const box = document.getElementById('modalBox');
+  box.style.maxWidth = '680px';
+  box.innerHTML = `<h2>${esc(cfg.title(item))}</h2>
+    <div class="read-modal-body">${rowsHtml || '<div class="empty-tab">Нет данных для отображения.</div>'}</div>
+    <div id="modalActions">
+      <div id="modalLeftActions"></div>
+      <div id="modalRightActions" style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="closeModal()">Закрыть</button>
+      </div>
+    </div>`;
   document.getElementById('modalOverlay').classList.add('show');
 }
 let modalMouseDownOnBackdrop = false;
@@ -2177,6 +3424,9 @@ searchInput.addEventListener('input', ()=>{
   collect('myths','Миф / легенда','name','origin');
   collect('magicSystems','Магия / правило','name','source');
   collect('deities','Божество / культ','name','domain');
+  collect('countries','Страна','name','capital');
+  collect('dynasties','Династия','name','country');
+  collect('artifacts','Артефакт / реликвия','name','owner');
   collect('maps','Карта','name');
   collect('projects','Проект','name','type');
   if(!hits.length){ searchResultsEl.innerHTML = '<div class="search-empty">Ничего не найдено</div>'; searchResultsEl.classList.add('show'); return; }
@@ -2194,12 +3444,12 @@ document.addEventListener('click', (e)=>{ if(!document.getElementById('globalSea
 
 function jumpTo(coll, itemId, projectId){
   searchResultsEl.classList.remove('show'); searchInput.value='';
-  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', creatures:'world', myths:'world', magicSystems:'world', deities:'world', maps:'world', projects:'overview' };
+  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', creatures:'world', myths:'world', magicSystems:'world', deities:'world', countries:'world', dynasties:'world', artifacts:'world', maps:'world', projects:'overview' };
   state.activeProjectId = coll==='projects' ? itemId : projectId;
   state.activeTab = tabMap[coll] || 'overview';
   render();
   setTimeout(()=>{
-    const el = document.getElementById('char-'+itemId);
+    const el = document.getElementById('char-'+itemId) || document.getElementById('tlevent-'+itemId);
     if(el){ el.scrollIntoView({behavior:'smooth', block:'center'}); el.classList.add('highlight-flash'); }
   }, 60);
 }
@@ -2214,6 +3464,38 @@ dataToggle.addEventListener('click', (e)=>{
 document.addEventListener('click', (e)=>{
   if(!document.getElementById('dataSection').contains(e.target)) dataPanel.classList.remove('show');
 });
+
+/* Напоминание о бэкапе: жёлтое мигание, если давно не выгружали архив,
+   красное — если очень давно. Отсчёт идёт от последнего скачивания
+   бэкапа (или от первого запуска, если бэкап ещё ни разу не скачивали). */
+const BACKUP_REMIND_KEY = 'storyBibleLastBackupAt';
+const BACKUP_DUE_MS = 1 * 24 * 60 * 60 * 1000;      // 1 день — жёлтый
+const BACKUP_OVERDUE_MS = 3 * 24 * 60 * 60 * 1000;  // 3 дня — красный
+function getLastBackupAt(){
+  let t = Number(localStorage.getItem(BACKUP_REMIND_KEY));
+  if(!t){ t = Date.now(); localStorage.setItem(BACKUP_REMIND_KEY, String(t)); }
+  return t;
+}
+function markBackupDone(){
+  localStorage.setItem(BACKUP_REMIND_KEY, String(Date.now()));
+  updateBackupReminder();
+}
+function updateBackupReminder(){
+  const elapsed = Date.now() - getLastBackupAt();
+  dataToggle.classList.remove('backup-due-soon','backup-overdue');
+  if(elapsed >= BACKUP_OVERDUE_MS){
+    dataToggle.classList.add('backup-overdue');
+    dataToggle.title = 'Данные — бэкап и восстановление. Бэкап давно не скачивался, стоит сохранить архив.';
+  } else if(elapsed >= BACKUP_DUE_MS){
+    dataToggle.classList.add('backup-due-soon');
+    dataToggle.title = 'Данные — бэкап и восстановление. Пора скачать свежий бэкап.';
+  } else {
+    dataToggle.title = 'Данные — бэкап и восстановление';
+  }
+}
+updateBackupReminder();
+setInterval(updateBackupReminder, 60*1000);
+
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
   const url = URL.createObjectURL(blob);
@@ -2222,6 +3504,7 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   a.href = url; a.download = `story-bible-backup-${date}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
+  markBackupDone();
   showToast('Бэкап скачан');
 });
 document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
@@ -2234,7 +3517,7 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
       const parsed = JSON.parse(reader.result);
       if(!parsed || !Array.isArray(parsed.projects)) throw new Error('bad format');
       askConfirm('Загрузить бэкап? Это заменит все текущие данные в архиве — сохраните текущий бэкап на всякий случай, если ещё не сделали.', 'Загрузить', ()=>{
-        data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[] }, parsed);
+        data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
         state.activeProjectId = data.projects[0] ? data.projects[0].id : null;
         state.activeTab = 'overview';
         queueSave();
