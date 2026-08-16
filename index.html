@@ -15,7 +15,7 @@
 <meta name="apple-mobile-web-app-title" content="Мастерская">
 <meta name="description" content="Инструмент для управления большими историями: персонажи, связи, структура сюжета, таймлайн и лор.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Cinzel:wght@400;600;700&family=Cinzel+Decorative:wght@400;700&family=MedievalSharp&family=Uncial+Antiqua&family=IM+Fell+English+SC&family=Almendra+SC&family=Pirata+One&family=Marcellus+SC&family=Caveat:wght@400;500;600;700&family=Pacifico&family=Ruslan+Display&family=Marck+Script&family=Bad+Script&family=Underdog&family=Yeseva+One&family=Neucha&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Kelly+Slab&family=Marck+Script&family=Pattaya&family=Bad+Script&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#14151b;
@@ -339,19 +339,34 @@
   #mapPathsSvg{position:absolute; top:0; left:0; width:100%; height:100%; pointer-events:none;}
   #mapEditorRoot.map-editor-fullscreen{
     position:fixed; inset:0; z-index:60; background:var(--bg);
-    padding:18px 24px 24px; overflow-y:auto; display:flex; flex-direction:column;
+    padding:12px 20px 14px; overflow-y:auto; display:flex; flex-direction:column;
+  }
+  #mapEditorRoot.map-editor-fullscreen .canvas-toolbar{ margin-bottom:8px; }
+  #mapEditorRoot.map-editor-fullscreen .map-stage-row{
+    flex:1; min-height:0; display:flex; gap:16px; align-items:stretch; overflow:hidden; margin:6px 0 14px;
   }
   #mapEditorRoot.map-editor-fullscreen .map-stage{
-    flex:1; min-height:0; display:flex; align-items:center; justify-content:center;
-    overflow:hidden; margin:6px 0 14px;
+    flex:1; min-height:0; min-width:0; display:flex; align-items:center; justify-content:center; overflow:hidden; margin:0;
   }
   #mapEditorRoot.map-editor-fullscreen #mapViewport{
     width:100%; height:100%; flex-shrink:0;
   }
+  .map-stage-row{ display:flex; gap:16px; align-items:flex-start; }
+  .map-stage-row .map-stage{ flex:1; min-width:0; }
+  #mapSidePanel{
+    width:0; flex-shrink:0; overflow:hidden auto; transition:width .18s ease; align-self:stretch;
+  }
+  #mapSidePanel.open{ width:290px; }
+  #mapSidePanel .panel-inner{
+    width:290px; max-width:290px; box-sizing:border-box; background:var(--bg-alt);
+    border:1px solid var(--border); border-radius:6px; padding:16px;
+  }
+  #mapSidePanel .panel-inner .field{margin-bottom:14px;}
   .map-marker{
     position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column;
-    align-items:center; cursor:grab; user-select:none; z-index:5;
+    align-items:center; cursor:grab; user-select:none; z-index:5; pointer-events:none;
   }
+  #mapEditorRoot.mode-marker .map-marker{ pointer-events:auto; }
   .map-marker:active{cursor:grabbing;}
   .map-marker-icon{
     width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
@@ -379,9 +394,10 @@
   .map-label{ position:absolute; width:0; height:0; overflow:visible; pointer-events:none; }
   .map-label-group{ position:absolute; left:0; top:0; transform-origin:center center; }
   .map-label-svgwrap{
-    display:inline-block; cursor:grab; user-select:none; pointer-events:auto;
+    display:inline-block; cursor:grab; user-select:none; pointer-events:none;
     padding:4px 8px; border-radius:5px; transition:background .12s, outline-color .12s; outline:1px dashed transparent;
   }
+  #mapEditorRoot.mode-label .map-label-svgwrap{ pointer-events:auto; }
   .map-label-svgwrap:hover{ background:rgba(201,162,76,0.10); outline-color:rgba(201,162,76,.55); }
   .map-label-svgwrap:active{ cursor:grabbing; }
   .map-label-svgwrap svg{ display:block; pointer-events:none; }
@@ -389,8 +405,9 @@
     position:absolute; left:50%; top:-28px; width:12px; height:12px; margin:-6px 0 0 -6px;
     border-radius:50%; background:var(--gold); border:2px solid rgba(20,21,27,.85);
     box-shadow:0 2px 6px rgba(0,0,0,.5); cursor:alias; opacity:0; transition:opacity .15s, transform .1s;
-    pointer-events:auto; z-index:2;
+    pointer-events:none; z-index:2;
   }
+  #mapEditorRoot.mode-label .map-label-rotate-handle{ pointer-events:auto; }
   .map-label-rotate-handle::before{
     content:''; position:absolute; left:50%; top:100%; width:1px; height:22px; background:rgba(201,162,76,.55); transform:translateX(-50%);
   }
@@ -403,8 +420,8 @@
   /* Structure canvas (node editor) */
   .canvas-toolbar{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
   .canvas-zoom-controls{display:flex; gap:4px; align-items:center;}
-  .layer-toggle{ transition:opacity .15s, background .15s, border-color .15s; }
-  .layer-toggle.off{ opacity:.42; background:none; }
+  .layer-toggle{ transition:opacity .15s, background .15s, border-color .15s, filter .15s; }
+  .layer-toggle.off{ opacity:.42; background:none; filter:grayscale(1); }
   .layer-toggle.off:hover{ opacity:.7; }
   #storyCanvasViewport{
     position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
@@ -455,6 +472,19 @@
   .read-field:last-child{margin-bottom:0;}
   .read-field-label{font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; font-family:'IBM Plex Mono',monospace; margin-bottom:5px;}
   .read-field-value{font-size:14px; color:var(--text); line-height:1.65; white-space:pre-wrap;}
+  .related-block{margin-top:22px; padding-top:18px; border-top:1px solid var(--border-soft);}
+  .related-group{margin-bottom:14px;}
+  .related-group:last-child{margin-bottom:0;}
+  .related-group-label{font-size:10.5px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em; font-family:'IBM Plex Mono',monospace; margin-bottom:7px;}
+  .related-items{display:flex; flex-direction:column; gap:5px;}
+  .related-item{
+    display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%;
+    background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:var(--radius);
+    padding:8px 11px; color:var(--text); font-size:13px; text-align:left; transition:border-color .15s, background .15s;
+  }
+  .related-item:hover{border-color:var(--gold); background:var(--card-hover);}
+  .related-item-title{font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .related-item-sub{font-size:11px; color:var(--text-faint); flex-shrink:0; font-family:'IBM Plex Mono',monospace; margin-left:10px;}
   .toast{position:fixed; bottom:22px; right:22px; background:var(--card); border:1px solid var(--border); padding:11px 16px; border-radius:var(--radius); font-size:13px; box-shadow:var(--shadow); z-index:200; opacity:0; transform:translateY(8px); transition:all .25s;}
   .toast.show{opacity:1; transform:translateY(0);}
   .highlight-flash{animation:flash 1.4s ease;}
@@ -2379,35 +2409,87 @@ function startMapPath(){ state.mapDrawingPath = { points: [] }; refreshMapEditor
 function cancelMapPath(){ state.mapDrawingPath = null; refreshMapEditor(); }
 function finishMapPath(){
   if(!state.mapDrawingPath || state.mapDrawingPath.points.length < 2){ showToast('Добавьте хотя бы 2 точки маршрута'); return; }
-  openNewPathModal(state.mapDrawingPath.points);
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  const points = state.mapDrawingPath.points;
+  state.mapDrawingPath = null;
+  openPathPanel(m, null, points);
 }
-function openNewPathModal(points){
-  const box = document.getElementById('modalBox');
+function openPathPanel(m, existingPath, points){
+  const isNew = !existingPath;
   const defaultColors = ['#c1443b','#c9a24c','#5fa8a0','#b5698f','#8c7ec9','#7fb069'];
-  const color = defaultColors[Math.floor(Math.random()*defaultColors.length)];
-  box.innerHTML = `<h2>Новый путь</h2>
-    <div class="field"><label>Название пути</label><input type="text" id="pathNameInput" placeholder="Путь героя от деревни до крепости…"></div>
-    <div class="field"><label>Цвет линии</label><input type="color" id="pathColorInput" value="${color}" style="width:60px; height:36px; padding:2px; border-radius:6px; cursor:pointer;"></div>
-    <div class="field"><label>Заметка (необязательно)</label><textarea id="pathDescInput" placeholder="что происходит в пути…"></textarea></div>
-    <div id="modalActions">
-      <div id="modalLeftActions"></div>
-      <div id="modalRightActions" style="display:flex; gap:10px;">
-        <button class="btn" onclick="closeModal()">Отмена</button>
-        <button class="btn btn-primary" id="pathSaveBtn">Сохранить путь</button>
-      </div>
-    </div>`;
-  document.getElementById('pathSaveBtn').onclick = ()=>{
-    const name = document.getElementById('pathNameInput').value.trim();
-    if(!name){ showToast('Введите название пути'); return; }
-    const m = data.maps.find(x=>x.id===state.activeMapId);
-    if(!m) return;
+  const p = existingPath || { id:uid(), name:'', color: defaultColors[Math.floor(Math.random()*defaultColors.length)], width:0.35, dashed:false, desc:'', points: points||[] };
+  if(isNew){
     if(!m.paths) m.paths = [];
-    m.paths.push({ id:uid(), name, color: document.getElementById('pathColorInput').value, desc: document.getElementById('pathDescInput').value, points });
-    queueSave(); closeModal();
-    state.mapDrawingPath = null;
-    refreshMapEditor();
+    m.paths.push(p);
+  }
+  state.mapPanel = { type:'path', mapId:m.id, id:p.id };
+  drawMapPaths(m);
+  renderPathPanel(m, p, isNew);
+}
+function openEditPathModal(mapId, pathId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  const p = (m.paths||[]).find(x=>x.id===pathId);
+  if(!p) return;
+  openPathPanel(m, p, null);
+}
+function renderPathPanel(m, p, isNew){
+  const panel = document.getElementById('mapSidePanel');
+  if(!panel) return;
+  const w0 = Number(p.width)||0.35;
+  panel.innerHTML = `<div class="panel-inner">
+    <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новый путь' : 'Путь на карте'}</h3>
+    <div class="field"><label>Название пути</label><input type="text" id="ppName" value="${esc(p.name||'')}" placeholder="Путь героя от деревни до крепости…"></div>
+    <div class="field"><label>Цвет линии</label><input type="color" id="ppColor" value="${p.color||'#c9a24c'}" style="width:44px; height:32px; padding:2px; border-radius:6px; cursor:pointer;"></div>
+    <div class="field"><label>Толщина линии (<span id="ppWidthVal">${w0.toFixed(2)}</span>)</label>
+      <input type="range" id="ppWidth" min="0.1" max="1.5" step="0.05" value="${w0}">
+      <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;"><span>тонкая тропа</span><span>широкий тракт</span></div>
+    </div>
+    <div class="field"><label>Стиль линии</label>
+      <div id="ppStyleToggle" style="display:flex; gap:8px;">
+        <button type="button" class="btn btn-sm ${!p.dashed?'btn-primary':''}" data-style="solid">— Сплошная</button>
+        <button type="button" class="btn btn-sm ${p.dashed?'btn-primary':''}" data-style="dashed">┄ Пунктир</button>
+      </div>
+    </div>
+    <div class="field"><label>Заметка (необязательно)</label><textarea id="ppDesc" rows="3" placeholder="что происходит в пути…">${esc(p.desc||'')}</textarea></div>
+    <div style="display:flex; gap:8px;">
+      ${isNew ? `<button class="btn btn-sm" id="ppCancel">Отменить</button>` : `<button class="btn btn-sm btn-danger" id="ppDelete">Удалить</button>`}
+      <button class="btn btn-sm btn-primary" id="ppDone" style="margin-left:auto;">Готово</button>
+    </div>
+  </div>`;
+  panel.classList.add('open');
+  const upd = ()=> drawMapPaths(m);
+  document.getElementById('ppColor').addEventListener('input', (e)=>{ p.color = e.target.value; upd(); });
+  const widthI = document.getElementById('ppWidth');
+  widthI.addEventListener('input', ()=>{ p.width = Number(widthI.value); document.getElementById('ppWidthVal').textContent = Number(widthI.value).toFixed(2); upd(); });
+  document.querySelectorAll('#ppStyleToggle button').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      p.dashed = btn.dataset.style === 'dashed';
+      document.querySelectorAll('#ppStyleToggle button').forEach(b=>b.classList.toggle('btn-primary', b===btn));
+      upd();
+    });
+  });
+  document.getElementById('ppName').addEventListener('input', (e)=>{ p.name = e.target.value; });
+  document.getElementById('ppDesc').addEventListener('input', (e)=>{ p.desc = e.target.value; });
+  const finish = ()=>{
+    const name = (p.name||'').trim();
+    if(!name){ showToast('Введите название пути'); return; }
+    p.name = name;
+    queueSave(); hideMapSidePanel(); refreshMapEditor();
   };
-  document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('ppDone').addEventListener('click', finish);
+  if(isNew){
+    document.getElementById('ppCancel').addEventListener('click', ()=>{
+      m.paths = (m.paths||[]).filter(x=>x.id!==p.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
+  } else {
+    document.getElementById('ppDelete').addEventListener('click', ()=>{
+      m.paths = (m.paths||[]).filter(x=>x.id!==p.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
+  }
 }
 function deleteMapPath(mapId, pathId){
   const m = data.maps.find(x=>x.id===mapId);
@@ -2515,22 +2597,76 @@ function markerFields(){
     {key:'desc', label:'Описание', type:'textarea'},
   ];
 }
-function openNewMarkerModal(m, x, y){
-  openFormModal('Новая метка', markerFields(), {type:'poi', icon:'landmark'}, (vals)=>{
+function openMarkerPanel(m, existingMarker, x, y){
+  const isNew = !existingMarker;
+  const mk = existingMarker || { id:uid(), x, y, name:'', type:'poi', icon:'landmark', desc:'' };
+  if(mk.icon && !MARKER_SVG[mk.icon] && LEGACY_MARKER_ICONS[mk.icon]) mk.icon = LEGACY_MARKER_ICONS[mk.icon];
+  if(isNew){
     if(!m.markers) m.markers = [];
-    if(!vals.icon) vals.icon = vals.type==='city' ? 'city' : 'landmark';
-    m.markers.push(Object.assign({id:uid(), x, y}, vals));
-    queueSave(); closeModal(); refreshMapEditor();
-  });
+    m.markers.push(mk);
+  }
+  state.mapPanel = { type:'marker', mapId:m.id, id:mk.id };
+  drawMapMarkers(m);
+  attachMapMarkerDrag(m);
+  renderMarkerPanel(m, mk, isNew);
 }
+function openNewMarkerModal(m, x, y){ openMarkerPanel(m, null, x, y); }
 function openEditMarkerModal(mapId, markerId){
   const m = data.maps.find(x=>x.id===mapId);
   if(!m) return;
   const mk = (m.markers||[]).find(x=>x.id===markerId);
   if(!mk) return;
-  if(mk.icon && !MARKER_SVG[mk.icon] && LEGACY_MARKER_ICONS[mk.icon]) mk.icon = LEGACY_MARKER_ICONS[mk.icon];
-  openFormModal('Изменить метку', markerFields(), mk, (vals)=>{ Object.assign(mk, vals); queueSave(); closeModal(); refreshMapEditor(); },
-    { label:'Удалить метку', onClick: ()=>{ closeModal(); deleteMarker(mapId, markerId); } });
+  openMarkerPanel(m, mk, mk.x, mk.y);
+}
+function renderMarkerPanel(m, mk, isNew){
+  const panel = document.getElementById('mapSidePanel');
+  if(!panel) return;
+  const typeOptions = [['city','Город'],['poi','Точка интереса'],['other','Другое']]
+    .map(([v,l])=>`<option value="${v}" ${mk.type===v?'selected':''}>${esc(l)}</option>`).join('');
+  const iconOptions = MARKER_ICONS.map(([v,l])=>`<option value="${v}" ${mk.icon===v?'selected':''}>${esc(l)}</option>`).join('');
+  panel.innerHTML = `<div class="panel-inner">
+    <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новая метка' : 'Метка на карте'}</h3>
+    <div class="field"><label>Название</label><input type="text" id="mpName" value="${esc(mk.name)}" placeholder="Город, крепость, святыня…"></div>
+    <div class="field"><label>Тип</label><select id="mpType">${typeOptions}</select></div>
+    <div class="field"><label>Значок</label><select id="mpIcon">${iconOptions}</select></div>
+    <div class="field"><label>Описание</label><textarea id="mpDesc" rows="4">${esc(mk.desc||'')}</textarea></div>
+    <div style="display:flex; gap:8px;">
+      ${isNew ? `<button class="btn btn-sm" id="mpCancel">Отменить</button>` : `<button class="btn btn-sm btn-danger" id="mpDelete">Удалить</button>`}
+      <button class="btn btn-sm btn-primary" id="mpDone" style="margin-left:auto;">Готово</button>
+    </div>
+  </div>`;
+  panel.classList.add('open');
+  const upd = ()=>{ drawMapMarkers(m); attachMapMarkerDrag(m); };
+  document.getElementById('mpName').addEventListener('input', (e)=>{ mk.name = e.target.value; upd(); });
+  document.getElementById('mpType').addEventListener('change', (e)=>{
+    mk.type = e.target.value;
+    if(!mk.iconTouched) mk.icon = mk.type==='city' ? 'city' : mk.type==='poi' ? 'landmark' : 'other';
+    document.getElementById('mpIcon').value = mk.icon;
+    upd();
+  });
+  document.getElementById('mpIcon').addEventListener('change', (e)=>{ mk.icon = e.target.value; mk.iconTouched = true; upd(); });
+  document.getElementById('mpDesc').addEventListener('input', (e)=>{ mk.desc = e.target.value; });
+  const finish = ()=>{
+    if(!mk.name || !mk.name.trim()){
+      m.markers = (m.markers||[]).filter(x=>x.id!==mk.id);
+      if(!isNew) showToast('Метка без названия удалена');
+    }
+    queueSave();
+    hideMapSidePanel();
+    refreshMapEditor();
+  };
+  document.getElementById('mpDone').addEventListener('click', finish);
+  if(isNew){
+    document.getElementById('mpCancel').addEventListener('click', ()=>{
+      m.markers = (m.markers||[]).filter(x=>x.id!==mk.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
+  } else {
+    document.getElementById('mpDelete').addEventListener('click', ()=>{
+      m.markers = (m.markers||[]).filter(x=>x.id!==mk.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
+  }
 }
 function deleteMarker(mapId, markerId){
   const m = data.maps.find(x=>x.id===mapId);
@@ -2548,6 +2684,12 @@ function markerHtml(mk){
     ${icon}
     <span class="map-marker-label">${esc(mk.name)}</span>
   </div>`;
+}
+function drawMapMarkers(m){
+  const layer = document.getElementById('mapMarkersLayer');
+  if(!layer) return;
+  const show = !m.layers || m.layers.markers !== false;
+  layer.innerHTML = !show ? '' : (m.markers||[]).map(markerHtml).join('');
 }
 function markerCard(mk){
   const typeLabel = mk.type==='city' ? 'Город' : mk.type==='poi' ? 'Точка интереса' : 'Другое';
@@ -2567,6 +2709,7 @@ function pathCard(p){
     <div class="d-alias">${(p.points||[]).length} точек маршрута</div>
     ${p.desc ? `<div class="d-desc">${esc(p.desc)}</div>` : ''}
     <div class="d-actions">
+      <button class="btn btn-ghost btn-sm" onclick="openEditPathModal('${state.activeMapId}','${p.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMapPath('${state.activeMapId}','${p.id}')">Удалить</button>
     </div>
   </div>`;
@@ -2583,14 +2726,26 @@ function renderMapEditor(el, m){
         ? `<button class="btn btn-sm btn-primary" onclick="finishMapPath()">Завершить путь (${state.mapDrawingPath.points.length})</button><button class="btn btn-sm" onclick="cancelMapPath()">Отменить</button>`
         : `<button class="btn btn-sm" onclick="startMapPath()">Начать новый путь</button>`)
     : '';
-  const hint = state.mapMode==='marker'
+  const hintFull = state.mapMode==='marker'
     ? 'Дважды кликните по карте, чтобы поставить метку. Перетаскивайте метки, чтобы переместить. Клик по метке — изменить. Колесо мыши — масштаб, перетаскивание фона — панорама.'
     : state.mapMode==='label'
     ? 'Дважды кликните по карте, чтобы добавить название страны или региона. Тяните за текст, чтобы переместить, за золотой кружок над ним — чтобы повернуть (виден при наведении). Двойной клик по кружку — сбросить поворот. Клик по тексту без перетаскивания — изменить шрифт, цвет и изгиб.'
-    : (state.mapDrawingPath ? 'Кликайте по карте, чтобы добавлять точки пути. Когда закончите — нажмите «Завершить путь».' : 'Нажмите «Начать новый путь», затем кликайте по карте, чтобы отметить маршрут героя.');
+    : (state.mapDrawingPath ? 'Кликайте по карте, чтобы добавлять точки пути. Когда закончите — нажмите «Завершить путь».' : 'Нажмите «Начать новый путь», затем кликайте по карте, чтобы отметить маршрут героя. Клик по уже нарисованному пути — изменить толщину, стиль и цвет.');
+  const hintShort = state.mapMode==='marker'
+    ? '2× клик — метка · перетащить — переместить · клик — изменить'
+    : state.mapMode==='label'
+    ? '2× клик — название · тяните текст — переместить · золотой кружок — поворот'
+    : (state.mapDrawingPath ? 'Кликайте по карте — точки пути · «Завершить путь» в конце' : '«Начать новый путь» → кликайте по карте · клик по пути — изменить');
   const fullscreen = !!state.mapFullscreen;
+  const hint = fullscreen ? hintShort : hintFull;
+  const layerToggleHtml = `
+    <span class="eyebrow" style="margin-right:2px;">Показать:</span>
+    <button class="btn btn-sm layer-toggle ${m.layers.markers?'':'off'}" onclick="toggleMapLayer('markers')">👁 Метки</button>
+    <button class="btn btn-sm layer-toggle ${m.layers.labels?'':'off'}" onclick="toggleMapLayer('labels')">👁 Названия</button>
+    <button class="btn btn-sm layer-toggle ${m.layers.paths?'':'off'}" onclick="toggleMapLayer('paths')">👁 Пути</button>
+  `;
   el.innerHTML = `
-    <div id="mapEditorRoot" class="${fullscreen ? 'map-editor-fullscreen' : ''}">
+    <div id="mapEditorRoot" class="${fullscreen ? 'map-editor-fullscreen' : ''} mode-${state.mapMode}">
       <div class="canvas-toolbar">
         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
           <button class="btn btn-sm" onclick="closeMapEditor()">← Назад к картам</button>
@@ -2610,26 +2765,27 @@ function renderMapEditor(el, m){
           </div>
           <button class="btn btn-sm" onclick="resetMapCanvasView()">Сброс вида</button>
           <button class="btn btn-sm" onclick="toggleMapFullscreen()">${fullscreen ? '✕ Свернуть' : '⛶ Во весь экран'}</button>
+          ${fullscreen ? `<span style="width:1px; height:20px; background:var(--border); margin:0 2px;"></span>${layerToggleHtml}` : ''}
         </div>
       </div>
+      ${fullscreen ? '' : `
       <div class="canvas-toolbar" style="margin-top:-4px;">
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <span class="eyebrow" style="margin-right:2px;">Показать на карте:</span>
-          <button class="btn btn-sm layer-toggle ${m.layers.markers?'':'off'}" onclick="toggleMapLayer('markers')">${m.layers.markers?'👁':'🙈'} Метки</button>
-          <button class="btn btn-sm layer-toggle ${m.layers.labels?'':'off'}" onclick="toggleMapLayer('labels')">${m.layers.labels?'👁':'🙈'} Названия</button>
-          <button class="btn btn-sm layer-toggle ${m.layers.paths?'':'off'}" onclick="toggleMapLayer('paths')">${m.layers.paths?'👁':'🙈'} Пути</button>
-        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">${layerToggleHtml}</div>
       </div>
-      <div class="eyebrow" style="margin-bottom:10px;">${hint}</div>
-      <div class="map-stage" id="mapStage">
-        <div id="mapViewport" style="${fullscreen ? '' : `aspect-ratio:${m.aspect||1.6};`}">
-          <div id="mapCanvasInner">
-            <img src="${m.image}" class="map-bg-img" draggable="false" alt="">
-            <svg id="mapPathsSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
-            <div id="mapLabelsLayer"></div>
-            ${m.layers.markers ? m.markers.map(markerHtml).join('') : ''}
+      `}
+      <div class="eyebrow" style="margin-bottom:${fullscreen ? '6px' : '10px'}; ${fullscreen ? 'font-size:10.5px; opacity:.65;' : ''}">${hint}</div>
+      <div class="map-stage-row" id="mapStageRow">
+        <div class="map-stage" id="mapStage">
+          <div id="mapViewport" style="${fullscreen ? '' : `aspect-ratio:${m.aspect||1.6};`}">
+            <div id="mapCanvasInner">
+              <img src="${m.image}" class="map-bg-img" draggable="false" alt="">
+              <svg id="mapPathsSvg" viewBox="0 0 100 100" preserveAspectRatio="none"></svg>
+              <div id="mapLabelsLayer"></div>
+              <div id="mapMarkersLayer"></div>
+            </div>
           </div>
         </div>
+        <div id="mapSidePanel"></div>
       </div>
       ${fullscreen ? '' : `
       <div class="side-section-label" style="margin:22px 0 10px;">Метки (${m.markers.length})${m.layers.markers?'':' — скрыты на карте'}</div>
@@ -2649,6 +2805,7 @@ function renderMapEditor(el, m){
   applyMapCanvasTransform();
   drawMapPaths(m);
   drawMapLabels(m);
+  drawMapMarkers(m);
   attachMapCanvasEvents();
   attachMapMarkerDrag(m);
   attachMapLabelDrag(m);
@@ -2803,20 +2960,33 @@ function drawMapPaths(m){
   const showPaths = !m.layers || m.layers.paths !== false;
   if(showPaths){
     (m.paths||[]).forEach(p=>{
+      const w = Number(p.width)||0.35;
+      const dash = p.dashed ? `stroke-dasharray="${(w*3.2).toFixed(2)} ${(w*2.2).toFixed(2)}"` : '';
       const pts = (p.points||[]).map(pt=>`${pt.x},${pt.y}`).join(' ');
-      out += `<polyline points="${pts}" fill="none" stroke="${p.color||'var(--gold)'}" stroke-width="0.6" stroke-linecap="round" stroke-linejoin="round"/>`;
+      out += `<polyline data-path-id="${p.id}" class="map-path-hit" points="${pts}" fill="none" stroke="transparent" stroke-width="${Math.max(w*3, 2.2)}" stroke-linecap="round" stroke-linejoin="round" style="pointer-events:${state.mapMode==='path' ? 'stroke' : 'none'}; cursor:pointer;"/>`;
+      out += `<polyline points="${pts}" fill="none" stroke="${p.color||'var(--gold)'}" stroke-width="${w}" ${dash} stroke-linecap="round" stroke-linejoin="round" style="pointer-events:none;"/>`;
       (p.points||[]).forEach((pt,i)=>{
-        out += `<circle cx="${pt.x}" cy="${pt.y}" r="${i===0||i===p.points.length-1?1.1:0.7}" fill="${p.color||'var(--gold)'}"/>`;
+        out += `<circle cx="${pt.x}" cy="${pt.y}" r="${i===0||i===p.points.length-1?w*1.8:w*1.15}" fill="${p.color||'var(--gold)'}" style="pointer-events:none;"/>`;
       });
     });
   }
   if(state.mapDrawingPath){
+    const w = 0.35;
     const pts = state.mapDrawingPath.points;
     const ptsStr = pts.map(pt=>`${pt.x},${pt.y}`).join(' ');
-    out += `<polyline points="${ptsStr}" fill="none" stroke="var(--thread)" stroke-width="0.6" stroke-dasharray="1.5 1" stroke-linecap="round"/>`;
-    pts.forEach(pt=>{ out += `<circle cx="${pt.x}" cy="${pt.y}" r="0.9" fill="var(--thread)"/>`; });
+    out += `<polyline points="${ptsStr}" fill="none" stroke="var(--thread)" stroke-width="${w}" stroke-dasharray="1.5 1" stroke-linecap="round"/>`;
+    pts.forEach(pt=>{ out += `<circle cx="${pt.x}" cy="${pt.y}" r="${w*1.6}" fill="var(--thread)"/>`; });
   }
   svg.innerHTML = out;
+  if(showPaths){
+    svg.querySelectorAll('.map-path-hit').forEach(el=>{
+      el.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        if(state.mapDrawingPath) return;
+        openEditPathModal(m.id, el.dataset.pathId);
+      });
+    });
+  }
 }
 
 function attachMapMarkerDrag(m){
@@ -2856,23 +3026,16 @@ function attachMapMarkerDrag(m){
 
 /* ---------------- MAP LABELS (curved country / region names) ---------------- */
 const MAP_LABEL_FONTS = {
-  ruslan:        { label:'Ruslan Display — древнерусский устав (кириллица)', family:'Ruslan Display' },
+  caveat:        { label:'Caveat — рукописный (кириллица)',  family:'Caveat' },
+  pacifico:      { label:'Pacifico — курсивный (кириллица)', family:'Pacifico' },
+  playfair:      { label:'Playfair Display — контрастный (кириллица)', family:'Playfair Display' },
+  lora:          { label:'Lora — книжный (кириллица)',       family:'Lora' },
+  merriweather:  { label:'Merriweather — плотный (кириллица)', family:'Merriweather' },
+  kellySlab:     { label:'Kelly Slab — слэб (кириллица)',    family:'Kelly Slab' },
   marckScript:   { label:'Marck Script — рукописный росчерк (кириллица)', family:'Marck Script' },
+  pattaya:       { label:'Pattaya — узкий декоративный (кириллица)', family:'Pattaya' },
   badScript:     { label:'Bad Script — небрежный почерк (кириллица)', family:'Bad Script' },
-  underdog:      { label:'Underdog — круглый жирный (кириллица)', family:'Underdog' },
-  yesevaOne:     { label:'Yeseva One — декоративный заголовочный (кириллица)', family:'Yeseva One' },
-  neucha:        { label:'Neucha — от руки (кириллица)', family:'Neucha' },
-  cinzel:        { label:'Cinzel — классика',        family:'Cinzel' },
-  cinzelDeco:    { label:'Cinzel Decorative — вычурный', family:'Cinzel Decorative' },
-  medieval:      { label:'MedievalSharp — острый',    family:'MedievalSharp' },
-  uncial:        { label:'Uncial Antiqua — рукопись',  family:'Uncial Antiqua' },
-  fellEnglish:   { label:'IM Fell English SC — гравюра', family:'IM Fell English SC' },
-  almendra:      { label:'Almendra SC — изящный',     family:'Almendra SC' },
-  pirata:        { label:'Pirata One — пиратская карта', family:'Pirata One' },
-  marcellus:     { label:'Marcellus SC — римский',    family:'Marcellus SC' },
-  spectral:      { label:'Spectral — как в проекте',  family:'Spectral' },
-  caveat:        { label:'Caveat — рукописный',       family:'Caveat' },
-  pacifico:      { label:'Pacifico — курсивный',      family:'Pacifico' },
+  ebGaramond:    { label:'EB Garamond — старостильный (кириллица)', family:'EB Garamond' },
 };
 
 let _labelMeasureCanvas = null;
@@ -2890,7 +3053,7 @@ function measureLabelWidth(text, size, family, spacing){
 // path whose bend is driven by lb.curve (-100..100): negative bows the
 // text downward like a valley, positive arches it upward, 0 stays straight.
 function labelSvgMarkup(lb){
-  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.cinzel;
+  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.caveat;
   const size = Math.max(10, Math.min(72, Number(lb.size)||26));
   const color = lb.color || '#e9e4d8';
   const spacing = Number(lb.spacing)||0;
@@ -3008,7 +3171,7 @@ function attachMapLabelDrag(m){
 }
 
 function labelCard(lb){
-  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.cinzel;
+  const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.caveat;
   const previewLb = Object.assign({}, lb, { size: Math.min(Number(lb.size)||26, 30) });
   const rot = Number(lb.rotation)||0;
   return `<div class="dossier">
@@ -3022,94 +3185,111 @@ function labelCard(lb){
   </div>`;
 }
 
-function openLabelFormModal(m, existingLabel, x, y){
-  const isEdit = !!existingLabel;
-  const d0 = isEdit ? Object.assign({}, existingLabel) : { text:'', font:'cinzel', size:28, color:'#e9e4d8', spacing:1, curve:0 };
-  const box = document.getElementById('modalBox');
-  box.style.maxWidth = '460px';
+// Closes whichever side-panel editor is currently open (label/marker/path),
+// discarding no data — everything is already live-saved into the map object
+// as the person types, so closing just hides the UI.
+function hideMapSidePanel(){
+  const panel = document.getElementById('mapSidePanel');
+  if(panel){ panel.classList.remove('open'); panel.innerHTML = ''; }
+  state.mapPanel = null;
+}
+
+// Opens the live side panel for a country/region label. Instead of a
+// separate small preview, the label itself is placed on the map right away
+// (as a draft, if new) and every field edit updates that same real label in
+// place — so what you see on the map IS the result, with no duplicate SVG
+// elements or stale previews to fall out of sync.
+function openLabelPanel(m, existingLabel, x, y){
+  const isNew = !existingLabel;
+  const lb = existingLabel || { id:uid(), x, y, text:'', font:'caveat', size:28, color:'#e9e4d8', spacing:1, curve:0, rotation:0 };
+  if(isNew){
+    if(!m.labels) m.labels = [];
+    m.labels.push(lb);
+  }
+  state.mapPanel = { type:'label', mapId:m.id, id:lb.id };
+  drawMapLabels(m);
+  attachMapLabelDrag(m);
+  renderLabelPanel(m, lb, isNew);
+}
+function openNewLabelModal(m, x, y){ openLabelPanel(m, null, x, y); }
+function openEditLabelModal(mapId, labelId){
+  const m = data.maps.find(x=>x.id===mapId);
+  if(!m) return;
+  const lb = (m.labels||[]).find(x=>x.id===labelId);
+  if(!lb) return;
+  openLabelPanel(m, lb, lb.x, lb.y);
+}
+function renderLabelPanel(m, lb, isNew){
+  const panel = document.getElementById('mapSidePanel');
+  if(!panel) return;
   const fontOptions = Object.entries(MAP_LABEL_FONTS).map(([key,f])=>
-    `<option value="${key}" style="font-family:'${f.family}'" ${d0.font===key?'selected':''}>${esc(f.label)}</option>`
+    `<option value="${key}" style="font-family:'${f.family}'" ${lb.font===key?'selected':''}>${esc(f.label)}</option>`
   ).join('');
   const swatches = ['#e9e4d8','#c9a24c','#c1443b','#5fa8a0','#b5698f','#8c7ec9','#ffffff','#14151b'];
-  box.innerHTML = `
-    <h2>${isEdit ? 'Изменить название' : 'Новое название страны / региона'}</h2>
-    <div class="field"><label>Текст</label><input type="text" id="lblTextInput" value="${esc(d0.text)}" placeholder="Название страны, региона…"></div>
-    <div class="field"><label>Шрифт</label><select id="lblFontInput">${fontOptions}</select></div>
+  panel.innerHTML = `<div class="panel-inner">
+    <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новое название' : 'Название на карте'}</h3>
+    <div class="field"><label>Текст</label><input type="text" id="lpText" value="${esc(lb.text)}" placeholder="Название страны, региона…"></div>
+    <div class="field"><label>Шрифт</label><select id="lpFont">${fontOptions}</select></div>
+    <div class="field"><label>Размер (<span id="lpSizeVal">${lb.size}</span>px)</label><input type="range" id="lpSize" min="12" max="64" step="1" value="${lb.size}"></div>
+    <div class="field"><label>Интервал (<span id="lpSpacingVal">${lb.spacing}</span>px)</label><input type="range" id="lpSpacing" min="-1" max="10" step="0.5" value="${lb.spacing}"></div>
     <div class="field">
-      <label>Размер (<span id="lblSizeVal">${d0.size}</span>px)</label>
-      <input type="range" id="lblSizeInput" min="12" max="64" step="1" value="${d0.size}">
-    </div>
-    <div class="field">
-      <label>Межбуквенный интервал (<span id="lblSpacingVal">${d0.spacing}</span>px)</label>
-      <input type="range" id="lblSpacingInput" min="-1" max="10" step="0.5" value="${d0.spacing}">
-    </div>
-    <div class="field">
-      <label>Изгиб текста — направление и сила (<span id="lblCurveVal">${d0.curve}</span>)</label>
-      <input type="range" id="lblCurveInput" min="-100" max="100" step="5" value="${d0.curve}">
+      <label>Изгиб (<span id="lpCurveVal">${lb.curve}</span>)</label>
+      <input type="range" id="lpCurve" min="-100" max="100" step="5" value="${lb.curve}">
       <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); margin-top:-2px;">
         <span>◡ вниз</span><span>прямо</span><span>◠ вверх</span>
       </div>
     </div>
     <div class="field"><label>Цвет</label>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <input type="color" id="lblColorInput" value="${d0.color}" style="width:44px; height:32px; padding:2px; border-radius:6px; cursor:pointer;">
-        ${swatches.map(c=>`<button type="button" class="lbl-swatch" data-c="${c}" style="width:20px; height:20px; border-radius:50%; background:${c}; border:1px solid var(--border); cursor:pointer;"></button>`).join('')}
+        <input type="color" id="lpColor" value="${lb.color}" style="width:40px; height:30px; padding:2px; border-radius:6px; cursor:pointer;">
+        ${swatches.map(c=>`<button type="button" class="lbl-swatch" data-c="${c}" style="width:18px; height:18px; border-radius:50%; background:${c}; border:1px solid var(--border); cursor:pointer;"></button>`).join('')}
       </div>
     </div>
-    <div class="field"><label>Предпросмотр</label>
-      <div id="lblPreviewWrap" style="background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:4px; padding:16px; display:flex; align-items:center; justify-content:center; min-height:100px; overflow:hidden;"></div>
+    <div class="eyebrow" style="margin:2px 0 14px;">Поворот тяните прямо на карте — за золотой кружок над надписью.</div>
+    <div style="display:flex; gap:8px;">
+      ${isNew ? `<button class="btn btn-sm" id="lpCancel">Отменить</button>` : `<button class="btn btn-sm btn-danger" id="lpDelete">Удалить</button>`}
+      <button class="btn btn-sm btn-primary" id="lpDone" style="margin-left:auto;">Готово</button>
     </div>
-    <div id="modalActions">
-      <div id="modalLeftActions">${isEdit ? `<button class="btn btn-danger btn-sm" id="lblDeleteBtn">Удалить</button>` : ''}</div>
-      <div id="modalRightActions" style="display:flex; gap:10px;">
-        <button class="btn" onclick="closeModal()">Отмена</button>
-        <button class="btn btn-primary" id="lblSaveBtn">${isEdit ? 'Сохранить' : 'Добавить'}</button>
-      </div>
-    </div>
-  `;
-  const textI = document.getElementById('lblTextInput');
-  const fontI = document.getElementById('lblFontInput');
-  const sizeI = document.getElementById('lblSizeInput');
-  const spacingI = document.getElementById('lblSpacingInput');
-  const curveI = document.getElementById('lblCurveInput');
-  const colorI = document.getElementById('lblColorInput');
-  const preview = document.getElementById('lblPreviewWrap');
-  const updatePreview = ()=>{
-    document.getElementById('lblSizeVal').textContent = sizeI.value;
-    document.getElementById('lblSpacingVal').textContent = spacingI.value;
-    document.getElementById('lblCurveVal').textContent = curveI.value;
-    const draft = { id: 'previewonly-'+(d0.id||'new'), text: textI.value || 'Название', font: fontI.value, size: Number(sizeI.value), spacing: Number(spacingI.value), curve: Number(curveI.value), color: colorI.value };
-    preview.innerHTML = labelSvgMarkup(draft);
-  };
-  [textI, fontI, sizeI, spacingI, curveI, colorI].forEach(inp=> inp.addEventListener('input', updatePreview));
-  document.querySelectorAll('.lbl-swatch').forEach(btn=>{
-    btn.addEventListener('click', ()=>{ colorI.value = btn.dataset.c; updatePreview(); });
+  </div>`;
+  panel.classList.add('open');
+  const upd = ()=>{ drawMapLabels(m); attachMapLabelDrag(m); };
+  document.getElementById('lpText').addEventListener('input', (e)=>{ lb.text = e.target.value; upd(); });
+  document.getElementById('lpFont').addEventListener('change', (e)=>{ lb.font = e.target.value; upd(); });
+  const sizeI = document.getElementById('lpSize');
+  sizeI.addEventListener('input', ()=>{ lb.size = Number(sizeI.value); document.getElementById('lpSizeVal').textContent = sizeI.value; upd(); });
+  const spacingI = document.getElementById('lpSpacing');
+  spacingI.addEventListener('input', ()=>{ lb.spacing = Number(spacingI.value); document.getElementById('lpSpacingVal').textContent = spacingI.value; upd(); });
+  const curveI = document.getElementById('lpCurve');
+  curveI.addEventListener('input', ()=>{ lb.curve = Number(curveI.value); document.getElementById('lpCurveVal').textContent = curveI.value; upd(); });
+  document.getElementById('lpColor').addEventListener('input', (e)=>{ lb.color = e.target.value; upd(); });
+  panel.querySelectorAll('.lbl-swatch').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      lb.color = btn.dataset.c;
+      document.getElementById('lpColor').value = btn.dataset.c;
+      upd();
+    });
   });
-  updatePreview();
-  document.getElementById('lblSaveBtn').onclick = ()=>{
-    const text = textI.value.trim();
-    if(!text){ showToast('Введите текст названия'); return; }
-    const vals = { text, font: fontI.value, size: Number(sizeI.value), spacing: Number(spacingI.value), curve: Number(curveI.value), color: colorI.value };
-    if(isEdit){
-      Object.assign(existingLabel, vals);
-    } else {
-      if(!m.labels) m.labels = [];
-      m.labels.push(Object.assign({id:uid(), x, y}, vals));
+  const finish = ()=>{
+    if(!lb.text || !lb.text.trim()){
+      m.labels = (m.labels||[]).filter(x=>x.id!==lb.id);
+      if(!isNew) showToast('Пустое название удалено');
     }
-    queueSave(); closeModal(); refreshMapEditor();
+    queueSave();
+    hideMapSidePanel();
+    refreshMapEditor();
   };
-  if(isEdit){
-    document.getElementById('lblDeleteBtn').onclick = ()=>{ closeModal(); deleteMapLabel(m.id, existingLabel.id); };
+  document.getElementById('lpDone').addEventListener('click', finish);
+  if(isNew){
+    document.getElementById('lpCancel').addEventListener('click', ()=>{
+      m.labels = (m.labels||[]).filter(x=>x.id!==lb.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
+  } else {
+    document.getElementById('lpDelete').addEventListener('click', ()=>{
+      m.labels = (m.labels||[]).filter(x=>x.id!==lb.id);
+      queueSave(); hideMapSidePanel(); refreshMapEditor();
+    });
   }
-  document.getElementById('modalOverlay').classList.add('show');
-}
-function openNewLabelModal(m, x, y){ openLabelFormModal(m, null, x, y); }
-function openEditLabelModal(mapId, labelId){
-  const m = data.maps.find(x=>x.id===mapId);
-  if(!m) return;
-  const lb = (m.labels||[]).find(x=>x.id===labelId);
-  if(!lb) return;
-  openLabelFormModal(m, lb, lb.x, lb.y);
 }
 function deleteMapLabel(mapId, labelId){
   const m = data.maps.find(x=>x.id===mapId);
@@ -3325,6 +3505,52 @@ function askConfirm(message, confirmLabel, onConfirm){
 }
 
 /* ---------------- READ MODAL (full untruncated text) ---------------- */
+/* ---------------- CROSS-ENTITY LINKS ("Связано") ---------------- */
+function getEntity(coll, id){ return (data[coll]||[]).find(x=>x.id===id) || null; }
+
+function getCharacterLinks(charId, projectId){
+  const scenes = data.scenes.filter(s=>s.projectId===projectId && (s.charIds||[]).includes(charId));
+  const events = data.events.filter(e=>e.projectId===projectId && (e.charIds||[]).includes(charId));
+  const rels = data.relationships
+    .filter(r=>r.projectId===projectId && (r.charA===charId || r.charB===charId))
+    .map(r=>({ rel:r, other: getEntity('characters', r.charA===charId ? r.charB : r.charA) }))
+    .filter(x=>x.other);
+  return { scenes, events, rels };
+}
+
+function relatedItemBtn(coll, id, projectId, title, sub){
+  return `<button type="button" class="related-item" onclick="closeModal(); jumpTo('${coll}','${id}','${projectId}')">
+    <span class="related-item-title">${esc(title)}</span>
+    ${sub ? `<span class="related-item-sub">${esc(sub)}</span>` : ''}
+  </button>`;
+}
+function relatedGroup(label, itemsHtml){
+  if(!itemsHtml || !itemsHtml.length) return '';
+  return `<div class="related-group">
+    <div class="related-group-label">${esc(label)}</div>
+    <div class="related-items">${itemsHtml.join('')}</div>
+  </div>`;
+}
+function renderRelatedBlock(kind, item){
+  const pid = item.projectId;
+  let groupsHtml = '';
+  if(kind==='characters'){
+    const { scenes, events, rels } = getCharacterLinks(item.id, pid);
+    groupsHtml =
+      relatedGroup('Персонажи', rels.map(x=>relatedItemBtn('characters', x.other.id, pid, x.other.name, relTypes(x.rel).map(relTypeLabel).join(', ')))) +
+      relatedGroup('События', events.map(e=>relatedItemBtn('events', e.id, pid, e.title, e.date))) +
+      relatedGroup('Сцены', scenes.map(s=>relatedItemBtn('scenes', s.id, pid, s.title || 'Без названия')));
+  } else if(kind==='events'){
+    const chars = (item.charIds||[]).map(id=>getEntity('characters', id)).filter(Boolean);
+    groupsHtml = relatedGroup('Участники', chars.map(c=>relatedItemBtn('characters', c.id, pid, c.name, c.role)));
+  } else if(kind==='relationships'){
+    const a = getEntity('characters', item.charA), b = getEntity('characters', item.charB);
+    groupsHtml = relatedGroup('Персонажи', [a,b].filter(Boolean).map(c=>relatedItemBtn('characters', c.id, pid, c.name)));
+  }
+  if(!groupsHtml) return '';
+  return `<div class="related-block"><div class="side-section-label" style="margin-bottom:2px;">Связано</div>${groupsHtml}</div>`;
+}
+
 const READ_MODAL_CONFIG = {
   characters: { getItem:(id)=>data.characters.find(x=>x.id===id), fields:()=>characterFields(), title:(it)=>it.name },
   relationships: { getItem:(id)=>data.relationships.find(x=>x.id===id), fields:()=>relationshipFields(), title:(it)=>`${charName(it.charA)} ↔ ${charName(it.charB)}`,
@@ -3383,8 +3609,9 @@ function openReadModal(kind, id){
   }).join('');
   const box = document.getElementById('modalBox');
   box.style.maxWidth = '680px';
+  const relatedHtml = renderRelatedBlock(kind, item);
   box.innerHTML = `<h2>${esc(cfg.title(item))}</h2>
-    <div class="read-modal-body">${rowsHtml || '<div class="empty-tab">Нет данных для отображения.</div>'}</div>
+    <div class="read-modal-body">${rowsHtml || '<div class="empty-tab">Нет данных для отображения.</div>'}${relatedHtml}</div>
     <div id="modalActions">
       <div id="modalLeftActions"></div>
       <div id="modalRightActions" style="display:flex; gap:10px;">
