@@ -362,30 +362,70 @@
     border:1px solid var(--border); border-radius:6px; padding:16px;
   }
   #mapSidePanel .panel-inner .field{margin-bottom:14px;}
+  .mp-cat-tabs{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .mp-icon-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(40px,1fr)); gap:6px;
+    max-height:190px; overflow-y:auto; padding:8px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-alt);
+  }
+  .mp-icon-btn{
+    display:flex; align-items:center; justify-content:center; padding:3px; border-radius:8px;
+    border:2px solid transparent; background:none; cursor:pointer; transition:border-color .12s, background .12s;
+  }
+  .mp-icon-btn:hover{ background:rgba(255,255,255,.06); }
+  .mp-icon-btn.selected{ border-color:var(--gold); background:rgba(201,162,76,.14); }
+  .mp-current-icon-label{ font-size:11.5px; color:var(--text-faint); margin-top:6px; text-align:center; }
+  .mp-traits-wrap{ display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius); padding:4px; background:var(--bg-alt); }
+  .mp-trait-cat{ border-bottom:1px solid var(--border-soft); }
+  .mp-trait-cat:last-child{ border-bottom:none; }
+  .mp-trait-cat summary{
+    cursor:pointer; padding:6px 6px; font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em;
+    list-style:none; display:flex; align-items:center; gap:6px;
+  }
+  .mp-trait-cat summary::-webkit-details-marker{ display:none; }
+  .mp-trait-cat summary::before{ content:'▸'; font-size:10px; transition:transform .12s; }
+  .mp-trait-cat[open] summary::before{ transform:rotate(90deg); }
+  .mp-trait-count{ background:var(--gold); color:#14151b; border-radius:8px; padding:0 6px; font-size:10.5px; font-weight:600; }
+  .mp-trait-cat-body{ display:flex; flex-direction:column; gap:1px; padding:0 2px 6px; }
   .map-marker{
     position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column;
     align-items:center; cursor:grab; user-select:none; z-index:5; pointer-events:none;
   }
   #mapEditorRoot.mode-marker .map-marker{ pointer-events:auto; }
   .map-marker:active{cursor:grabbing;}
+  .map-marker:hover{ z-index:20; }
+  .map-marker-main{ position:relative; }
   .map-marker-icon{
     width:16px; height:16px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     color:#14151b; background:var(--marker-color,var(--gold)); border:1.5px solid rgba(20,21,27,.82);
     box-shadow:0 2px 6px rgba(0,0,0,.55), 0 0 0 1.5px rgba(255,255,255,.08);
-    transition:transform .12s, box-shadow .12s;
+    transition:transform .12s, box-shadow .12s; flex-shrink:0; overflow:hidden;
   }
   .map-marker:hover .map-marker-icon{
     transform:scale(1.18); box-shadow:0 4px 10px rgba(0,0,0,.7), 0 0 0 1.5px rgba(255,255,255,.14);
   }
   .map-marker-icon svg{width:9px; height:9px; display:block; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
+  .map-marker-traits{
+    position:absolute; left:100%; top:50%; transform:translateY(-50%) translateX(-6px);
+    display:flex; gap:4px; margin-left:6px; opacity:0; pointer-events:none;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .map-marker:hover .map-marker-traits{ opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
+  .map-marker-trait{
+    width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+    color:#14151b; background:var(--marker-color,var(--gold)); border:1.5px solid rgba(20,21,27,.82);
+    box-shadow:0 2px 5px rgba(0,0,0,.5); flex-shrink:0;
+  }
+  .map-marker-trait svg{width:8px; height:8px; display:block; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
   .map-marker-label{
     font-size:8px; color:#fff; background:rgba(20,21,27,.88); border:1px solid rgba(255,255,255,.08);
     padding:1px 5px; border-radius:6px; margin-top:2px; white-space:nowrap; max-width:110px;
     overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 5px rgba(0,0,0,.35);
+    transform:scale(0.68); transform-origin:top center; opacity:.75; transition:transform .15s ease, opacity .15s ease;
   }
+  .map-marker:hover .map-marker-label, .map-marker.force-full .map-marker-label{ transform:scale(1); opacity:1; }
   .marker-card-icon{
     width:30px; height:30px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center;
-    background:var(--marker-color,var(--gold)); color:#14151b; flex-shrink:0; vertical-align:middle;
+    background:var(--marker-color,var(--gold)); color:#14151b; flex-shrink:0; vertical-align:middle; overflow:hidden;
   }
   .marker-card-icon svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
 
@@ -2499,22 +2539,115 @@ function deleteMapPath(mapId, pathId){
 }
 
 const MARKER_ICONS = [
-  ['city','Город'],
+  ['city','Город (средневековый)'],
+  ['city_modern','Город (современный)'],
+  ['capital','Столица'],
+  ['town','Городок'],
+  ['hamlet','Хутор'],
+  ['colony','Колония'],
+  ['border_town','Пограничный город'],
   ['village','Деревня / поселение'],
+  ['abandoned_settlement','Заброшенное поселение'],
   ['castle','Замок / крепость'],
+  ['fortress','Крепость (укрепление)'],
+  ['fort','Форт'],
+  ['palace','Дворец'],
+  ['royal_palace','Королевский дворец'],
+  ['residence','Резиденция'],
+  ['town_hall','Ратуша'],
+  ['administrative_center','Административный центр'],
+  ['council','Совет'],
+  ['embassy','Посольство'],
+  ['court','Двор / суд'],
+  ['tower','Башня'],
+  ['city_wall','Городская стена'],
+  ['gate','Городские ворота'],
+  ['barracks','Казармы'],
+  ['prison','Тюрьма'],
+  ['lighthouse','Маяк'],
+  ['shipyard','Верфь'],
+  ['warehouse','Склад'],
+  ['market','Рынок'],
+  ['library','Библиотека / академия'],
   ['temple','Храм / святилище'],
+  ['monastery','Монастырь'],
+  ['shrine','Святилище (малое)'],
+  ['cathedral','Собор'],
+  ['chapel','Часовня'],
+  ['holy_place','Святое место'],
+  ['pilgrimage_site','Место паломничества'],
+  ['catacombs','Катакомбы'],
+  ['cemetery','Кладбище'],
   ['forest','Лес / чаща'],
+  ['ancient_forest','Древний лес'],
+  ['grove','Роща'],
   ['mountain','Горы / вершина'],
-  ['water','Река / озеро / источник'],
+  ['volcano','Вулкан'],
+  ['cave','Пещера'],
+  ['pass','Перевал'],
+  ['mine','Шахта / рудник'],
+  ['swamp','Болото'],
+  ['desert','Пустыня'],
+  ['oasis','Оазис'],
+  ['waterfall','Водопад'],
+  ['spring','Источник'],
+  ['river','Река / поток'],
+  ['lake','Озеро / водоём'],
+  ['bay','Залив'],
+  ['bridge','Мост'],
+  ['island','Остров'],
+  ['road','Дорога'],
+  ['crossroads','Перекрёсток'],
+  ['ford','Брод'],
+  ['signpost','Указатель'],
+  ['caravan_route','Караванный путь'],
+  ['campsite','Стоянка'],
+  ['resting_spot','Место отдыха'],
+  ['resting_place','Место привала'],
+  ['inn','Постоялый двор'],
+  ['caravanserai','Караван-сарай'],
+  ['meeting_place','Место встречи'],
   ['port','Порт / гавань'],
+  ['fishing_port','Рыбацкий порт'],
+  ['military_port','Военный порт'],
+  ['ship','Корабль / судно'],
+  ['trade_center','Торговый центр'],
+  ['trade_post','Торговый пост'],
+  ['guild','Гильдия'],
+  ['shop','Лавка'],
+  ['customs','Таможня'],
+  ['bank','Банк'],
+  ['mint','Монетный двор'],
+  ['fair','Ярмарка'],
   ['camp','Лагерь'],
+  ['military_camp','Военный лагерь'],
+  ['outpost','Аванпост'],
+  ['checkpoint','Блокпост'],
+  ['arsenal','Арсенал'],
+  ['battlefield','Поле боя'],
+  ['siege_site','Место осады'],
   ['ruins','Руины / древнее место'],
   ['battle','Битва / конфликт'],
   ['grave','Могила / кладбище'],
+  ['assassination','Покушение'],
+  ['birth','Рождение'],
+  ['coronation','Коронация'],
+  ['rebellion','Восстание'],
+  ['treaty','Договор'],
+  ['disaster','Катастрофа'],
+  ['crime_scene','Место преступления'],
   ['danger','Опасность'],
   ['magic','Магия / аномалия'],
+  ['magic_place','Магическое место'],
+  ['anomaly','Аномалия'],
+  ['cursed_place','Проклятое место'],
+  ['artifact_site','Место артефакта'],
   ['secret','Тайна / секрет'],
+  ['secret_place','Тайное место'],
   ['treasure','Сокровище'],
+  ['lair','Логово'],
+  ['bandit_camp','Лагерь бандитов'],
+  ['monster_lair','Логово монстра'],
   ['person','Персонаж / встреча'],
   ['creature','Существо (жуткое)'],
   ['beast','Животное / зверь'],
@@ -2522,54 +2655,199 @@ const MARKER_ICONS = [
   ['landmark','Ориентир'],
   ['other','Другое']
 ];
+const MARKER_ICON_LABELS = Object.fromEntries(MARKER_ICONS);
+
+// Icons grouped by category so the picker never dumps all 32+ icons into one
+// giant list — the person picks a category first, then only sees icons that
+// belong to it.
+const MARKER_ICON_CATEGORIES = [
+  { key:'settlements', label:'Поселения',            icons:['city','city_modern','town','hamlet','colony','border_town','village','island','abandoned_settlement'] },
+  { key:'buildings',   label:'Сооружения',            icons:['castle','fortress','fort','library','ruins','tower','city_wall','gate','barracks','prison','lighthouse','shipyard','warehouse','market'] },
+  { key:'nature',      label:'Природа',               icons:['forest','ancient_forest','grove','mountain','volcano','cave','pass','mine','swamp','desert','oasis','waterfall','spring','river','lake','bay'] },
+  { key:'travel',      label:'Пути и путешествия',    icons:['signpost','road','crossroads','ford','bridge','caravan_route','campsite','resting_spot','resting_place','inn','caravanserai','meeting_place','port','fishing_port','ship','camp'] },
+  { key:'trade',       label:'Торговля и ремесло',    icons:['treasure','trade_center','trade_post','guild','shop','customs','bank','mint','fair'] },
+  { key:'military',    label:'Военное',               icons:['battle','danger','military_camp','outpost','checkpoint','arsenal','battlefield','siege_site','military_port'] },
+  { key:'religion',    label:'Религия',                icons:['temple','magic','monastery','shrine','cathedral','chapel','holy_place','pilgrimage_site','catacombs','cemetery'] },
+  { key:'power',       label:'Власть',                icons:['capital','palace','royal_palace','residence','town_hall','administrative_center','council','embassy','court'] },
+  { key:'events',      label:'События',                icons:['grave','secret','assassination','birth','coronation','rebellion','treaty','disaster','crime_scene'] },
+  { key:'special',     label:'Особые',                icons:['person','creature','beast','portal','landmark','magic_place','anomaly','cursed_place','artifact_site','secret_place','lair','bandit_camp','monster_lair','other'] },
+];
+const MARKER_ICON_TO_CATEGORY = {};
+MARKER_ICON_CATEGORIES.forEach(cat=>{ cat.icons.forEach(key=>{ MARKER_ICON_TO_CATEGORY[key] = cat.key; }); });
+function iconCategoryOf(iconKey){ return MARKER_ICON_TO_CATEGORY[iconKey] || 'other'; }
 
 const MARKER_COLORS = {
-  city:'var(--gold)', village:'var(--teal)', castle:'var(--gold)', temple:'var(--violet)',
-  forest:'var(--teal)', mountain:'var(--gray)', water:'#6a8caf', port:'#6a8caf',
-  camp:'var(--rose)', ruins:'var(--gray)', battle:'var(--thread)', grave:'var(--gray)',
+  city:'var(--gold)', capital:'var(--gold)', village:'var(--teal)', castle:'var(--gold)', temple:'var(--violet)',
+  forest:'var(--teal)', mountain:'var(--gray)', river:'#6a8caf', lake:'#6a8caf', port:'#6a8caf', city_modern:'var(--gray)',
+  volcano:'#d17a3d', library:'var(--violet)',
+  cave:'var(--gray)', bridge:'#7f92a8', island:'var(--teal)', desert:'#d9b25f', signpost:'#8f97a6', ship:'#6a8caf',
+  camp:'var(--rose)', ruins:'var(--gray)', battle:'var(--gray)', grave:'var(--gray)',
   danger:'var(--thread)', magic:'var(--violet)', secret:'var(--rose)', treasure:'var(--gold)',
-  person:'var(--teal)', creature:'var(--thread)', beast:'var(--rose)', portal:'var(--violet)', landmark:'var(--gold)',
-  other:'var(--gray)'
+  person:'var(--teal)', creature:'var(--thread)', beast:'#e8c93b', portal:'var(--violet)', landmark:'var(--gold)',
+  other:'var(--gray)',
+  town:'var(--teal)', hamlet:'var(--teal)', colony:'var(--teal)', border_town:'var(--gray)', abandoned_settlement:'var(--gray)',
+  fortress:'var(--gold)', fort:'var(--thread)', palace:'var(--gold)', royal_palace:'var(--gold)', residence:'var(--gold)',
+  town_hall:'var(--gold)', administrative_center:'var(--gold)', council:'var(--gold)', embassy:'var(--gold)', court:'var(--gold)',
+  tower:'var(--gray)', city_wall:'var(--gray)', gate:'var(--gray)', barracks:'var(--thread)', prison:'var(--gray)',
+  lighthouse:'#6a8caf', shipyard:'#6a8caf', warehouse:'var(--gray)', market:'var(--gold)',
+  monastery:'var(--violet)', shrine:'var(--violet)', cathedral:'var(--violet)', chapel:'var(--violet)',
+  holy_place:'var(--violet)', pilgrimage_site:'var(--violet)', catacombs:'var(--gray)', cemetery:'var(--gray)',
+  ancient_forest:'var(--teal)', grove:'var(--teal)', pass:'var(--gray)', mine:'var(--gray)', swamp:'var(--teal)',
+  oasis:'#d9b25f', waterfall:'#6a8caf', spring:'#6a8caf', bay:'#6a8caf',
+  road:'var(--gray)', crossroads:'var(--gray)', ford:'#6a8caf', caravan_route:'var(--gray)',
+  campsite:'var(--rose)', resting_spot:'var(--rose)', resting_place:'var(--rose)', inn:'var(--rose)',
+  caravanserai:'var(--rose)', meeting_place:'var(--teal)',
+  fishing_port:'#6a8caf', military_port:'var(--thread)',
+  trade_center:'var(--gold)', trade_post:'var(--gold)', guild:'var(--gold)', shop:'var(--gold)',
+  customs:'var(--gray)', bank:'var(--gold)', mint:'var(--gold)', fair:'var(--gold)',
+  military_camp:'var(--thread)', outpost:'var(--thread)', checkpoint:'var(--thread)', arsenal:'var(--thread)',
+  battlefield:'var(--thread)', siege_site:'var(--thread)',
+  assassination:'var(--thread)', birth:'var(--rose)', coronation:'var(--gold)', rebellion:'var(--thread)',
+  treaty:'var(--gold)', disaster:'var(--thread)', crime_scene:'var(--thread)',
+  magic_place:'var(--violet)', anomaly:'var(--violet)', cursed_place:'var(--violet)', artifact_site:'var(--gold)',
+  secret_place:'var(--rose)', lair:'var(--thread)', bandit_camp:'var(--thread)', monster_lair:'var(--thread)',
 };
 
 const MARKER_SVG = {
-  city:`<svg viewBox="0 0 24 24"><path d="M4 21V9l8-5 8 5v12"/><path d="M8 21v-5h3v5m2 0v-5h3v5M8 11h2m4 0h2M8 14h2m4 0h2"/></svg>`,
-  village:`<svg viewBox="0 0 24 24"><path d="M3 21h18"/><path d="M5 21v-8l4-3 4 3v8"/><path d="M13 21v-6l3-2 3 2v6"/><path d="M7 16h1m3 0h1m4 1h1"/></svg>`,
-  castle:`<svg viewBox="0 0 24 24"><path d="M3 21V7h4v3h3V7h4v3h3V7h4v14Z"/><path d="M8 21v-5h8v5M5 4v3m7-3v3m7-3v3"/></svg>`,
-  temple:`<svg viewBox="0 0 24 24"><path d="M3 21h18M5 18h14M6 10h12M4 10l8-6 8 6M8 10v8m4-8v8m4-8v8"/></svg>`,
-  forest:`<svg viewBox="0 0 24 24"><path d="M12 21V9"/><path d="m12 4 5 7h-3l4 5h-5"/><path d="M12 4 7 11h3l-4 5h6"/></svg>`,
-  mountain:`<svg viewBox="0 0 24 24"><path d="m3 20 7-12 4 6 2-3 5 9Z"/><path d="m10 8 2 3 2-3"/></svg>`,
-  water:`<svg viewBox="0 0 24 24"><path d="M3 8c3 3 6 3 9 0s6-3 9 0M3 14c3 3 6 3 9 0s6-3 9 0M3 20c3 3 6 3 9 0s6-3 9 0"/></svg>`,
-  port:`<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2"/><path d="M12 7v13"/><path d="M7 11h10"/><path d="M4 13a8 8 0 0 0 16 0"/></svg>`,
-  camp:`<svg viewBox="0 0 24 24"><path d="m3 20 7-13 2 4 2-4 7 13"/><path d="M8 20h8M12 14v6"/></svg>`,
-  ruins:`<svg viewBox="0 0 24 24"><path d="M4 21V8l4-3 4 3v13M12 21V11l4-4 4 4v10"/><path d="M7 11h2m-2 4h2m7-1h2m-2 4h2"/></svg>`,
-  battle:`<svg viewBox="0 0 24 24"><path d="m5 4 15 15M19 4 4 19"/><path d="m4 4 3 3m10 10 3 3m-1-16-3 3M7 17l-3 3"/></svg>`,
-  grave:`<svg viewBox="0 0 24 24"><path d="M6 21V9a6 6 0 0 1 12 0v12M3 21h18"/><path d="M12 7v6m-3-3h6"/></svg>`,
-  danger:`<svg viewBox="0 0 24 24"><path d="m12 3 10 18H2Z"/><path d="M12 9v5m0 4h.01"/></svg>`,
-  magic:`<svg viewBox="0 0 24 24"><path d="m12 3 1.7 5.3L19 10l-5.3 1.7L12 17l-1.7-5.3L5 10l5.3-1.7Z"/><path d="m19 3 .7 2.3L22 6l-2.3.7L19 9l-.7-2.3L16 6l2.3-.7Z"/></svg>`,
-  secret:`<svg viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 4v3"/></svg>`,
-  treasure:`<svg viewBox="0 0 24 24"><path d="M3 10 5 5h14l2 5"/><rect x="3" y="10" width="18" height="9" rx="1"/><path d="M3 14h18"/><path d="M11 12.5h2v2h-2z"/></svg>`,
-  person:`<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3.5"/><path d="M5 21a7 7 0 0 1 14 0"/></svg>`,
-  creature:`<svg viewBox="0 0 24 24"><path d="M5 8 3 3l5 2M19 8l2-5-5 2"/><path d="M5 8c0-4 3-6 7-6s7 2 7 6c0 6-3 11-7 11S5 14 5 8Z"/><path d="M9 9v2M15 9v2"/><path d="M7.5 15l1.5 2 1.5-2 1.5 2 1.5-2 1.5 2"/></svg>`,
-  beast:`<svg viewBox="0 0 24 24"><path d="M6 7 4 4m14 3 2-3"/><circle cx="12" cy="13" r="7"/><ellipse cx="12" cy="15" rx="3" ry="1.8"/><path d="M10.5 15h.01M13.5 15h.01M9 10h.01M15 10h.01"/></svg>`,
-  portal:`<svg viewBox="0 0 24 24"><path d="M12 3a8 9 0 0 1 0 18 8 9 0 0 1 0-18Z"/><path d="M12 6a5 6 0 0 1 0 12 5 6 0 0 1 0-12Z"/></svg>`,
-  landmark:`<svg viewBox="0 0 24 24"><path d="M4 21h16M6 21V9h12v12M4 9l8-5 8 5M9 13h6"/></svg>`,
-  other:`<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v.01M12 11v5"/></svg>`
-};
+  // === СУЩЕСТВУЮЩИЕ ИКОНКИ ===
+  city: `<svg viewBox="-2 -2 28 28"><path d="M2 21V13L5.5 9L9 13V21Z" fill="currentColor" stroke="none"/><path d="M9 21V7L12 3L15 7V21Z" fill="currentColor" stroke="none"/><path d="M15 21V12L18.5 8L22 12V21Z" fill="currentColor" stroke="none"/><rect x="11" y="10" width="2" height="2" fill="var(--marker-color)" stroke="none"/><rect x="2" y="21" width="20" height="1.4" fill="currentColor" stroke="none"/></svg>`,
+  city_modern: `<svg viewBox="-2 -2 28 28"><rect x="2" y="13" width="5" height="8" fill="currentColor" stroke="none"/><rect x="9" y="5" width="6" height="16" fill="currentColor" stroke="none"/><rect x="16" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="11" y="8" width="2" height="2" fill="var(--marker-color)" stroke="none"/><rect x="11" y="12" width="2" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  village: `<svg viewBox="-2 -2 28 28"><rect x="15.3" y="6.3" width="2" height="4.2" fill="currentColor" stroke="none"/><path d="M16.3 6c-0.6-0.8-0.6-1.6 0-2.4s0.6-1.6 0-2.4" fill="none" stroke-width="1.4"/><path d="M3 12 12 4 21 12Z" fill="currentColor" stroke="none"/><rect x="5" y="12" width="14" height="9" fill="currentColor" stroke="none"/><rect x="7" y="14.7" width="2.6" height="2.6" fill="var(--marker-color)" stroke="none"/><rect x="10.2" y="15.3" width="3.6" height="5.7" fill="var(--marker-color)" stroke="none"/></svg>`,
+  castle: `<svg viewBox="-2 -2 28 28"><rect x="2" y="7" width="6" height="14" fill="currentColor" stroke="none"/><rect x="16" y="7" width="6" height="14" fill="currentColor" stroke="none"/><rect x="8" y="11" width="8" height="10" fill="currentColor" stroke="none"/><rect x="2" y="4" width="2.6" height="3" fill="currentColor" stroke="none"/><rect x="5.4" y="4" width="2.6" height="3" fill="currentColor" stroke="none"/><rect x="16" y="4" width="2.6" height="3" fill="currentColor" stroke="none"/><rect x="19.4" y="4" width="2.6" height="3" fill="currentColor" stroke="none"/><rect x="8.4" y="9" width="2.6" height="2" fill="currentColor" stroke="none"/><rect x="13" y="9" width="2.6" height="2" fill="currentColor" stroke="none"/><path d="M9.5 21V16A2.5 2.5 0 0 1 14.5 16V21Z" fill="var(--marker-color)" stroke="none"/></svg>`,
+  temple: `<svg viewBox="-2 -2 28 28"><path d="M2 10L12 2L22 10Z" fill="currentColor" stroke="none"/><rect x="2" y="10" width="20" height="2" fill="currentColor" stroke="none"/><rect x="4" y="12" width="2.5" height="8" fill="currentColor" stroke="none"/><rect x="8.5" y="12" width="2.5" height="8" fill="currentColor" stroke="none"/><rect x="13" y="12" width="2.5" height="8" fill="currentColor" stroke="none"/><rect x="17.5" y="12" width="2.5" height="8" fill="currentColor" stroke="none"/><rect x="2" y="20" width="20" height="2" fill="currentColor" stroke="none"/></svg>`,
+  forest: `<svg viewBox="-2 -2 28 28"><path d="M12 2L18 11H15L20 18H14V22H10V18H4L9 11H6Z" fill="currentColor" stroke="none"/></svg>`,
+  mountain: `<svg viewBox="-2 -2 28 28"><path d="M2 21 9 8 13 15 15 11 21 21Z" fill="currentColor" stroke="none"/><path d="M9 8 11.2 11.5 7.4 11.5Z" fill="var(--marker-color)" stroke="none"/></svg>`,
+  volcano: `<svg viewBox="-2 -2 28 28"><path d="M2 20 9 8 12 13 15 8 22 20Z" fill="currentColor" stroke="none"/><path d="M12 2C10.7 3.6 10.7 5.2 12 6.8C13.3 5.2 13.3 3.6 12 2Z" fill="currentColor" stroke="none"/></svg>`,
+  cave: `<svg viewBox="-2 -2 28 28"><path d="M3 21H21V12A9 9 0 0 0 3 12Z" fill="currentColor" stroke="none"/><path d="M8 21H16V13.5A4 5 0 0 0 8 13.5Z" fill="var(--marker-color)" stroke="none"/></svg>`,
+  desert: `<svg viewBox="-2 -2 28 28"><circle cx="17.5" cy="6" r="2.4" fill="currentColor" stroke="none"/><path d="M6.5 19V8"/><path d="M6.5 13c-1.6 0-2.6-1-2.6-2.6V8"/><path d="M6.5 11c1.6 0 2.6-1 2.6-2.6V6"/><path d="M2 17c2.5-1.5 5-1.5 7.5 0s5 1.5 7.5 0 5-1.5 7.5 0" stroke-width="1.6"/><path d="M2 20.3c2.5-1.5 5-1.5 7.5 0s5 1.5 7.5 0 5-1.5 7.5 0" stroke-width="1.6"/></svg>`,
+  river: `<svg viewBox="-2 -2 28 28"><path d="M2 9C6 5 9 13 13 9C17 5 20 13 22 10V15C19 18 16 10 12 14C8 18 5 10 2 14Z" fill="currentColor" stroke="none"/></svg>`,
+  lake: `<svg viewBox="-2 -2 28 28"><path d="M2 12C1.5 6 6.5 2 12 2S22.5 6 22 12C21.5 17 16.5 20.5 12 20.5S2.5 17 2 12Z" fill="currentColor" stroke="none"/><path d="M4 9.7C6 11.7 8 11.7 10 9.7C12 7.7 14 7.7 16 9.7C18 11.7 20 11.7 22 9.7" fill="none" stroke="var(--marker-color)" stroke-width="1.8"/><path d="M4 13.3C6 15.3 8 15.3 10 13.3C12 11.3 14 11.3 16 13.3C18 15.3 20 15.3 22 13.3" fill="none" stroke="var(--marker-color)" stroke-width="1.8"/></svg>`,
+  bridge: `<svg viewBox="-2 -2 28 28"><path d="M1 17C1 9 23 9 23 17Z" fill="currentColor" stroke="none"/><path d="M5 17C5 12 19 12 19 17Z" fill="var(--marker-color)" stroke="none"/><rect x="1" y="16" width="22" height="3" rx="1" fill="currentColor" stroke="none"/></svg>`,
+  island: `<svg viewBox="-2 -2 28 28"><path d="M12 21C11.4 17 11.4 14 12 12" fill="none" stroke-width="2"/><path d="M12 12C7 9.5 3 5.5 1 0.5C7 2.5 11 7 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C17 9.5 21 5.5 23 0.5C17 2.5 13 7 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C9 8 7.5 4 8.5 0C11 3 12 7.5 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C15 8 16.5 4 15.5 0C13 3 12 7.5 12 12Z" fill="currentColor" stroke="none"/><path d="M1 21.5Q6 18 11 21.5T21 21.5" fill="none" stroke-width="1.8"/></svg>`,
+  signpost: `<svg viewBox="-2 -2 28 28"><path d="M2 7H19L23 12 19 17H2Z" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
+  library: `<svg viewBox="-2 -2 28 28"><path d="M12 5C9 3.3 5.5 2.8 2 3.7V17C5.5 16.1 9 16.6 12 18.3C15 16.6 18.5 16.1 22 17V3.7C18.5 2.8 15 3.3 12 5Z" fill="currentColor" stroke="none"/><rect x="11.2" y="5" width="1.6" height="13.3" fill="var(--marker-color)" stroke="none"/></svg>`,
+  port: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="4" r="2.2" fill="none" stroke-width="2"/><rect x="11" y="6.5" width="2" height="12" fill="currentColor" stroke="none"/><rect x="7" y="10" width="10" height="2" fill="currentColor" stroke="none"/><path d="M4 12C4 17 8 20 11.3 20.5L10 18C7.5 17 5.7 14.8 5.7 12Z" fill="currentColor" stroke="none"/><path d="M20 12C20 17 16 20 12.7 20.5L14 18C16.5 17 18.3 14.8 18.3 12Z" fill="currentColor" stroke="none"/></svg>`,
+  camp: `<svg viewBox="-2 -2 28 28"><path d="M12 5 21 20H3Z" fill="currentColor" stroke="none"/><path d="M9.7 20 12 13.3 14.3 20Z" fill="var(--marker-color)" stroke="none"/><path d="M3 20 1 21.6" fill="none" stroke-width="1.7"/><path d="M21 20 23 21.6" fill="none" stroke-width="1.7"/></svg>`,
+  ship: `<svg viewBox="-2 -2 28 28"><path d="M3 15L21 15L18 20L6 20Z" fill="currentColor" stroke="none"/><rect x="11" y="4" width="2" height="12" fill="currentColor" stroke="none"/><path d="M13 5L13 14L20 12Z" fill="currentColor" stroke="none"/><circle cx="9" cy="17" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
+  ruins: `<svg viewBox="-2 -2 28 28"><path d="M7.2 9 8.2 6.5 8.8 8 9.6 6.8 11.2 9V20H7.2Z" fill="currentColor" stroke="none"/><path d="M13.7 13 14.5 11 15.2 12.3 16 10.8 17.2 13V20H13.7Z" fill="currentColor" stroke="none"/><rect x="6.5" y="20" width="11" height="1.3" rx="0.2" fill="currentColor" stroke="none"/></svg>`,
+  battle: `<svg viewBox="-2 -2 28 28"><ellipse cx="12" cy="19.6" rx="7.6" ry="1.5" fill="currentColor" stroke="none"/><path d="M10.3 9.3H13.7L12.7 17.5L12 19.2L11.3 17.5Z" fill="currentColor" stroke="none"/><rect x="7.6" y="7.4" width="8.8" height="1.8" rx="0.6" fill="currentColor" stroke="none"/><rect x="11" y="4.2" width="2" height="3.2" fill="currentColor" stroke="none"/><circle cx="12" cy="3" r="1.4" fill="currentColor" stroke="none"/></svg>`,
+  grave: `<svg viewBox="-2 -2 28 28"><path d="M5 21V10A7 7 0 0 1 19 10V21Z" fill="currentColor" stroke="none"/><rect x="11" y="6" width="2" height="6" fill="var(--marker-color)" stroke="none"/><rect x="9" y="8" width="6" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  danger: `<svg viewBox="-2 -2 28 28"><path d="M12 2.5C7 2.5 4 6 4 10.5c0 3 1.5 4.8 3 6.3V20h10v-3.2c1.5-1.5 3-3.3 3-6.3C20 6 17 2.5 12 2.5Z"/><path d="M8.3 9.3 9.6 10.6 8.3 11.9 7 10.6Z" fill="currentColor"/><path d="M15.7 9.3 17 10.6 15.7 11.9 14.4 10.6Z" fill="currentColor"/><path d="M12 12.6l-1.3 2.3h2.6Z" fill="currentColor"/><path d="M8.5 20v1.7M10.5 20v1.7M12 20v1.7M13.5 20v1.7M15.5 20v1.7"/><path d="M12.3 3 11.2 5.8 12.7 7.6 11.5 9.6"/></svg>`,
+  magic: `<svg viewBox="-2 -2 28 28"><path d="M10.5 5L12.2 10.3L17.5 12L12.2 13.7L10.5 19L8.8 13.7L3.5 12L8.8 10.3Z" fill="currentColor" stroke="none"/><path d="M17.5 5L18.2 7.3L20.5 8L18.2 8.7L17.5 11L16.8 8.7L14.5 8L16.8 7.3Z" fill="currentColor" stroke="none"/></svg>`,
+  secret: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="9" r="4" fill="currentColor" stroke="none"/><path d="M9.7 12L8 20H16L14.3 12Z" fill="currentColor" stroke="none"/><circle cx="12" cy="9" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
+  treasure: `<svg viewBox="-2 -2 28 28"><path d="M3 10 5 5H19L21 10Z" fill="currentColor" stroke="none"/><rect x="3" y="10" width="18" height="9" rx="1" fill="currentColor" stroke="none"/><rect x="3" y="13.5" width="18" height="1.6" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="12.5" width="3" height="3.5" rx="0.6" fill="var(--marker-color)" stroke="none"/></svg>`,
+  person: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="7" r="3.6" fill="currentColor" stroke="none"/><path d="M4.5 21C4.5 15.8 7.8 13 12 13S19.5 15.8 19.5 21Z" fill="currentColor" stroke="none"/></svg>`,
+  creature: `<svg viewBox="-2 -2 28 28"><path d="M5.5 4 6.3 5.3 5.2 6.3 6.1 7.3Q7.5 13 5 19"/><path d="M11 2.5 11.8 3.8 10.7 4.8 11.6 5.8Q13 13 10.5 21"/><path d="M16.5 4 17.3 5.3 16.2 6.3 17.1 7.3Q18.5 13 16 19"/></svg>`,
+  beast: `<svg viewBox="-2 -2 28 28"><ellipse cx="12" cy="16" rx="5" ry="4.3" fill="currentColor" stroke="none"/><ellipse cx="4.7" cy="10" rx="1.7" ry="2.7" fill="currentColor" stroke="none" transform="rotate(-32 4.7 10)"/><ellipse cx="9.2" cy="4.3" rx="1.8" ry="2.8" fill="currentColor" stroke="none" transform="rotate(-10 9.2 4.3)"/><ellipse cx="15.8" cy="4.3" rx="1.8" ry="2.8" fill="currentColor" stroke="none" transform="rotate(10 15.8 4.3)"/><ellipse cx="20.3" cy="10" rx="1.7" ry="2.7" fill="currentColor" stroke="none" transform="rotate(32 20.3 10)"/></svg>`,
+  portal: `<svg viewBox="-2 -2 28 28"><ellipse cx="12" cy="12" rx="8" ry="9" fill="currentColor" stroke="none"/><ellipse cx="14" cy="12.5" rx="5.5" ry="7.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  landmark: `<svg viewBox="-2 -2 28 28"><rect x="10.2" y="2" width="1.6" height="20" fill="currentColor" stroke="none"/><path d="M11.8 3L21 6.5 11.8 10Z" fill="currentColor" stroke="none"/></svg>`,
+  other: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="1.3" fill="var(--marker-color)" stroke="none"/><rect x="11" y="11" width="2" height="6" rx="1" fill="var(--marker-color)" stroke="none"/></svg>`,
 
-const LEGACY_MARKER_ICONS = {
-  '⭐':'landmark','📍':'landmark','🏙️':'city','🏘️':'village','🏰':'castle','⛪':'temple',
-  '🌲':'forest','🌳':'forest','🌴':'forest','🌿':'forest','🌵':'forest','🏜️':'landmark',
-  '⛰️':'mountain','🌋':'mountain','💧':'water','⚓':'port','⛺':'camp','🛖':'village',
-  '🏺':'ruins','🗿':'ruins','⚔️':'battle','🛡️':'battle','🏹':'battle','🎯':'battle',
-  '⚰️':'grave','💀':'grave','☠️':'danger','👹':'creature','🐉':'creature','🐺':'beast','🐅':'beast',
-  '🐊':'beast','🦈':'beast','🐀':'beast','🦂':'creature','🦇':'beast','🕷️':'creature','🐍':'creature',
-  '🔮':'magic','🧪':'magic','🌀':'portal','🗝️':'secret','🧿':'secret','📜':'secret',
-  '💰':'treasure','👑':'landmark','👁️':'secret','🗺️':'landmark','🧭':'landmark',
-  '🎭':'landmark','🎪':'landmark','🎨':'landmark','🕯️':'landmark','⛏️':'landmark','⚒️':'landmark',
-  '⛓️':'danger','🔥':'danger','💥':'danger','⚡':'danger','🌩️':'danger','⛈️':'danger','🌪️':'danger',
-  '🌫️':'landmark','🌨️':'landmark','🩸':'danger','🕳️':'danger','🦉':'beast','🦅':'beast','🐷':'beast',
-  '🌑':'landmark','🌘':'landmark','🌙':'landmark','🌗':'landmark'
+  // === 🏙 ПОСЕЛЕНИЯ ===
+  capital: `<svg viewBox="-2 -2 28 28"><path d="M3 8L7 11L12 5L17 11L21 8L19.4 18H4.6Z" fill="currentColor" stroke="none"/><rect x="5.5" y="18.5" width="13" height="2" rx="0.5" fill="currentColor" stroke="none"/></svg>`,
+  town: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="4.5" height="7" fill="currentColor" stroke="none"/><rect x="8.5" y="10" width="4.5" height="11" fill="currentColor" stroke="none"/><rect x="15" y="6" width="4.5" height="15" fill="currentColor" stroke="none"/><rect x="21.5" y="12" width="3" height="9" fill="currentColor" stroke="none"/><rect x="2" y="21" width="23" height="1.2" fill="currentColor" stroke="none"/><rect x="11" y="14" width="2" height="3" fill="var(--marker-color)" stroke="none"/><rect x="17.5" y="10" width="1.5" height="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  hamlet: `<svg viewBox="-2 -2 28 28"><path d="M3 14L12 4L21 14Z" fill="currentColor" stroke="none"/><rect x="5" y="14" width="4" height="7" fill="currentColor" stroke="none"/><rect x="13" y="14" width="4" height="7" fill="currentColor" stroke="none"/><rect x="2" y="21" width="18" height="1.2" fill="currentColor" stroke="none"/><rect x="7" y="16" width="1.6" height="2" fill="var(--marker-color)" stroke="none"/><rect x="15" y="17" width="1.6" height="2" fill="var(--marker-color)" stroke="none"/><path d="M18.5 13L21.5 15.5L20.5 18.5L17.5 16L18.5 13Z" fill="currentColor" stroke="none"/></svg>`,
+  colony: `<svg viewBox="-2 -2 28 28"><path d="M6 10L12 4L18 10Z" fill="currentColor" stroke="none"/><rect x="3" y="10" width="18" height="9" fill="currentColor" stroke="none"/><rect x="3" y="10" width="18" height="1.4" fill="var(--marker-color)" stroke="none"/><rect x="8" y="12" width="1.6" height="2.4" fill="var(--marker-color)" stroke="none"/><rect x="12" y="14" width="1.6" height="2.4" fill="var(--marker-color)" stroke="none"/><rect x="16" y="12" width="1.6" height="2.4" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="11.5" r="1" fill="var(--marker-color)" stroke="none"/></svg>`,
+  border_town: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="5" height="7" fill="currentColor" stroke="none"/><rect x="9" y="9" width="5" height="12" fill="currentColor" stroke="none"/><rect x="16" y="12" width="5" height="9" fill="currentColor" stroke="none"/><rect x="2" y="21" width="19" height="1.2" fill="currentColor" stroke="none"/><rect x="11" y="13" width="1.8" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="18.5" y="16" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><path d="M21.5 7L23.5 9V11L21.5 13V7Z" fill="currentColor" stroke="none"/></svg>`,
+
+  // === 🏛 СООРУЖЕНИЯ ===
+  palace: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="20" height="8" rx="1" fill="currentColor" stroke="none"/><path d="M7 14V10C7 8.5 8.5 7 10 7H14C15.5 7 17 8.5 17 10V14" fill="currentColor" stroke="none"/><path d="M10 7V2L12 4L14 2V7" fill="currentColor" stroke="none"/><rect x="8" y="11" width="1.5" height="1.5" fill="var(--marker-color)" stroke="none"/><rect x="14.5" y="11" width="1.5" height="1.5" fill="var(--marker-color)" stroke="none"/><rect x="11" y="17" width="2" height="3.5" rx="0.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  town_hall: `<svg viewBox="-2 -2 28 28"><rect x="2" y="13" width="20" height="8" fill="currentColor" stroke="none"/><path d="M2 13L12 5L22 13Z" fill="currentColor" stroke="none"/><circle cx="12" cy="9" r="1.6" fill="var(--marker-color)" stroke="none"/><rect x="6" y="15" width="2.4" height="2.4" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="15" width="2.4" height="2.4" fill="var(--marker-color)" stroke="none"/><rect x="15" y="15" width="2.4" height="2.4" fill="var(--marker-color)" stroke="none"/></svg>`,
+  tower: `<svg viewBox="-2 -2 28 28"><rect x="7" y="4" width="10" height="17" fill="currentColor" stroke="none"/><rect x="4" y="3" width="16" height="2.5" rx="0.5" fill="currentColor" stroke="none"/><path d="M4 12L2 10V8L4 6" fill="none" stroke-width="1.6"/><path d="M20 12L22 10V8L20 6" fill="none" stroke-width="1.6"/><rect x="8" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="13.5" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="5.5" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  city_wall: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="20" height="2" fill="currentColor" stroke="none"/><rect x="2" y="11" width="20" height="2" fill="currentColor" stroke="none"/><rect x="8" y="9" width="2" height="5" fill="currentColor" stroke="none"/><rect x="14" y="9" width="2" height="5" fill="currentColor" stroke="none"/><path d="M4 11L2 9V7" fill="none" stroke-width="1.6"/><path d="M20 11L22 9V7" fill="none" stroke-width="1.6"/><rect x="6" y="13" width="1" height="5" fill="var(--marker-color)" stroke="none"/><rect x="17" y="13" width="1" height="5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  gate: `<svg viewBox="-2 -2 28 28"><rect x="2" y="8" width="20" height="13" fill="currentColor" stroke="none"/><path d="M7 8V3H17V8" fill="currentColor" stroke="none"/><rect x="7" y="8" width="10" height="6" rx="0.5" fill="var(--marker-color)" stroke="none"/><rect x="2" y="15" width="8" height="1.5" fill="currentColor" stroke="none"/><rect x="14" y="15" width="8" height="1.5" fill="currentColor" stroke="none"/></svg>`,
+  fortress: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="6" height="13" fill="currentColor" stroke="none"/><rect x="15" y="8" width="6" height="13" fill="currentColor" stroke="none"/><rect x="6" y="11" width="12" height="10" fill="currentColor" stroke="none"/><rect x="3" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="6.4" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="15" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="18.4" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="6" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="16.5" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><path d="M12 21V17A1.5 1.5 0 0 1 13.5 15.5A1.5 1.5 0 0 1 15 17V21" fill="var(--marker-color)" stroke="none"/></svg>`,
+  barracks: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="9" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="16" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="2" y="6" width="19" height="3" rx="0.5" fill="currentColor" stroke="none"/><rect x="4" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/><rect x="11" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/><rect x="18" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/></svg>`,
+  prison: `<svg viewBox="-2 -2 28 28"><rect x="4" y="6" width="16" height="15" rx="1" fill="currentColor" stroke="none"/><rect x="4" y="6" width="16" height="1.5" fill="var(--marker-color)" stroke="none"/><rect x="6" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="6" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><circle cx="9" cy="5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="5" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  lighthouse: `<svg viewBox="-2 -2 28 28"><path d="M10 22L12 4L14 22Z" fill="currentColor" stroke="none"/><circle cx="12" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="4.5" r="1" fill="var(--marker-color)" stroke="none"/><path d="M4 22L20 22" stroke-width="1.5" fill="none"/><path d="M6 20L18 20" stroke-width="1.5" fill="none"/><path d="M8 18L16 18" stroke-width="1.5" fill="none"/><path d="M12 10L5 16" stroke-width="1" fill="none" opacity="0.4"/><path d="M12 10L19 16" stroke-width="1" fill="none" opacity="0.4"/></svg>`,
+  shipyard: `<svg viewBox="-2 -2 28 28"><path d="M3 18L21 18L19 15L5 15L3 18Z" fill="currentColor" stroke="none"/><rect x="7" y="8" width="10" height="7" fill="currentColor" stroke="none"/><path d="M7 8L12 4L17 8Z" fill="var(--marker-color)" stroke="none"/><rect x="5" y="15" width="14" height="1.5" fill="currentColor" stroke="none"/><path d="M12 14L12 18" stroke-width="1.2" fill="none"/><rect x="2" y="21" width="20" height="1.5" fill="currentColor" stroke="none"/></svg>`,
+  warehouse: `<svg viewBox="-2 -2 28 28"><rect x="2" y="8" width="20" height="13" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 8L12 2L22 8Z" fill="currentColor" stroke="none"/><rect x="6" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="15" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="12" y="17" width="1.5" height="3" fill="var(--marker-color)" stroke="none"/></svg>`,
+  market: `<svg viewBox="-2 -2 28 28"><path d="M2 14L5 10H19L22 14Z" fill="currentColor" stroke="none"/><rect x="2" y="14" width="20" height="7" rx="0.8" fill="currentColor" stroke="none"/><rect x="6" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="15" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="12" r="1" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === 🌲 ПРИРОДА ===
+  ancient_forest: `<svg viewBox="-2 -2 28 28"><path d="M12 2L18 11H15L20 18H14V22H10V18H4L9 11H6Z" fill="currentColor" stroke="none"/><path d="M8 6L10 10L6 10Z" fill="var(--marker-color)" stroke="none"/><path d="M16 6L18 10L14 10Z" fill="var(--marker-color)" stroke="none"/><path d="M12 12L14 16L10 16Z" fill="var(--marker-color)" stroke="none"/></svg>`,
+  grove: `<svg viewBox="-2 -2 28 28"><path d="M6 8L12 2L18 8Z" fill="currentColor" stroke="none"/><path d="M8 12L14 6L20 12Z" fill="currentColor" stroke="none"/><path d="M4 16L10 10L16 16Z" fill="currentColor" stroke="none"/><circle cx="12" cy="9" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  pass: `<svg viewBox="-2 -2 28 28"><path d="M2 21L7 12L9 15L12 8L15 15L17 12L22 21Z" fill="currentColor" stroke="none"/><path d="M12 8L14.5 12.5L9.5 12.5Z" fill="var(--marker-color)" stroke="none"/><path d="M6 14L8 17" stroke-width="1.2" fill="none"/><path d="M18 14L16 17" stroke-width="1.2" fill="none"/></svg>`,
+  mine: `<svg viewBox="-2 -2 28 28"><path d="M2 21H22V15H16V10H8V15H2Z" fill="currentColor" stroke="none"/><rect x="5" y="15" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="10" y="15" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="15" y="15" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><path d="M4 15L2 12" stroke-width="1.2" fill="none"/><path d="M20 15L22 12" stroke-width="1.2" fill="none"/></svg>`,
+  swamp: `<svg viewBox="-2 -2 28 28"><path d="M4 18C6 15 8 17 10 14C12 11 14 13 16 10C18 7 20 9 22 7V21H4Z" fill="currentColor" stroke="none"/><path d="M8 21V18" stroke-width="1.2" fill="none"/><path d="M12 21V15" stroke-width="1.2" fill="none"/><path d="M16 21V13" stroke-width="1.2" fill="none"/><circle cx="6" cy="18" r="0.8" fill="var(--marker-color)" stroke="none"/><circle cx="14" cy="15" r="0.8" fill="var(--marker-color)" stroke="none"/></svg>`,
+  oasis: `<svg viewBox="-2 -2 28 28"><ellipse cx="12" cy="14" rx="7" ry="5" fill="currentColor" stroke="none"/><path d="M6 12L8 8L12 6L16 8L18 12Z" fill="currentColor" stroke="none"/><ellipse cx="12" cy="14" rx="3" ry="2" fill="var(--marker-color)" stroke="none"/><path d="M10 12L12 9L14 12Z" fill="currentColor" stroke="none"/></svg>`,
+  waterfall: `<svg viewBox="-2 -2 28 28"><path d="M6 4L18 4L12 12Z" fill="currentColor" stroke="none"/><rect x="10" y="12" width="4" height="10" rx="1" fill="currentColor" stroke="none"/><path d="M8 16C10 14 14 14 16 16" stroke-width="1.2" fill="none"/><path d="M8 19C10 17 14 17 16 19" stroke-width="1.2" fill="none"/><path d="M8 22C10 20 14 20 16 22" stroke-width="1.2" fill="none"/><circle cx="12" cy="8" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  spring: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="15" r="6" fill="currentColor" stroke="none"/><circle cx="12" cy="15" r="3" fill="var(--marker-color)" stroke="none"/><path d="M8 15L6 10" stroke-width="1.2" fill="none"/><path d="M16 15L18 10" stroke-width="1.2" fill="none"/><path d="M12 9V6" stroke-width="1.2" fill="none"/></svg>`,
+  bay: `<svg viewBox="-2 -2 28 28"><path d="M2 14C2 8 6.5 4 12 4S22 8 22 14C22 18 18.5 21 12 21S2 18 2 14Z" fill="currentColor" stroke="none"/><path d="M8 14C8 11 10 9 12 9S16 11 16 14" stroke-width="1.6" fill="none"/><circle cx="12" cy="12.5" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === 🛤 ПУТИ И ПУТЕШЕСТВИЯ ===
+  road: `<svg viewBox="-2 -2 28 28"><path d="M2 20L12 4L22 20Z" fill="currentColor" stroke="none"/><path d="M10 14L14 14" stroke="var(--marker-color)" stroke-width="1.5"/><path d="M11 17L13 17" stroke="var(--marker-color)" stroke-width="1.5"/><path d="M6 12L18 12" stroke-width="1" stroke-dasharray="2 2" fill="none" opacity="0.3"/></svg>`,
+  crossroads: `<svg viewBox="-2 -2 28 28"><path d="M12 2L12 22" stroke-width="2" fill="none"/><path d="M2 12L22 12" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  ford: `<svg viewBox="-2 -2 28 28"><path d="M2 12C6 9 10 12 14 9C18 6 22 9 22 12V16C18 13 14 16 10 13C6 10 2 13 2 16Z" fill="currentColor" stroke="none"/><path d="M8 12L8 16" stroke-width="1" fill="none"/><path d="M16 12L16 16" stroke-width="1" fill="none"/><circle cx="12" cy="12" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  caravan_route: `<svg viewBox="-2 -2 28 28"><path d="M2 18L8 10L14 18L20 10L22 14" stroke="var(--marker-color)" stroke-width="2.5" stroke-dasharray="2 3" fill="none"/><path d="M2 18L8 10L14 18L20 10" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="4" cy="19" r="1.5" fill="currentColor" stroke="none"/><circle cx="8" cy="9.5" r="1.5" fill="currentColor" stroke="none"/><circle cx="14" cy="19" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+  campsite: `<svg viewBox="-2 -2 28 28"><path d="M8 20L12 8L16 20Z" fill="currentColor" stroke="none"/><path d="M4 20L8 12L12 20Z" fill="currentColor" stroke="none"/><path d="M12 20L16 12L20 20Z" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  resting_spot: `<svg viewBox="-2 -2 28 28"><path d="M4 16H20L18 12L6 12L4 16Z" fill="currentColor" stroke="none"/><path d="M8 12L12 6L16 12Z" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="9" r="1.2" fill="currentColor" stroke="none"/><path d="M9 20L15 20" stroke-width="1.5" fill="none"/></svg>`,
+  inn: `<svg viewBox="-2 -2 28 28"><rect x="3" y="10" width="18" height="11" rx="1" fill="currentColor" stroke="none"/><path d="M3 10L12 4L21 10Z" fill="var(--marker-color)" stroke="none"/><rect x="6" y="14" width="2.5" height="2.5" fill="currentColor" stroke="none"/><rect x="9.5" y="14" width="2.5" height="2.5" fill="currentColor" stroke="none"/><rect x="13" y="14" width="2.5" height="2.5" fill="currentColor" stroke="none"/><rect x="16.5" y="14" width="2.5" height="2.5" fill="currentColor" stroke="none"/></svg>`,
+  caravanserai: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="18" height="13" rx="1" fill="currentColor" stroke="none"/><rect x="3" y="8" width="18" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="6" y="12" width="2.5" height="2" fill="currentColor" stroke="none"/><rect x="10" y="12" width="2.5" height="2" fill="currentColor" stroke="none"/><rect x="14" y="12" width="2.5" height="2" fill="currentColor" stroke="none"/><rect x="18" y="12" width="2.5" height="2" fill="currentColor" stroke="none"/><path d="M3 20L21 20" stroke-width="1.5" fill="none"/></svg>`,
+  meeting_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="3.5" fill="var(--marker-color)" stroke="none"/><path d="M8 8L6 6" stroke-width="1.5" fill="none"/><path d="M16 8L18 6" stroke-width="1.5" fill="none"/><path d="M8 16L6 18" stroke-width="1.5" fill="none"/><path d="M16 16L18 18" stroke-width="1.5" fill="none"/></svg>`,
+  resting_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/><rect x="10" y="12" width="1.5" height="4" rx="0.5" fill="var(--marker-color)" stroke="none"/><rect x="13" y="12" width="1.5" height="4" rx="0.5" fill="var(--marker-color)" stroke="none"/><path d="M12 6V3" stroke-width="1.5" fill="none"/></svg>`,
+
+  // === ⚒ ТОРГОВЛЯ И РЕМЕСЛО ===
+  trade_center: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="20" height="7" rx="1" fill="currentColor" stroke="none"/><path d="M2 14L12 7L22 14Z" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="17" r="1.5" fill="var(--marker-color)" stroke="none"/><rect x="10" y="15.5" width="4" height="3" rx="0.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  trade_post: `<svg viewBox="-2 -2 28 28"><rect x="2" y="12" width="8" height="9" rx="0.8" fill="currentColor" stroke="none"/><rect x="14" y="12" width="8" height="9" rx="0.8" fill="currentColor" stroke="none"/><path d="M6 12L12 8L18 12" fill="currentColor" stroke="none"/><circle cx="12" cy="10.5" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  guild: `<svg viewBox="-2 -2 28 28"><rect x="3" y="10" width="18" height="11" rx="1" fill="currentColor" stroke="none"/><path d="M3 10L12 4L21 10Z" fill="var(--marker-color)" stroke="none"/><rect x="6" y="13" width="2" height="2.5" fill="currentColor" stroke="none"/><rect x="10" y="13" width="2" height="2.5" fill="currentColor" stroke="none"/><rect x="14" y="13" width="2" height="2.5" fill="currentColor" stroke="none"/><rect x="18" y="13" width="2" height="2.5" fill="currentColor" stroke="none"/></svg>`,
+  shop: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="20" height="11" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 10L7 6H17L22 10Z" fill="currentColor" stroke="none"/><rect x="6" y="13" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="9.5" y="13" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="13" y="13" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="16.5" y="13" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  customs: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="20" height="11" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 10L12 4L22 10Z" fill="var(--marker-color)" stroke="none"/><rect x="6" y="13" width="2.5" height="2.5" fill="currentColor" stroke="none"/><rect x="10.5" y="13" width="2.5" height="2.5" fill="currentColor" stroke="none"/><rect x="15" y="13" width="2.5" height="2.5" fill="currentColor" stroke="none"/><circle cx="12" cy="8" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  bank: `<svg viewBox="-2 -2 28 28"><rect x="3" y="10" width="18" height="11" rx="0.8" fill="currentColor" stroke="none"/><path d="M3 10L12 3L21 10Z" fill="currentColor" stroke="none"/><rect x="6" y="14" width="2" height="3.5" fill="var(--marker-color)" stroke="none"/><rect x="10" y="14" width="2" height="3.5" fill="var(--marker-color)" stroke="none"/><rect x="14" y="14" width="2" height="3.5" fill="var(--marker-color)" stroke="none"/><rect x="18" y="14" width="2" height="3.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  mint: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="3.5" fill="var(--marker-color)" stroke="none"/><path d="M8 12L11 15L17 9" stroke="currentColor" stroke-width="2" fill="none"/></svg>`,
+  fair: `<svg viewBox="-2 -2 28 28"><path d="M2 14L5 10H19L22 14Z" fill="currentColor" stroke="none"/><rect x="2" y="14" width="20" height="7" rx="0.8" fill="currentColor" stroke="none"/><circle cx="8" cy="17" r="2" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="17" r="2" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  fishing_port: `<svg viewBox="-2 -2 28 28"><path d="M2 18L6 12L10 18Z" fill="currentColor" stroke="none"/><path d="M8 18L12 10L16 18Z" fill="currentColor" stroke="none"/><path d="M14 18L18 12L22 18Z" fill="currentColor" stroke="none"/><rect x="2" y="18" width="20" height="3" rx="0.5" fill="currentColor" stroke="none"/><circle cx="6" cy="15" r="0.8" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="13" r="0.8" fill="var(--marker-color)" stroke="none"/><circle cx="18" cy="15" r="0.8" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === 🛡 ВОЕННОЕ ===
+  fort: `<svg viewBox="-2 -2 28 28"><rect x="4" y="9" width="5" height="12" fill="currentColor" stroke="none"/><rect x="15" y="9" width="5" height="12" fill="currentColor" stroke="none"/><rect x="6" y="12" width="12" height="9" fill="currentColor" stroke="none"/><rect x="4" y="6" width="2" height="3" fill="currentColor" stroke="none"/><rect x="7" y="6" width="2" height="3" fill="currentColor" stroke="none"/><rect x="15" y="6" width="2" height="3" fill="currentColor" stroke="none"/><rect x="18" y="6" width="2" height="3" fill="currentColor" stroke="none"/><rect x="8" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14.5" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  outpost: `<svg viewBox="-2 -2 28 28"><rect x="7" y="8" width="10" height="8" fill="currentColor" stroke="none"/><path d="M3 8L12 3L21 8Z" fill="currentColor" stroke="none"/><rect x="9" y="10" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="13.5" y="10" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><path d="M12 8L12 16" stroke-width="1.2" fill="none"/></svg>`,
+  checkpoint: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="20" height="8" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 10L12 4L22 10Z" fill="currentColor" stroke="none"/><rect x="6" y="13" width="2" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10" y="13" width="2" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="13" width="2" height="2" fill="var(--marker-color)" stroke="none"/><rect x="18" y="13" width="2" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  military_camp: `<svg viewBox="-2 -2 28 28"><path d="M12 4L4 20H20Z" fill="currentColor" stroke="none"/><rect x="5" y="15" width="14" height="3" rx="0.5" fill="currentColor" stroke="none"/><rect x="8" y="18" width="2" height="3" fill="currentColor" stroke="none"/><rect x="14" y="18" width="2" height="3" fill="currentColor" stroke="none"/><rect x="11" y="13" width="2" height="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  arsenal: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="18" height="13" rx="0.8" fill="currentColor" stroke="none"/><rect x="3" y="8" width="18" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="5" y="12" width="2" height="2" fill="currentColor" stroke="none"/><rect x="9" y="12" width="2" height="2" fill="currentColor" stroke="none"/><rect x="13" y="12" width="2" height="2" fill="currentColor" stroke="none"/><rect x="17" y="12" width="2" height="2" fill="currentColor" stroke="none"/></svg>`,
+  battlefield: `<svg viewBox="-2 -2 28 28"><path d="M4 18L10 8L16 18L22 8" stroke="currentColor" stroke-width="2" fill="none"/><circle cx="6" cy="18" r="2" fill="currentColor" stroke="none"/><circle cx="16" cy="18" r="2" fill="currentColor" stroke="none"/><circle cx="10" cy="8" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="22" cy="8" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  siege_site: `<svg viewBox="-2 -2 28 28"><rect x="8" y="8" width="8" height="10" fill="currentColor" stroke="none"/><path d="M4 18L8 8L16 8L20 18Z" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="2" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="14" r="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  military_port: `<svg viewBox="-2 -2 28 28"><path d="M3 15L21 15L18 20L6 20Z" fill="currentColor" stroke="none"/><rect x="11" y="4" width="2" height="12" fill="currentColor" stroke="none"/><path d="M13 5L13 14L20 12Z" fill="currentColor" stroke="none"/><circle cx="12" cy="4" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="9" cy="17" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === ⛪ РЕЛИГИЯ ===
+  monastery: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="18" height="13" rx="0.8" fill="currentColor" stroke="none"/><path d="M3 8L12 2L21 8Z" fill="currentColor" stroke="none"/><rect x="5" y="11" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="9.5" y="11" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="14" y="11" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="18.5" y="11" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="6" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  shrine: `<svg viewBox="-2 -2 28 28"><path d="M2 10L12 3L22 10Z" fill="currentColor" stroke="none"/><rect x="4" y="10" width="16" height="2" fill="currentColor" stroke="none"/><rect x="5" y="12" width="3" height="7" fill="currentColor" stroke="none"/><rect x="10" y="12" width="3" height="7" fill="currentColor" stroke="none"/><rect x="15" y="12" width="3" height="7" fill="currentColor" stroke="none"/><circle cx="12" cy="7" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  cathedral: `<svg viewBox="-2 -2 28 28"><path d="M4 10L12 2L20 10Z" fill="currentColor" stroke="none"/><rect x="4" y="10" width="16" height="2" fill="currentColor" stroke="none"/><rect x="5" y="12" width="3" height="8" fill="currentColor" stroke="none"/><rect x="9.5" y="12" width="3" height="8" fill="currentColor" stroke="none"/><rect x="14" y="12" width="3" height="8" fill="currentColor" stroke="none"/><rect x="18.5" y="12" width="3" height="8" fill="currentColor" stroke="none"/><path d="M8 12L12 8L16 12Z" fill="var(--marker-color)" stroke="none"/><path d="M10 20L14 20" stroke-width="1.5" fill="none"/></svg>`,
+  chapel: `<svg viewBox="-2 -2 28 28"><path d="M6 10L12 3L18 10Z" fill="currentColor" stroke="none"/><rect x="6" y="10" width="12" height="2" fill="currentColor" stroke="none"/><rect x="7" y="12" width="3" height="7" fill="currentColor" stroke="none"/><rect x="12" y="12" width="3" height="7" fill="currentColor" stroke="none"/><circle cx="12" cy="6" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  holy_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><path d="M12 4L12 20" stroke-width="1.5" fill="none"/><path d="M4 12L20 12" stroke-width="1.5" fill="none"/><circle cx="12" cy="12" r="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  pilgrimage_site: `<svg viewBox="-2 -2 28 28"><path d="M12 2L16 8L22 8L18 14L20 20L12 16L4 20L6 14L2 8L8 8Z" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="2" fill="var(--marker-color)" stroke="none"/><path d="M10 11L14 11" stroke-width="1.2" fill="none"/><path d="M12 9L12 13" stroke-width="1.2" fill="none"/></svg>`,
+  catacombs: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="18" height="13" rx="0.8" fill="currentColor" stroke="none"/><path d="M3 8L12 3L21 8Z" fill="currentColor" stroke="none"/><circle cx="8" cy="13" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="13" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="17" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  cemetery: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="18" height="13" rx="0.8" fill="currentColor" stroke="none"/><path d="M8 8L8 21" stroke-width="1.2" fill="none"/><path d="M16 8L16 21" stroke-width="1.2" fill="none"/><path d="M4 13L20 13" stroke-width="1.2" fill="none"/><path d="M4 17L20 17" stroke-width="1.2" fill="none"/><circle cx="8" cy="11" r="1" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="11" r="1" fill="var(--marker-color)" stroke="none"/><circle cx="8" cy="15" r="1" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="15" r="1" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === 👑 ВЛАСТЬ ===
+  royal_palace: `<svg viewBox="-2 -2 28 28"><rect x="2" y="14" width="20" height="8" rx="1" fill="currentColor" stroke="none"/><path d="M7 14V9C7 7.5 8.5 6 10 6H14C15.5 6 17 7.5 17 9V14" fill="currentColor" stroke="none"/><path d="M10 6V2L12 4L14 2V6" fill="var(--marker-color)" stroke="none"/><rect x="8" y="11" width="1.5" height="1.5" fill="currentColor" stroke="none"/><rect x="14.5" y="11" width="1.5" height="1.5" fill="currentColor" stroke="none"/><rect x="11" y="17" width="2" height="3.5" rx="0.5" fill="var(--marker-color)" stroke="none"/><path d="M4 22L20 22" stroke-width="1.2" fill="none"/></svg>`,
+  residence: `<svg viewBox="-2 -2 28 28"><rect x="3" y="10" width="18" height="11" rx="0.8" fill="currentColor" stroke="none"/><path d="M3 10L12 4L21 10Z" fill="currentColor" stroke="none"/><rect x="6" y="13" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="13" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="15" y="13" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  administrative_center: `<svg viewBox="-2 -2 28 28"><rect x="3" y="10" width="18" height="11" rx="0.8" fill="currentColor" stroke="none"/><path d="M3 10L12 4L21 10Z" fill="currentColor" stroke="none"/><rect x="6" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="15" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="8" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  council: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="8" r="5" fill="currentColor" stroke="none"/><rect x="2" y="14" width="20" height="7" rx="0.8" fill="currentColor" stroke="none"/><rect x="5" y="16" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="9.5" y="16" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="16" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="18.5" y="16" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  embassy: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="6" height="11" rx="0.6" fill="currentColor" stroke="none"/><rect x="10" y="10" width="6" height="11" rx="0.6" fill="currentColor" stroke="none"/><rect x="18" y="10" width="4" height="11" rx="0.6" fill="currentColor" stroke="none"/><rect x="2" y="6" width="20" height="3" rx="0.5" fill="currentColor" stroke="none"/><circle cx="6" cy="4" r="1.2" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="4" r="1.2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  court: `<svg viewBox="-2 -2 28 28"><rect x="2" y="12" width="20" height="9" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 12L12 5L22 12Z" fill="currentColor" stroke="none"/><rect x="5" y="15" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="9.5" y="15" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="14" y="15" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="18.5" y="15" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+
+  // === ⚔ СОБЫТИЯ ===
+  assassination: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="6" fill="currentColor" stroke="none"/><path d="M12 6L12 18" stroke-width="2" fill="none"/><path d="M6 12L18 12" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  birth: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="3.5" fill="var(--marker-color)" stroke="none"/><path d="M12 12L12 16" stroke-width="1.5" fill="none"/><path d="M10 14L14 14" stroke-width="1.5" fill="none"/></svg>`,
+  coronation: `<svg viewBox="-2 -2 28 28"><path d="M6 16L12 6L18 16Z" fill="currentColor" stroke="none"/><rect x="4" y="16" width="16" height="4" rx="0.8" fill="currentColor" stroke="none"/><path d="M4 16L12 10L20 16Z" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="2.5" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="11" r="1.2" fill="currentColor" stroke="none"/></svg>`,
+  rebellion: `<svg viewBox="-2 -2 28 28"><path d="M2 16L8 8L12 14L16 8L22 16" fill="currentColor" stroke="none"/><rect x="4" y="16" width="16" height="4" rx="0.8" fill="currentColor" stroke="none"/><circle cx="8" cy="11" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="11" r="1.5" fill="var(--marker-color)" stroke="none"/><path d="M12 14L12 20" stroke-width="1.5" fill="none"/></svg>`,
+  treaty: `<svg viewBox="-2 -2 28 28"><rect x="2" y="8" width="20" height="12" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 8L12 3L22 8Z" fill="currentColor" stroke="none"/><rect x="6" y="11" width="3.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="18.5" y="11" width="3.5" height="2.5" fill="var(--marker-color)" stroke="none"/><path d="M12 11L12 15" stroke-width="1.5" fill="none"/><path d="M8 15L16 15" stroke-width="1.5" fill="none"/></svg>`,
+  disaster: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><path d="M6 18L18 6" stroke-width="2" fill="none"/><path d="M6 6L18 18" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  crime_scene: `<svg viewBox="-2 -2 28 28"><rect x="2" y="6" width="20" height="16" rx="1" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="3" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="14" r="3" fill="var(--marker-color)" stroke="none"/><path d="M6 6L4 4" stroke-width="1.5" fill="none"/><path d="M18 6L20 4" stroke-width="1.5" fill="none"/><path d="M8 12L8 16" stroke-width="1.5" fill="none"/><path d="M16 12L16 16" stroke-width="1.5" fill="none"/></svg>`,
+
+  // === ✦ ОСОБЫЕ ===
+  ruins: `<svg viewBox="-2 -2 28 28"><path d="M7.2 9 8.2 6.5 8.8 8 9.6 6.8 11.2 9V20H7.2Z" fill="currentColor" stroke="none"/><path d="M13.7 13 14.5 11 15.2 12.3 16 10.8 17.2 13V20H13.7Z" fill="currentColor" stroke="none"/><rect x="6.5" y="20" width="11" height="1.3" rx="0.2" fill="currentColor" stroke="none"/></svg>`,
+  abandoned_settlement: `<svg viewBox="-2 -2 28 28"><path d="M3 12L12 4L21 12Z" fill="currentColor" stroke="none"/><rect x="5" y="12" width="5" height="8" fill="currentColor" stroke="none"/><rect x="14" y="12" width="5" height="8" fill="currentColor" stroke="none"/><rect x="2" y="20" width="20" height="1.2" fill="currentColor" stroke="none"/><path d="M8 14L8 18" stroke-width="1.5" fill="none" opacity="0.5"/><path d="M15 14L15 18" stroke-width="1.5" fill="none" opacity="0.5"/><circle cx="12" cy="7" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  secret_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="10" r="6" fill="currentColor" stroke="none"/><path d="M8 10L12 14L16 10L14 16H10Z" fill="var(--marker-color)" stroke="none"/></svg>`,
+  lair: `<svg viewBox="-2 -2 28 28"><path d="M4 18C6 14 8 16 10 12C12 8 14 10 16 6C18 2 20 4 22 0V20H4Z" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="14" cy="8" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="18" cy="4" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  bandit_camp: `<svg viewBox="-2 -2 28 28"><path d="M12 4L6 18H18Z" fill="currentColor" stroke="none"/><rect x="4" y="18" width="16" height="2" rx="0.5" fill="currentColor" stroke="none"/><circle cx="8" cy="14" r="1.5" fill="var(--marker-color)" stroke="none"/><circle cx="16" cy="14" r="1.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  monster_lair: `<svg viewBox="-2 -2 28 28"><path d="M4 20L12 4L20 20Z" fill="currentColor" stroke="none"/><circle cx="12" cy="13" r="4" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="13" r="2" fill="currentColor" stroke="none"/><path d="M8 20L16 20" stroke-width="1.5" fill="none"/></svg>`,
+  cursed_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><path d="M6 6L18 18" stroke-width="2" fill="none"/><path d="M6 18L18 6" stroke-width="2" fill="none"/><circle cx="12" cy="12" r="2" fill="var(--marker-color)" stroke="none"/></svg>`,
+  magic_place: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="7" fill="currentColor" stroke="none"/><path d="M12 5L14 9L18 8L15 12L18 16L14 15L12 19L10 15L6 16L9 12L6 8L10 9Z" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+  portal: `<svg viewBox="-2 -2 28 28"><ellipse cx="12" cy="12" rx="8" ry="9" fill="currentColor" stroke="none"/><ellipse cx="14" cy="12.5" rx="5.5" ry="7.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  anomaly: `<svg viewBox="-2 -2 28 28"><path d="M12 2L14 8L20 6L16 12L22 16L14 14L12 20L10 14L2 16L8 12L4 6L10 8Z" fill="currentColor" stroke="none"/><circle cx="12" cy="11" r="2.5" fill="var(--marker-color)" stroke="none"/></svg>`,
+  artifact_site: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="12" r="8" fill="currentColor" stroke="none"/><path d="M8 12L12 16L16 12L14 8H10Z" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>`,
+  treasure: `<svg viewBox="-2 -2 28 28"><path d="M3 10L5 5H19L21 10Z" fill="currentColor" stroke="none"/><rect x="3" y="10" width="18" height="9" rx="1" fill="currentColor" stroke="none"/><rect x="3" y="13.5" width="18" height="1.6" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="12.5" width="3" height="3.5" rx="0.6" fill="var(--marker-color)" stroke="none"/></svg>`
 };
 
 function markerIconKey(mk){
@@ -2623,12 +2901,56 @@ function renderMarkerPanel(m, mk, isNew){
   if(!panel) return;
   const typeOptions = [['city','Город'],['poi','Точка интереса'],['other','Другое']]
     .map(([v,l])=>`<option value="${v}" ${mk.type===v?'selected':''}>${esc(l)}</option>`).join('');
-  const iconOptions = MARKER_ICONS.map(([v,l])=>`<option value="${v}" ${mk.icon===v?'selected':''}>${esc(l)}</option>`).join('');
+  // Local (non-persisted) UI state: which category tab is currently open in
+  // the icon picker. Starts on whichever category the marker's current icon
+  // belongs to, so editing an existing marker doesn't drop you on tab 1.
+  let activeIconCat = iconCategoryOf(mk.icon);
+
+  function iconPickerHtml(){
+    const tabs = MARKER_ICON_CATEGORIES.map(cat=>
+      `<button type="button" class="btn btn-sm mp-cat-tab ${cat.key===activeIconCat?'btn-primary':''}" data-cat="${cat.key}">${esc(cat.label)}</button>`
+    ).join('');
+    const cat = MARKER_ICON_CATEGORIES.find(c=>c.key===activeIconCat) || MARKER_ICON_CATEGORIES[0];
+    const grid = cat.icons.map(key=>{
+      const label = MARKER_ICON_LABELS[key] || key;
+      const selected = mk.icon===key ? ' selected' : '';
+      return `<button type="button" class="mp-icon-btn${selected}" data-icon="${key}" title="${esc(label)}">${markerIcon({icon:key}, 'card')}</button>`;
+    }).join('');
+    const currentLabel = MARKER_ICON_LABELS[mk.icon] || mk.icon;
+    return `
+      <div class="mp-cat-tabs">${tabs}</div>
+      <div class="mp-icon-grid">${grid}</div>
+      <div class="mp-current-icon-label">Выбрано: ${esc(currentLabel)}</div>
+    `;
+  }
+
+  function traitsPickerHtml(){
+    return MARKER_ICON_CATEGORIES.map(cat=>{
+      const checkboxes = cat.icons.map(key=>{
+        const label = MARKER_ICON_LABELS[key] || key;
+        const checked = (mk.traits||[]).includes(key) ? 'checked' : '';
+        return `<label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text); padding:4px 6px; border-radius:4px; cursor:pointer;">
+          <input type="checkbox" class="mp-trait-cb" value="${key}" ${checked} style="width:15px; height:15px; accent-color:var(--gold); cursor:pointer; flex-shrink:0;">
+          ${esc(label)}
+        </label>`;
+      }).join('');
+      const activeCount = cat.icons.filter(key=>(mk.traits||[]).includes(key)).length;
+      return `<details class="mp-trait-cat" ${activeCount ? 'open' : ''}>
+        <summary>${esc(cat.label)}${activeCount ? ` <span class="mp-trait-count">${activeCount}</span>` : ''}</summary>
+        <div class="mp-trait-cat-body">${checkboxes}</div>
+      </details>`;
+    }).join('');
+  }
+
   panel.innerHTML = `<div class="panel-inner">
     <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новая метка' : 'Метка на карте'}</h3>
     <div class="field"><label>Название</label><input type="text" id="mpName" value="${esc(mk.name)}" placeholder="Город, крепость, святыня…"></div>
     <div class="field"><label>Тип</label><select id="mpType">${typeOptions}</select></div>
-    <div class="field"><label>Значок</label><select id="mpIcon">${iconOptions}</select></div>
+    <div class="field"><label>Значок</label><div id="mpIconPicker">${iconPickerHtml()}</div></div>
+    <div class="field">
+      <label>Особенности (значки выскакивают при наведении)</label>
+      <div id="mpTraitsPicker" class="mp-traits-wrap">${traitsPickerHtml()}</div>
+    </div>
     <div class="field"><label>Описание</label><textarea id="mpDesc" rows="4">${esc(mk.desc||'')}</textarea></div>
     <div style="display:flex; gap:8px;">
       ${isNew ? `<button class="btn btn-sm" id="mpCancel">Отменить</button>` : `<button class="btn btn-sm btn-danger" id="mpDelete">Удалить</button>`}
@@ -2637,14 +2959,49 @@ function renderMarkerPanel(m, mk, isNew){
   </div>`;
   panel.classList.add('open');
   const upd = ()=>{ drawMapMarkers(m); attachMapMarkerDrag(m); };
+
+  function bindIconPicker(){
+    const wrap = document.getElementById('mpIconPicker');
+    wrap.querySelectorAll('.mp-cat-tab').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        activeIconCat = btn.dataset.cat;
+        wrap.innerHTML = iconPickerHtml();
+        bindIconPicker();
+      });
+    });
+    wrap.querySelectorAll('.mp-icon-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        mk.icon = btn.dataset.icon;
+        mk.iconTouched = true;
+        wrap.innerHTML = iconPickerHtml();
+        bindIconPicker();
+        upd();
+      });
+    });
+  }
+  bindIconPicker();
+
   document.getElementById('mpName').addEventListener('input', (e)=>{ mk.name = e.target.value; upd(); });
   document.getElementById('mpType').addEventListener('change', (e)=>{
     mk.type = e.target.value;
     if(!mk.iconTouched) mk.icon = mk.type==='city' ? 'city' : mk.type==='poi' ? 'landmark' : 'other';
-    document.getElementById('mpIcon').value = mk.icon;
+    activeIconCat = iconCategoryOf(mk.icon);
+    const wrap = document.getElementById('mpIconPicker');
+    wrap.innerHTML = iconPickerHtml();
+    bindIconPicker();
     upd();
   });
-  document.getElementById('mpIcon').addEventListener('change', (e)=>{ mk.icon = e.target.value; mk.iconTouched = true; upd(); });
+  function bindTraitCheckboxes(){
+    panel.querySelectorAll('.mp-trait-cb').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        if(!mk.traits) mk.traits = [];
+        if(cb.checked){ if(!mk.traits.includes(cb.value)) mk.traits.push(cb.value); }
+        else { mk.traits = mk.traits.filter(t=>t!==cb.value); }
+        upd();
+      });
+    });
+  }
+  bindTraitCheckboxes();
   document.getElementById('mpDesc').addEventListener('input', (e)=>{ mk.desc = e.target.value; });
   const finish = ()=>{
     if(!mk.name || !mk.name.trim()){
@@ -2680,8 +3037,19 @@ function markerHtml(mk){
   const icon = markerIcon(mk);
   const key = markerIconKey(mk);
   const color = MARKER_COLORS[key] || MARKER_COLORS.other;
+  const traits = (mk.traits||[]).filter(t=>t!==key);
+  const traitsHtml = traits.length ? `<div class="map-marker-traits">${traits.map(t=>{
+    const tColor = MARKER_COLORS[t] || MARKER_COLORS.other;
+    const tSvg = MARKER_SVG[t] || MARKER_SVG.other;
+    const tOpt = MARKER_ICONS.find(o=>o[0]===t);
+    const tLabel = tOpt ? tOpt[1] : t;
+    return `<span class="map-marker-trait" style="--marker-color:${tColor}" title="${esc(tLabel)}">${tSvg}</span>`;
+  }).join('')}</div>` : '';
   return `<div class="map-marker" data-id="${mk.id}" style="left:${mk.x}%; top:${mk.y}%; --marker-color:${color}" title="${esc(mk.name)}">
-    ${icon}
+    <div class="map-marker-main">
+      ${icon}
+      ${traitsHtml}
+    </div>
     <span class="map-marker-label">${esc(mk.name)}</span>
   </div>`;
 }
@@ -2689,13 +3057,24 @@ function drawMapMarkers(m){
   const layer = document.getElementById('mapMarkersLayer');
   if(!layer) return;
   const show = !m.layers || m.layers.markers !== false;
-  layer.innerHTML = !show ? '' : (m.markers||[]).map(markerHtml).join('');
+  const editingId = (state.mapPanel && state.mapPanel.type==='marker' && state.mapPanel.mapId===m.id) ? state.mapPanel.id : null;
+  layer.innerHTML = !show ? '' : (m.markers||[]).map(mk=>{
+    const html = markerHtml(mk);
+    return mk.id===editingId ? html.replace('class="map-marker"', 'class="map-marker force-full"') : html;
+  }).join('');
 }
 function markerCard(mk){
   const typeLabel = mk.type==='city' ? 'Город' : mk.type==='poi' ? 'Точка интереса' : 'Другое';
+  const key = markerIconKey(mk);
+  const traits = (mk.traits||[]).filter(t=>t!==key);
+  const traitsHtml = traits.length ? `<div class="d-tags">${traits.map(t=>{
+    const tOpt = MARKER_ICONS.find(o=>o[0]===t);
+    return `<span class="d-tag">${esc(tOpt ? tOpt[1] : t)}</span>`;
+  }).join('')}</div>` : '';
   return `<div class="dossier">
     <h3 style="font-size:15px; display:flex; align-items:center; gap:9px;">${markerIcon(mk,'card')} <span>${esc(mk.name)}</span></h3>
     <div class="d-role">${esc(typeLabel)}</div>
+    ${traitsHtml}
     ${mk.desc ? `<div class="d-desc">${esc(mk.desc)}</div>` : ''}
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditMarkerModal('${state.activeMapId}','${mk.id}')">Изменить</button>
