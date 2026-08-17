@@ -409,12 +409,18 @@
     transform:scale(1.18); box-shadow:0 4px 10px rgba(0,0,0,.7), 0 0 0 1.5px rgba(255,255,255,.14);
   }
   .map-marker-icon svg{width:9px; height:9px; display:block; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;}
-  .map-marker-traits{
+  .map-marker-traits-r{
     position:absolute; left:100%; top:50%; transform:translateY(-50%) translateX(-6px);
     display:flex; gap:4px; margin-left:6px; opacity:0; pointer-events:none;
     transition:opacity .15s ease, transform .15s ease;
   }
-  .map-marker:hover .map-marker-traits{ opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
+  .map-marker:hover .map-marker-traits-r{ opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
+  .map-marker-traits-l{
+    position:absolute; right:100%; top:50%; transform:translateY(-50%) translateX(6px);
+    display:flex; gap:4px; margin-right:6px; opacity:0; pointer-events:none;
+    transition:opacity .15s ease, transform .15s ease;
+  }
+  .map-marker:hover .map-marker-traits-l{ opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto; }
   .map-marker-trait{
     width:14px; height:14px; border-radius:50%; display:flex; align-items:center; justify-content:center;
     color:#14151b; background:var(--marker-color,var(--gold)); border:1.5px solid rgba(20,21,27,.82);
@@ -656,7 +662,7 @@
 
 <script>
 /* ---------------- DATA LAYER ---------------- */
-const STORAGE_KEY = 'story-bible-data';
+const STORAGE_KEY = 'masterskaya-mirov-data';
 let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [], creatures: [], myths: [], magicSystems: [], deities: [], maps: [], countries: [], dynasties: [], dynastyMembers: [], dynastyMemberLinks: [], artifacts: [] };
 let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null };
 let canvasView = { pan:{x:120,y:80}, scale:1 };
@@ -690,7 +696,12 @@ function resizeImageFile(file, maxW, maxH, quality){
 
 async function loadData(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw){
+      // тихая миграция со старого имени приложения — Библия миров -> Мастерская миров
+      const legacy = localStorage.getItem('story-bible-data');
+      if(legacy){ raw = legacy; localStorage.setItem(STORAGE_KEY, legacy); }
+    }
     if(raw){
       const parsed = JSON.parse(raw);
       data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
@@ -2858,7 +2869,7 @@ const MARKER_SVG = {
   island: `<svg viewBox="-2 -2 28 28"><path d="M12 21C11.4 17 11.4 14 12 12" fill="none" stroke-width="2"/><path d="M12 12C7 9.5 3 5.5 1 0.5C7 2.5 11 7 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C17 9.5 21 5.5 23 0.5C17 2.5 13 7 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C9 8 7.5 4 8.5 0C11 3 12 7.5 12 12Z" fill="currentColor" stroke="none"/><path d="M12 12C15 8 16.5 4 15.5 0C13 3 12 7.5 12 12Z" fill="currentColor" stroke="none"/><path d="M1 21.5Q6 18 11 21.5T21 21.5" fill="none" stroke-width="1.8"/></svg>`,
   signpost: `<svg viewBox="-2 -2 28 28"><path d="M2 7H19L23 12 19 17H2Z" fill="currentColor" stroke="none"/><circle cx="8" cy="12" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
   library: `<svg viewBox="-2 -2 28 28"><path d="M12 5C9 3.3 5.5 2.8 2 3.7V17C5.5 16.1 9 16.6 12 18.3C15 16.6 18.5 16.1 22 17V3.7C18.5 2.8 15 3.3 12 5Z" fill="currentColor" stroke="none"/><rect x="11.2" y="5" width="1.6" height="13.3" fill="var(--marker-color)" stroke="none"/></svg>`,
-  port: `<svg viewBox="-2 -2 28 28"><circle cx="12" cy="4" r="2.2" fill="none" stroke-width="2"/><rect x="11" y="6.5" width="2" height="12" fill="currentColor" stroke="none"/><rect x="7" y="10" width="10" height="2" fill="currentColor" stroke="none"/><path d="M4 12C4 17 8 20 11.3 20.5L10 18C7.5 17 5.7 14.8 5.7 12Z" fill="currentColor" stroke="none"/><path d="M20 12C20 17 16 20 12.7 20.5L14 18C16.5 17 18.3 14.8 18.3 12Z" fill="currentColor" stroke="none"/></svg>`,
+  port: `<svg viewBox="0 0 24 24"><circle cx="12" cy="5" r="2.6"/><path d="M12 7.6V20"/><path d="M8.5 9.5H15.5"/><path d="M4 13a8 8 0 0 0 16 0"/><path d="M4 13V10.5"/><path d="M20 13V10.5"/></svg>`,
   camp: `<svg viewBox="-2 -2 28 28"><path d="M12 5 21 20H3Z" fill="currentColor" stroke="none"/><path d="M9.7 20 12 13.3 14.3 20Z" fill="var(--marker-color)" stroke="none"/><path d="M3 20 1 21.6" fill="none" stroke-width="1.7"/><path d="M21 20 23 21.6" fill="none" stroke-width="1.7"/></svg>`,
   ship: `<svg viewBox="-2 -2 28 28"><path d="M3 15L21 15L18 20L6 20Z" fill="currentColor" stroke="none"/><rect x="11" y="4" width="2" height="12" fill="currentColor" stroke="none"/><path d="M13 5L13 14L20 12Z" fill="currentColor" stroke="none"/><circle cx="9" cy="17" r="1.6" fill="var(--marker-color)" stroke="none"/></svg>`,
   ruins: `<svg viewBox="-2 -2 28 28"><path d="M7.2 9 8.2 6.5 8.8 8 9.6 6.8 11.2 9V20H7.2Z" fill="currentColor" stroke="none"/><path d="M13.7 13 14.5 11 15.2 12.3 16 10.8 17.2 13V20H13.7Z" fill="currentColor" stroke="none"/><rect x="6.5" y="20" width="11" height="1.3" rx="0.2" fill="currentColor" stroke="none"/></svg>`,
@@ -2891,7 +2902,7 @@ const MARKER_SVG = {
   fortress: `<svg viewBox="-2 -2 28 28"><rect x="3" y="8" width="6" height="13" fill="currentColor" stroke="none"/><rect x="15" y="8" width="6" height="13" fill="currentColor" stroke="none"/><rect x="6" y="11" width="12" height="10" fill="currentColor" stroke="none"/><rect x="3" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="6.4" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="15" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="18.4" y="5" width="2.4" height="3" fill="currentColor" stroke="none"/><rect x="6" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="16.5" y="15" width="1.5" height="2" fill="var(--marker-color)" stroke="none"/><path d="M12 21V17A1.5 1.5 0 0 1 13.5 15.5A1.5 1.5 0 0 1 15 17V21" fill="var(--marker-color)" stroke="none"/></svg>`,
   barracks: `<svg viewBox="-2 -2 28 28"><rect x="2" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="9" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="16" y="10" width="5" height="11" fill="currentColor" stroke="none"/><rect x="2" y="6" width="19" height="3" rx="0.5" fill="currentColor" stroke="none"/><rect x="4" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/><rect x="11" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/><rect x="18" y="13" width="1.5" height="1.8" fill="var(--marker-color)" stroke="none"/></svg>`,
   prison: `<svg viewBox="-2 -2 28 28"><rect x="4" y="6" width="16" height="15" rx="1" fill="currentColor" stroke="none"/><rect x="4" y="6" width="16" height="1.5" fill="var(--marker-color)" stroke="none"/><rect x="6" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="9" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="6" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="10" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><rect x="14" y="14" width="2.5" height="2" fill="var(--marker-color)" stroke="none"/><circle cx="9" cy="5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15" cy="5" r="1.2" fill="currentColor" stroke="none"/></svg>`,
-  lighthouse: `<svg viewBox="-2 -2 28 28"><path d="M10 22L12 4L14 22Z" fill="currentColor" stroke="none"/><circle cx="12" cy="4.5" r="2.2" fill="currentColor" stroke="none"/><circle cx="12" cy="4.5" r="1" fill="var(--marker-color)" stroke="none"/><path d="M4 22L20 22" stroke-width="1.5" fill="none"/><path d="M6 20L18 20" stroke-width="1.5" fill="none"/><path d="M8 18L16 18" stroke-width="1.5" fill="none"/><path d="M12 10L5 16" stroke-width="1" fill="none" opacity="0.4"/><path d="M12 10L19 16" stroke-width="1" fill="none" opacity="0.4"/></svg>`,
+  lighthouse: `<svg viewBox="0 0 24 24"><path d="M9 21L10 7L14 7L15 21Z"/><path d="M10 7L10 4.5L14 4.5L14 7"/><path d="M9.3 4.5L12 2.3L14.7 4.5"/><path d="M9.6 13L14.4 13"/><path d="M9.3 17L14.7 17"/><path d="M11 21L11 18L13 18L13 21"/><path d="M4 21L20 21"/><path d="M7.5 3.5L5 1.5"/><path d="M12 2L12 0.3"/><path d="M16.5 3.5L19 1.5"/></svg>`,
   shipyard: `<svg viewBox="-2 -2 28 28"><path d="M3 18L21 18L19 15L5 15L3 18Z" fill="currentColor" stroke="none"/><rect x="7" y="8" width="10" height="7" fill="currentColor" stroke="none"/><path d="M7 8L12 4L17 8Z" fill="var(--marker-color)" stroke="none"/><rect x="5" y="15" width="14" height="1.5" fill="currentColor" stroke="none"/><path d="M12 14L12 18" stroke-width="1.2" fill="none"/><rect x="2" y="21" width="20" height="1.5" fill="currentColor" stroke="none"/></svg>`,
   warehouse: `<svg viewBox="-2 -2 28 28"><rect x="2" y="8" width="20" height="13" rx="0.8" fill="currentColor" stroke="none"/><path d="M2 8L12 2L22 8Z" fill="currentColor" stroke="none"/><rect x="6" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="15" y="12" width="2.5" height="3" fill="var(--marker-color)" stroke="none"/><rect x="12" y="17" width="1.5" height="3" fill="var(--marker-color)" stroke="none"/></svg>`,
   market: `<svg viewBox="-2 -2 28 28"><path d="M2 14L5 10H19L22 14Z" fill="currentColor" stroke="none"/><rect x="2" y="14" width="20" height="7" rx="0.8" fill="currentColor" stroke="none"/><rect x="6" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="10.5" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><rect x="15" y="16" width="2.5" height="2.5" fill="var(--marker-color)" stroke="none"/><circle cx="12" cy="12" r="1" fill="var(--marker-color)" stroke="none"/></svg>`,
@@ -3222,17 +3233,20 @@ function markerHtml(mk){
   const key = markerIconKey(mk);
   const color = MARKER_COLORS[key] || MARKER_COLORS.other;
   const traits = (mk.traits||[]).filter(t=>t!==key).slice(0,2);
-  const traitsHtml = traits.length ? `<div class="map-marker-traits">${traits.map(t=>{
+  const traitBadge = (t)=>{
     const tColor = MARKER_COLORS[t] || MARKER_COLORS.other;
     const tSvg = MARKER_SVG[t] || MARKER_SVG.other;
     const tOpt = MARKER_ICONS.find(o=>o[0]===t);
     const tLabel = tOpt ? tOpt[1] : t;
     return `<span class="map-marker-trait" style="--marker-color:${tColor}" title="${esc(tLabel)}">${tSvg}</span>`;
-  }).join('')}</div>` : '';
+  };
+  const traitsRightHtml = traits[0] ? `<div class="map-marker-traits-r">${traitBadge(traits[0])}</div>` : '';
+  const traitsLeftHtml = traits[1] ? `<div class="map-marker-traits-l">${traitBadge(traits[1])}</div>` : '';
   return `<div class="map-marker" data-id="${mk.id}" style="left:${mk.x}%; top:${mk.y}%; --marker-color:${color}" title="${esc(mk.name)}">
     <div class="map-marker-main">
       ${icon}
-      ${traitsHtml}
+      ${traitsLeftHtml}
+      ${traitsRightHtml}
     </div>
     <span class="map-marker-label">${esc(mk.name)}</span>
   </div>`;
@@ -4350,7 +4364,7 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   const date = new Date().toISOString().slice(0,10);
-  a.href = url; a.download = `story-bible-backup-${date}.json`;
+  a.href = url; a.download = `masterskaya-mirov-backup-${date}.json`;
   document.body.appendChild(a); a.click(); a.remove();
   URL.revokeObjectURL(url);
   markBackupDone();
