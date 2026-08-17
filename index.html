@@ -374,18 +374,23 @@
   .mp-icon-btn:hover{ background:rgba(255,255,255,.06); }
   .mp-icon-btn.selected{ border-color:var(--gold); background:rgba(201,162,76,.14); }
   .mp-current-icon-label{ font-size:11.5px; color:var(--text-faint); margin-top:6px; text-align:center; }
-  .mp-traits-wrap{ display:flex; flex-direction:column; gap:4px; max-height:220px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--radius); padding:4px; background:var(--bg-alt); }
-  .mp-trait-cat{ border-bottom:1px solid var(--border-soft); }
-  .mp-trait-cat:last-child{ border-bottom:none; }
-  .mp-trait-cat summary{
-    cursor:pointer; padding:6px 6px; font-size:12px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.03em;
-    list-style:none; display:flex; align-items:center; gap:6px;
+  .mp-trait-slots{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .mp-trait-slot{
+    position:relative; width:40px; height:40px; border-radius:8px; border:2px solid var(--gold);
+    background:rgba(201,162,76,.14); display:flex; align-items:center; justify-content:center;
   }
-  .mp-trait-cat summary::-webkit-details-marker{ display:none; }
-  .mp-trait-cat summary::before{ content:'▸'; font-size:10px; transition:transform .12s; }
-  .mp-trait-cat[open] summary::before{ transform:rotate(90deg); }
-  .mp-trait-count{ background:var(--gold); color:#14151b; border-radius:8px; padding:0 6px; font-size:10.5px; font-weight:600; }
-  .mp-trait-cat-body{ display:flex; flex-direction:column; gap:1px; padding:0 2px 6px; }
+  .mp-trait-remove{
+    position:absolute; top:-6px; right:-6px; width:16px; height:16px; border-radius:50%;
+    background:var(--thread); color:#fff; border:1.5px solid var(--bg-alt); font-size:11px; line-height:1;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;
+  }
+  .mp-trait-add-btn{
+    height:40px; padding:0 14px; border-radius:8px; border:1.5px dashed var(--border); background:none; color:var(--text-dim);
+    cursor:pointer; font-size:12.5px; display:flex; align-items:center; gap:6px; transition:border-color .12s, color .12s;
+  }
+  .mp-trait-add-btn:hover{ border-color:var(--gold); color:var(--gold); }
+  .mp-trait-picker-popover{ margin-top:10px; }
+  .mp-trait-hint{ font-size:11px; color:var(--text-faint); margin-top:6px; }
   .map-marker{
     position:absolute; transform:translate(-50%,-100%); display:flex; flex-direction:column;
     align-items:center; cursor:grab; user-select:none; z-index:5; pointer-events:none;
@@ -441,15 +446,18 @@
   .map-label-svgwrap:hover{ background:rgba(201,162,76,0.10); outline-color:rgba(201,162,76,.55); }
   .map-label-svgwrap:active{ cursor:grabbing; }
   .map-label-svgwrap svg{ display:block; pointer-events:none; }
+  .map-label.label-type-muted{ opacity:.4; }
+  .map-label.label-type-muted .map-label-svgwrap{ cursor:default; pointer-events:none !important; }
+  .map-label.label-type-muted .map-label-rotate-handle{ pointer-events:none !important; opacity:0 !important; }
   .map-label-rotate-handle{
-    position:absolute; left:50%; top:-28px; width:12px; height:12px; margin:-6px 0 0 -6px;
+    position:absolute; left:50%; top:-8px; width:12px; height:12px; margin:-6px 0 0 -6px;
     border-radius:50%; background:var(--gold); border:2px solid rgba(20,21,27,.85);
     box-shadow:0 2px 6px rgba(0,0,0,.5); cursor:alias; opacity:0; transition:opacity .15s, transform .1s;
     pointer-events:none; z-index:2;
   }
   #mapEditorRoot.mode-label .map-label-rotate-handle{ pointer-events:auto; }
   .map-label-rotate-handle::before{
-    content:''; position:absolute; left:50%; top:100%; width:1px; height:22px; background:rgba(201,162,76,.55); transform:translateX(-50%);
+    content:''; position:absolute; left:50%; top:100%; width:1px; height:4px; background:rgba(201,162,76,.55); transform:translateX(-50%);
   }
   .map-label-group:hover .map-label-rotate-handle, .map-label-rotate-handle.active{ opacity:1; }
   .map-label-rotate-handle:hover{ transform:scale(1.3); }
@@ -463,6 +471,66 @@
   .layer-toggle{ transition:opacity .15s, background .15s, border-color .15s, filter .15s; }
   .layer-toggle.off{ opacity:.42; background:none; filter:grayscale(1); }
   .layer-toggle.off:hover{ opacity:.7; }
+
+  /* Map editor toolbar v2 — segmented mode switch, icon view controls, layers popover */
+  .map-mode-seg{ display:inline-flex; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; }
+  .map-mode-seg button{
+    border:none; background:transparent; padding:6px 13px; font-size:13px; cursor:pointer;
+    color:var(--text-faint); border-right:1px solid var(--border-soft); white-space:nowrap;
+    transition:background .12s, color .12s;
+  }
+  .map-mode-seg button:last-child{ border-right:none; }
+  .map-mode-seg button:hover{ background:rgba(255,255,255,.04); color:var(--text); }
+  .map-mode-seg button.active{ background:var(--gold); color:#14151b; }
+  .map-mode-seg button.active:hover{ background:var(--gold); }
+
+  .map-icon-btn{
+    width:30px; height:30px; display:inline-flex; align-items:center; justify-content:center;
+    border:1px solid var(--border-soft); border-radius:var(--radius); background:transparent;
+    cursor:pointer; color:var(--text-faint); font-size:14px; transition:background .12s, color .12s;
+  }
+  .map-icon-btn:hover{ background:rgba(255,255,255,.04); color:var(--text); }
+
+  .map-layers-btn-wrap{ position:relative; }
+  .map-layers-btn{
+    display:inline-flex; align-items:center; gap:5px; height:30px; padding:0 10px;
+    border:1px solid var(--border-soft); border-radius:var(--radius); background:transparent;
+    cursor:pointer; color:var(--text-faint); font-size:13px; transition:background .12s, color .12s;
+  }
+  .map-layers-btn:hover, .map-layers-btn.open{ background:rgba(255,255,255,.04); color:var(--text); }
+  .map-layers-panel-overlay{ position:fixed; inset:0; z-index:59; background:transparent; }
+  .map-layers-panel{
+    position:absolute; top:calc(100% + 6px); right:0; width:230px; z-index:60;
+    background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:var(--radius);
+    box-shadow:0 10px 28px rgba(0,0,0,.45); padding:8px; text-align:left;
+  }
+  .layer-row{
+    display:flex; align-items:center; justify-content:space-between; padding:5px 6px;
+    font-size:12.5px; cursor:pointer; border-radius:6px; color:var(--text); transition:background .12s;
+  }
+  .layer-row:hover{ background:rgba(255,255,255,.05); }
+  .layer-row.off{ color:var(--text-faint); }
+  .map-mode-seg button svg{ vertical-align:-3px; margin-right:4px; }
+  .map-layers-btn svg{ vertical-align:-3px; }
+  .map-icon-btn svg{ vertical-align:-1px; }
+  .layer-row svg{ opacity:.85; }
+  .layer-sub-list{ margin-left:16px; padding-left:8px; border-left:1px solid var(--border-soft); margin-bottom:2px; }
+  .layer-panel-divider{ height:1px; background:var(--border-soft); margin:6px 2px; }
+  .layer-panel-actions{ display:flex; gap:6px; padding:4px 6px 2px; }
+  .layer-panel-actions button{
+    flex:1; font-size:11.5px; padding:4px 0; border:1px solid var(--border-soft); border-radius:6px;
+    background:transparent; color:var(--text-faint); cursor:pointer;
+  }
+  .layer-panel-actions button:hover{ background:rgba(255,255,255,.05); color:var(--text); }
+
+  .map-list-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--border-soft); margin:22px 0 16px; }
+  .map-list-tab{
+    padding:9px 16px; font-size:13px; cursor:pointer; color:var(--text-faint);
+    border-bottom:2px solid transparent; margin-bottom:-1px; transition:color .12s, border-color .12s;
+  }
+  .map-list-tab:hover{ color:var(--text); }
+  .map-list-tab.active{ color:var(--text); border-bottom-color:var(--gold); }
+  .map-list-tab .count{ color:var(--text-faint); font-size:11.5px; margin-left:3px; }
   #storyCanvasViewport{
     position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
     background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
@@ -2378,6 +2446,8 @@ function deleteMap(id){
 function openMapEditor(id){
   state.activeMapId = id;
   if(!state.mapMode) state.mapMode = 'marker';
+  if(!state.mapListTab) state.mapListTab = state.mapMode;
+  state.mapLayersPanelOpen = false;
   state.mapDrawingPath = null;
   mapCanvasView = { pan:{x:0,y:0}, scale:1 };
   exitMapFullscreen();
@@ -2426,22 +2496,63 @@ function refreshMapEditor(){
 }
 function setMapMode(mode){
   state.mapMode = mode;
+  state.mapListTab = mode;
   if(mode!=='path') state.mapDrawingPath = null;
   // Editing a layer implies wanting to see it — auto-reveal it if it was hidden.
   const m = data.maps.find(x=>x.id===state.activeMapId);
   if(m){
-    if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+    ensureMapLayers(m);
     if(mode==='marker' && !m.layers.markers){ m.layers.markers = true; queueSave(); }
     if(mode==='label' && !m.layers.labels){ m.layers.labels = true; queueSave(); }
     if(mode==='path' && !m.layers.paths){ m.layers.paths = true; queueSave(); }
   }
   refreshMapEditor();
 }
+function setMapListTab(tab){
+  state.mapListTab = tab;
+  refreshMapEditor();
+}
+function toggleMapLayersPanel(e){
+  if(e) e.stopPropagation();
+  state.mapLayersPanelOpen = !state.mapLayersPanelOpen;
+  refreshMapEditor();
+}
+function closeMapLayersPanel(){
+  if(state.mapLayersPanelOpen){
+    state.mapLayersPanelOpen = false;
+    refreshMapEditor();
+  }
+}
+function ensureMapLayers(m){
+  if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+  if(!m.layers.labelTypes){
+    m.layers.labelTypes = {};
+    MAP_LABEL_TYPE_ORDER.forEach(t=>{ m.layers.labelTypes[t] = true; });
+  } else {
+    MAP_LABEL_TYPE_ORDER.forEach(t=>{ if(m.layers.labelTypes[t]===undefined) m.layers.labelTypes[t] = true; });
+  }
+}
 function toggleMapLayer(key){
   const m = data.maps.find(x=>x.id===state.activeMapId);
   if(!m) return;
-  if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
+  ensureMapLayers(m);
   m.layers[key] = !m.layers[key];
+  queueSave();
+  refreshMapEditor();
+}
+function toggleMapLabelType(type){
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  ensureMapLayers(m);
+  m.layers.labelTypes[type] = !m.layers.labelTypes[type];
+  queueSave();
+  refreshMapEditor();
+}
+function setAllMapLabelTypes(on){
+  const m = data.maps.find(x=>x.id===state.activeMapId);
+  if(!m) return;
+  ensureMapLayers(m);
+  MAP_LABEL_TYPE_ORDER.forEach(t=>{ m.layers.labelTypes[t] = on; });
   queueSave();
   refreshMapEditor();
 }
@@ -2536,6 +2647,27 @@ function deleteMapPath(mapId, pathId){
   if(!m) return;
   m.paths = (m.paths||[]).filter(p=>p.id!==pathId);
   queueSave(); refreshMapEditor();
+}
+
+// Small inline line-icon set for the map editor toolbar (same shapes as Tabler Icons,
+// vendored as inline SVG so nothing depends on an external icon-font CDN — works
+// offline, on GitHub Pages, or anywhere else this file is opened).
+const MAP_UI_ICONS = {
+  'map-pin': '<path d="M12 21c-4-4.5-6-7.5-6-11a6 6 0 0 1 12 0c0 3.5-2 6.5-6 11z"/><circle cx="12" cy="10" r="2.3"/>',
+  'typography': '<path d="M4 20l3 0"/><path d="M14 20l7 0"/><path d="M6.9 15l6.9 0"/><path d="M10.2 6.3l5.8 13.7"/><path d="M5 20l6 -16l2 0l7 16"/>',
+  'route': '<path d="M3 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M19 7a2 2 0 1 0 0 -4a2 2 0 0 0 0 4"/><path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5"/>',
+  'minus': '<path d="M5 12l14 0"/>',
+  'plus': '<path d="M12 5l0 14"/><path d="M5 12l14 0"/>',
+  'refresh': '<path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4"/>',
+  'maximize': '<polyline points="16 4 20 4 20 8"/><line x1="14" y1="10" x2="20" y2="4"/><polyline points="8 20 4 20 4 16"/><line x1="4" y1="20" x2="10" y2="14"/><polyline points="16 20 20 20 20 16"/><line x1="14" y1="14" x2="20" y2="20"/><polyline points="8 4 4 4 4 8"/><line x1="4" y1="4" x2="10" y2="10"/>',
+  'x': '<path d="M18 6l-12 12"/><path d="M6 6l12 12"/>',
+  'stack-2': '<polyline points="12 4 4 8 12 12 20 8 12 4"/><polyline points="4 12 12 16 20 12"/><polyline points="4 16 12 20 20 16"/>',
+  'chevron-down': '<path d="M6 9l6 6l6 -6"/>',
+  'eye': '<path d="M10 12a2 2 0 1 0 4 0a2 2 0 0 0 -4 0"/><path d="M21 12c-2.4 4 -5.4 6 -9 6c-3.6 0 -6.6 -2 -9 -6c2.4 -4 5.4 -6 9 -6c3.6 0 6.6 2 9 6"/>',
+};
+function uiIcon(name, size){
+  size = size || 16;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:inline-block; vertical-align:-3px;">${MAP_UI_ICONS[name]||''}</svg>`;
 }
 
 const MARKER_ICONS = [
@@ -2924,32 +3056,52 @@ function renderMarkerPanel(m, mk, isNew){
     `;
   }
 
+  // Local (non-persisted) UI state for the "add a side icon" popover.
+  let traitPickerOpen = false;
+  let traitPickerCat = null;
+
   function traitsPickerHtml(){
-    return MARKER_ICON_CATEGORIES.map(cat=>{
-      const checkboxes = cat.icons.map(key=>{
-        const label = MARKER_ICON_LABELS[key] || key;
-        const checked = (mk.traits||[]).includes(key) ? 'checked' : '';
-        return `<label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text); padding:4px 6px; border-radius:4px; cursor:pointer;">
-          <input type="checkbox" class="mp-trait-cb" value="${key}" ${checked} style="width:15px; height:15px; accent-color:var(--gold); cursor:pointer; flex-shrink:0;">
-          ${esc(label)}
-        </label>`;
-      }).join('');
-      const activeCount = cat.icons.filter(key=>(mk.traits||[]).includes(key)).length;
-      return `<details class="mp-trait-cat" ${activeCount ? 'open' : ''}>
-        <summary>${esc(cat.label)}${activeCount ? ` <span class="mp-trait-count">${activeCount}</span>` : ''}</summary>
-        <div class="mp-trait-cat-body">${checkboxes}</div>
-      </details>`;
+    const traits = (mk.traits||[]).slice(0,2);
+    const slotsHtml = traits.map((key,i)=>{
+      const label = MARKER_ICON_LABELS[key] || key;
+      return `<div class="mp-trait-slot" title="${esc(label)}">
+        ${markerIcon({icon:key}, 'card')}
+        <button type="button" class="mp-trait-remove" data-idx="${i}" title="Убрать">×</button>
+      </div>`;
     }).join('');
+    const canAddMore = traits.length < 2;
+    const addBtn = canAddMore ? `<button type="button" class="mp-trait-add-btn" id="mpTraitAddBtn">+ Добавить</button>` : '';
+    const popover = (traitPickerOpen && canAddMore) ? traitIconPickerHtml() : '';
+    return `<div class="mp-trait-slots">${slotsHtml}${addBtn}</div>
+      <div class="mp-trait-hint">Один основной значок сверху + до двух боковых здесь</div>
+      ${popover}`;
+  }
+
+  function traitIconPickerHtml(){
+    if(!traitPickerCat) traitPickerCat = MARKER_ICON_CATEGORIES[0].key;
+    const tabs = MARKER_ICON_CATEGORIES.map(cat=>
+      `<button type="button" class="btn btn-sm mp-cat-tab ${cat.key===traitPickerCat?'btn-primary':''}" data-trait-cat="${cat.key}">${esc(cat.label)}</button>`
+    ).join('');
+    const cat = MARKER_ICON_CATEGORIES.find(c=>c.key===traitPickerCat) || MARKER_ICON_CATEGORIES[0];
+    const taken = new Set([mk.icon, ...(mk.traits||[])]);
+    const grid = cat.icons.filter(key=>!taken.has(key)).map(key=>{
+      const label = MARKER_ICON_LABELS[key] || key;
+      return `<button type="button" class="mp-icon-btn" data-trait-icon="${key}" title="${esc(label)}">${markerIcon({icon:key}, 'card')}</button>`;
+    }).join('');
+    return `<div class="mp-trait-picker-popover">
+      <div class="mp-cat-tabs">${tabs}</div>
+      <div class="mp-icon-grid">${grid || '<div class="empty-tab" style="padding:12px;">Все значки категории уже выбраны</div>'}</div>
+    </div>`;
   }
 
   panel.innerHTML = `<div class="panel-inner">
     <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новая метка' : 'Метка на карте'}</h3>
     <div class="field"><label>Название</label><input type="text" id="mpName" value="${esc(mk.name)}" placeholder="Город, крепость, святыня…"></div>
     <div class="field"><label>Тип</label><select id="mpType">${typeOptions}</select></div>
-    <div class="field"><label>Значок</label><div id="mpIconPicker">${iconPickerHtml()}</div></div>
+    <div class="field"><label>Основной значок</label><div id="mpIconPicker">${iconPickerHtml()}</div></div>
     <div class="field">
-      <label>Особенности (значки выскакивают при наведении)</label>
-      <div id="mpTraitsPicker" class="mp-traits-wrap">${traitsPickerHtml()}</div>
+      <label>Боковые значки (максимум 2)</label>
+      <div id="mpTraitsPicker">${traitsPickerHtml()}</div>
     </div>
     <div class="field"><label>Описание</label><textarea id="mpDesc" rows="4">${esc(mk.desc||'')}</textarea></div>
     <div style="display:flex; gap:8px;">
@@ -2973,8 +3125,12 @@ function renderMarkerPanel(m, mk, isNew){
       btn.addEventListener('click', ()=>{
         mk.icon = btn.dataset.icon;
         mk.iconTouched = true;
+        mk.traits = (mk.traits||[]).filter(t=>t!==mk.icon);
         wrap.innerHTML = iconPickerHtml();
         bindIconPicker();
+        const traitsWrap = document.getElementById('mpTraitsPicker');
+        traitsWrap.innerHTML = traitsPickerHtml();
+        bindTraitsPicker();
         upd();
       });
     });
@@ -2991,17 +3147,45 @@ function renderMarkerPanel(m, mk, isNew){
     bindIconPicker();
     upd();
   });
-  function bindTraitCheckboxes(){
-    panel.querySelectorAll('.mp-trait-cb').forEach(cb=>{
-      cb.addEventListener('change', ()=>{
+  function bindTraitsPicker(){
+    const wrap = document.getElementById('mpTraitsPicker');
+    wrap.querySelectorAll('.mp-trait-remove').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const idx = Number(btn.dataset.idx);
+        mk.traits.splice(idx,1);
+        wrap.innerHTML = traitsPickerHtml();
+        bindTraitsPicker();
+        upd();
+      });
+    });
+    const addBtn = document.getElementById('mpTraitAddBtn');
+    if(addBtn){
+      addBtn.addEventListener('click', ()=>{
+        traitPickerOpen = !traitPickerOpen;
+        wrap.innerHTML = traitsPickerHtml();
+        bindTraitsPicker();
+      });
+    }
+    wrap.querySelectorAll('[data-trait-cat]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        traitPickerCat = btn.dataset.traitCat;
+        wrap.innerHTML = traitsPickerHtml();
+        bindTraitsPicker();
+      });
+    });
+    wrap.querySelectorAll('[data-trait-icon]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
         if(!mk.traits) mk.traits = [];
-        if(cb.checked){ if(!mk.traits.includes(cb.value)) mk.traits.push(cb.value); }
-        else { mk.traits = mk.traits.filter(t=>t!==cb.value); }
+        const key = btn.dataset.traitIcon;
+        if(mk.traits.length < 2 && !mk.traits.includes(key) && key!==mk.icon) mk.traits.push(key);
+        traitPickerOpen = false;
+        wrap.innerHTML = traitsPickerHtml();
+        bindTraitsPicker();
         upd();
       });
     });
   }
-  bindTraitCheckboxes();
+  bindTraitsPicker();
   document.getElementById('mpDesc').addEventListener('input', (e)=>{ mk.desc = e.target.value; });
   const finish = ()=>{
     if(!mk.name || !mk.name.trim()){
@@ -3037,7 +3221,7 @@ function markerHtml(mk){
   const icon = markerIcon(mk);
   const key = markerIconKey(mk);
   const color = MARKER_COLORS[key] || MARKER_COLORS.other;
-  const traits = (mk.traits||[]).filter(t=>t!==key);
+  const traits = (mk.traits||[]).filter(t=>t!==key).slice(0,2);
   const traitsHtml = traits.length ? `<div class="map-marker-traits">${traits.map(t=>{
     const tColor = MARKER_COLORS[t] || MARKER_COLORS.other;
     const tSvg = MARKER_SVG[t] || MARKER_SVG.other;
@@ -3066,7 +3250,7 @@ function drawMapMarkers(m){
 function markerCard(mk){
   const typeLabel = mk.type==='city' ? 'Город' : mk.type==='poi' ? 'Точка интереса' : 'Другое';
   const key = markerIconKey(mk);
-  const traits = (mk.traits||[]).filter(t=>t!==key);
+  const traits = (mk.traits||[]).filter(t=>t!==key).slice(0,2);
   const traitsHtml = traits.length ? `<div class="d-tags">${traits.map(t=>{
     const tOpt = MARKER_ICONS.find(o=>o[0]===t);
     return `<span class="d-tag">${esc(tOpt ? tOpt[1] : t)}</span>`;
@@ -3098,8 +3282,7 @@ function renderMapEditor(el, m){
   if(!m.markers) m.markers = [];
   if(!m.paths) m.paths = [];
   if(!m.labels) m.labels = [];
-  if(!m.layers) m.layers = { markers:true, labels:true, paths:true };
-  else m.layers = Object.assign({ markers:true, labels:true, paths:true }, m.layers);
+  ensureMapLayers(m);
   const pathToolbar = state.mapMode==='path'
     ? (state.mapDrawingPath
         ? `<button class="btn btn-sm btn-primary" onclick="finishMapPath()">Завершить путь (${state.mapDrawingPath.points.length})</button><button class="btn btn-sm" onclick="cancelMapPath()">Отменить</button>`
@@ -3117,12 +3300,23 @@ function renderMapEditor(el, m){
     : (state.mapDrawingPath ? 'Кликайте по карте — точки пути · «Завершить путь» в конце' : '«Начать новый путь» → кликайте по карте · клик по пути — изменить');
   const fullscreen = !!state.mapFullscreen;
   const hint = fullscreen ? hintShort : hintFull;
-  const layerToggleHtml = `
-    <span class="eyebrow" style="margin-right:2px;">Показать:</span>
-    <button class="btn btn-sm layer-toggle ${m.layers.markers?'':'off'}" onclick="toggleMapLayer('markers')">👁 Метки</button>
-    <button class="btn btn-sm layer-toggle ${m.layers.labels?'':'off'}" onclick="toggleMapLayer('labels')">👁 Названия</button>
-    <button class="btn btn-sm layer-toggle ${m.layers.paths?'':'off'}" onclick="toggleMapLayer('paths')">👁 Пути</button>
-  `;
+  const layersPanelHtml = state.mapLayersPanelOpen ? `
+    <div class="map-layers-panel-overlay" onclick="closeMapLayersPanel()"></div>
+    <div class="map-layers-panel">
+      <div class="layer-row ${m.layers.markers?'':'off'}" onclick="toggleMapLayer('markers')"><span>${uiIcon('map-pin',14)} Метки</span>${uiIcon('eye',15)}</div>
+      <div class="layer-row ${m.layers.labels?'':'off'}" onclick="toggleMapLayer('labels')"><span>${uiIcon('typography',14)} Названия</span>${uiIcon('eye',15)}</div>
+      <div class="layer-sub-list">
+        ${MAP_LABEL_TYPE_ORDER.map(t=>`<div class="layer-row ${m.layers.labelTypes[t]?'':'off'}" onclick="toggleMapLabelType('${t}')"><span>${esc(MAP_LABEL_TYPES[t].short)}</span>${uiIcon('eye',15)}</div>`).join('')}
+      </div>
+      <div class="layer-row ${m.layers.paths?'':'off'}" onclick="toggleMapLayer('paths')"><span>${uiIcon('route',14)} Пути</span>${uiIcon('eye',15)}</div>
+      <div class="layer-panel-divider"></div>
+      <div class="layer-panel-actions">
+        <button onclick="setAllMapLabelTypes(true)">Все названия</button>
+        <button onclick="setAllMapLabelTypes(false)">Скрыть все</button>
+      </div>
+    </div>
+  ` : '';
+  const listTab = state.mapListTab || state.mapMode;
   el.innerHTML = `
     <div id="mapEditorRoot" class="${fullscreen ? 'map-editor-fullscreen' : ''} mode-${state.mapMode}">
       <div class="canvas-toolbar">
@@ -3131,27 +3325,25 @@ function renderMapEditor(el, m){
           <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</h3>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-          <div class="canvas-zoom-controls" style="gap:6px;">
-            <button class="btn btn-sm ${state.mapMode==='marker'?'btn-primary':''}" onclick="setMapMode('marker')">📍 Метки</button>
-            <button class="btn btn-sm ${state.mapMode==='label'?'btn-primary':''}" onclick="setMapMode('label')">🔤 Название</button>
-            <button class="btn btn-sm ${state.mapMode==='path'?'btn-primary':''}" onclick="setMapMode('path')">〜 Путь</button>
+          <div class="map-mode-seg">
+            <button class="${state.mapMode==='marker'?'active':''}" onclick="setMapMode('marker')">${uiIcon('map-pin')} Метки</button>
+            <button class="${state.mapMode==='label'?'active':''}" onclick="setMapMode('label')">${uiIcon('typography')} Название</button>
+            <button class="${state.mapMode==='path'?'active':''}" onclick="setMapMode('path')">${uiIcon('route')} Путь</button>
           </div>
           ${pathToolbar}
           <div class="canvas-zoom-controls">
-            <button class="btn btn-sm" onclick="zoomMapCanvas(-0.2)">−</button>
+            <button class="btn btn-sm" onclick="zoomMapCanvas(-0.2)">${uiIcon('minus',14)}</button>
             <span class="mono" id="mapZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
-            <button class="btn btn-sm" onclick="zoomMapCanvas(0.2)">+</button>
+            <button class="btn btn-sm" onclick="zoomMapCanvas(0.2)">${uiIcon('plus',14)}</button>
           </div>
-          <button class="btn btn-sm" onclick="resetMapCanvasView()">Сброс вида</button>
-          <button class="btn btn-sm" onclick="toggleMapFullscreen()">${fullscreen ? '✕ Свернуть' : '⛶ Во весь экран'}</button>
-          ${fullscreen ? `<span style="width:1px; height:20px; background:var(--border); margin:0 2px;"></span>${layerToggleHtml}` : ''}
+          <button class="map-icon-btn" onclick="resetMapCanvasView()" title="Сброс вида">${uiIcon('refresh',15)}</button>
+          <button class="map-icon-btn" onclick="toggleMapFullscreen()" title="${fullscreen ? 'Свернуть' : 'Во весь экран'}">${uiIcon(fullscreen ? 'x' : 'maximize',15)}</button>
+          <div class="map-layers-btn-wrap">
+            <button class="map-layers-btn ${state.mapLayersPanelOpen?'open':''}" onclick="toggleMapLayersPanel(event)">${uiIcon('stack-2',14)} Слои ${uiIcon('chevron-down',11)}</button>
+            ${layersPanelHtml}
+          </div>
         </div>
       </div>
-      ${fullscreen ? '' : `
-      <div class="canvas-toolbar" style="margin-top:-4px;">
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">${layerToggleHtml}</div>
-      </div>
-      `}
       <div class="eyebrow" style="margin-bottom:${fullscreen ? '6px' : '10px'}; ${fullscreen ? 'font-size:10.5px; opacity:.65;' : ''}">${hint}</div>
       <div class="map-stage-row" id="mapStageRow">
         <div class="map-stage" id="mapStage">
@@ -3167,12 +3359,29 @@ function renderMapEditor(el, m){
         <div id="mapSidePanel"></div>
       </div>
       ${fullscreen ? '' : `
-      <div class="side-section-label" style="margin:22px 0 10px;">Метки (${m.markers.length})${m.layers.markers?'':' — скрыты на карте'}</div>
+      <div class="map-list-tabs">
+        <div class="map-list-tab ${listTab==='marker'?'active':''}" onclick="setMapListTab('marker')">Метки<span class="count">${m.markers.length}</span></div>
+        <div class="map-list-tab ${listTab==='label'?'active':''}" onclick="setMapListTab('label')">Названия<span class="count">${(m.labels||[]).length}</span></div>
+        <div class="map-list-tab ${listTab==='path'?'active':''}" onclick="setMapListTab('path')">Пути<span class="count">${m.paths.length}</span></div>
+      </div>
+      ${listTab==='marker' ? `
+      ${!m.layers.markers ? '<div class="eyebrow" style="margin-bottom:10px;">Слой меток сейчас скрыт на карте.</div>' : ''}
       <div class="grid">${m.markers.length ? m.markers.map(markerCard).join('') : '<div class="empty-tab">Меток пока нет — кликните по карте.</div>'}</div>
-      <div class="side-section-label" style="margin:26px 0 10px;">Названия стран и регионов (${(m.labels||[]).length})${m.layers.labels?'':' — скрыты на карте'}</div>
-      <div class="grid">${(m.labels||[]).length ? m.labels.map(labelCard).join('') : '<div class="empty-tab">Названий пока нет — переключитесь на «Название» и кликните по карте.</div>'}</div>
-      <div class="side-section-label" style="margin:26px 0 10px;">Пути героев (${m.paths.length})${m.layers.paths?'':' — скрыты на карте'}</div>
+      ` : ''}
+      ${listTab==='label' ? `
+      ${!m.layers.labels ? '<div class="eyebrow" style="margin-bottom:10px;">Слой названий сейчас скрыт на карте.</div>' : ''}
+      ${MAP_LABEL_TYPE_ORDER.map(t=>{
+        const items = (m.labels||[]).filter(lb=>(lb.type||'country')===t);
+        if(!items.length) return '';
+        const hidden = !m.layers.labelTypes[t];
+        return `<div class="eyebrow" style="margin:14px 0 6px;">${esc(MAP_LABEL_TYPES[t].label)} (${items.length})${hidden?' — скрыт':''}</div>
+        <div class="grid">${items.map(labelCard).join('')}</div>`;
+      }).join('') || '<div class="empty-tab">Названий пока нет — переключитесь на «Название» и кликните по карте.</div>'}
+      ` : ''}
+      ${listTab==='path' ? `
+      ${!m.layers.paths ? '<div class="eyebrow" style="margin-bottom:10px;">Слой путей сейчас скрыт на карте.</div>' : ''}
       <div class="grid">${m.paths.length ? m.paths.map(pathCard).join('') : '<div class="empty-tab">Путей пока нет.</div>'}</div>
+      ` : ''}
       `}
     </div>
   `;
@@ -3404,6 +3613,19 @@ function attachMapMarkerDrag(m){
 }
 
 /* ---------------- MAP LABELS (curved country / region names) ---------------- */
+// Cartographic label categories. Each has its own default styling (so a fresh
+// label already looks like the map convention for that kind of name) and a
+// zLayer used to paint background-ish labels (land/ocean) behind foreground
+// ones (country/lake/river) so overlapping text stays readable.
+const MAP_LABEL_TYPES = {
+  land:    { label:'Земля / регион', short:'Земли',  zLayer:0, defaults:{ font:'ebGaramond', size:46, spacing:6, curve:0,  color:'#c9a24c' } },
+  ocean:   { label:'Океан',          short:'Океаны', zLayer:1, defaults:{ font:'playfair',   size:30, spacing:6, curve:0,  color:'#6a8caf' } },
+  country: { label:'Страна',         short:'Страны', zLayer:2, defaults:{ font:'ebGaramond', size:32, spacing:3, curve:0,  color:'#e9e4d8' } },
+  lake:    { label:'Озеро',          short:'Озёра',  zLayer:3, defaults:{ font:'caveat',     size:20, spacing:1, curve:0,  color:'#6a8caf' } },
+  river:   { label:'Река',           short:'Реки',   zLayer:4, defaults:{ font:'marckScript',size:20, spacing:1, curve:25, color:'#6a8caf' } },
+};
+const MAP_LABEL_TYPE_ORDER = ['country','river','lake','ocean','land'];
+
 const MAP_LABEL_FONTS = {
   caveat:        { label:'Caveat — рукописный (кириллица)',  family:'Caveat' },
   pacifico:      { label:'Pacifico — курсивный (кириллица)', family:'Pacifico' },
@@ -3458,10 +3680,18 @@ function labelSvgMarkup(lb){
 function drawMapLabels(m){
   const layer = document.getElementById('mapLabelsLayer');
   if(!layer) return;
-  const show = !m.layers || m.layers.labels !== false;
-  layer.innerHTML = !show ? '' : (m.labels||[]).map(lb=>{
+  ensureMapLayers(m);
+  const show = m.layers.labels !== false;
+  const visible = !show ? [] : (m.labels||[]);
+  const sorted = visible.slice().sort((a,b)=>{
+    const za = (MAP_LABEL_TYPES[a.type]||MAP_LABEL_TYPES.country).zLayer;
+    const zb = (MAP_LABEL_TYPES[b.type]||MAP_LABEL_TYPES.country).zLayer;
+    return za - zb;
+  });
+  layer.innerHTML = sorted.map(lb=>{
     const rot = Number(lb.rotation)||0;
-    return `<div class="map-label" data-id="${lb.id}" style="left:${lb.x}%; top:${lb.y}%;">
+    const muted = !m.layers.labelTypes[lb.type||'country'];
+    return `<div class="map-label${muted?' label-type-muted':''}" data-id="${lb.id}" style="left:${lb.x}%; top:${lb.y}%;">
       <div class="map-label-group" data-id="${lb.id}" style="transform:translate(-50%,-50%) rotate(${rot}deg);">
         <div class="map-label-rotate-handle" data-id="${lb.id}" title="Перетащите, чтобы повернуть надпись"></div>
         <div class="map-label-svgwrap" data-id="${lb.id}" title="${esc(lb.text)}">${labelSvgMarkup(lb)}</div>
@@ -3551,12 +3781,13 @@ function attachMapLabelDrag(m){
 
 function labelCard(lb){
   const fontDef = MAP_LABEL_FONTS[lb.font] || MAP_LABEL_FONTS.caveat;
+  const typeDef = MAP_LABEL_TYPES[lb.type] || MAP_LABEL_TYPES.country;
   const previewLb = Object.assign({}, lb, { size: Math.min(Number(lb.size)||26, 30) });
   const rot = Number(lb.rotation)||0;
   return `<div class="dossier">
     <div style="background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:4px; padding:10px; margin-bottom:8px; display:flex; align-items:center; justify-content:center; min-height:64px; overflow:hidden;"><div style="transform:rotate(${rot}deg);">${labelSvgMarkup(previewLb)}</div></div>
     <h3 style="font-size:14px;">${esc(lb.text)}</h3>
-    <div class="d-role">${esc(fontDef.label)}</div>
+    <div class="d-role">${esc(typeDef.label)} · ${esc(fontDef.label)}</div>
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditLabelModal('${state.activeMapId}','${lb.id}')">Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMapLabel('${state.activeMapId}','${lb.id}')">Удалить</button>
@@ -3580,7 +3811,10 @@ function hideMapSidePanel(){
 // elements or stale previews to fall out of sync.
 function openLabelPanel(m, existingLabel, x, y){
   const isNew = !existingLabel;
-  const lb = existingLabel || { id:uid(), x, y, text:'', font:'caveat', size:28, color:'#e9e4d8', spacing:1, curve:0, rotation:0 };
+  const startType = state.lastLabelType || 'country';
+  const preset = (MAP_LABEL_TYPES[startType] || MAP_LABEL_TYPES.country).defaults;
+  const lb = existingLabel || { id:uid(), x, y, text:'', type:startType, font:preset.font, size:preset.size, color:preset.color, spacing:preset.spacing, curve:preset.curve, rotation:0 };
+  if(!lb.type) lb.type = 'country';
   if(isNew){
     if(!m.labels) m.labels = [];
     m.labels.push(lb);
@@ -3604,9 +3838,11 @@ function renderLabelPanel(m, lb, isNew){
   const fontOptions = Object.entries(MAP_LABEL_FONTS).map(([key,f])=>
     `<option value="${key}" style="font-family:'${f.family}'" ${lb.font===key?'selected':''}>${esc(f.label)}</option>`
   ).join('');
+  const typeOptions = MAP_LABEL_TYPE_ORDER.map(t=>`<option value="${t}" ${(lb.type||'country')===t?'selected':''}>${esc(MAP_LABEL_TYPES[t].label)}</option>`).join('');
   const swatches = ['#e9e4d8','#c9a24c','#c1443b','#5fa8a0','#b5698f','#8c7ec9','#ffffff','#14151b'];
   panel.innerHTML = `<div class="panel-inner">
     <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новое название' : 'Название на карте'}</h3>
+    <div class="field"><label>Тип</label><select id="lpType">${typeOptions}</select></div>
     <div class="field"><label>Текст</label><input type="text" id="lpText" value="${esc(lb.text)}" placeholder="Название страны, региона…"></div>
     <div class="field"><label>Шрифт</label><select id="lpFont">${fontOptions}</select></div>
     <div class="field"><label>Размер (<span id="lpSizeVal">${lb.size}</span>px)</label><input type="range" id="lpSize" min="12" max="64" step="1" value="${lb.size}"></div>
@@ -3632,6 +3868,13 @@ function renderLabelPanel(m, lb, isNew){
   </div>`;
   panel.classList.add('open');
   const upd = ()=>{ drawMapLabels(m); attachMapLabelDrag(m); };
+  document.getElementById('lpType').addEventListener('change', (e)=>{
+    lb.type = e.target.value;
+    state.lastLabelType = lb.type;
+    queueSave();
+    renderLabelPanel(m, lb, isNew);
+    upd();
+  });
   document.getElementById('lpText').addEventListener('input', (e)=>{ lb.text = e.target.value; upd(); });
   document.getElementById('lpFont').addEventListener('change', (e)=>{ lb.font = e.target.value; upd(); });
   const sizeI = document.getElementById('lpSize');
