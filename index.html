@@ -103,8 +103,12 @@
   .brand{display:flex; align-items:center; gap:9px; flex-shrink:0; padding-right:16px; border-right:1px solid var(--border-soft);}
   .brand h1{font-size:17px; letter-spacing:.01em; white-space:nowrap;}
   .brand .mark{color:var(--gold); display:flex; align-items:center;}
-  #globalSearchWrap{position:relative; flex:1; min-width:160px; max-width:420px;}
+  #globalSearchWrap{position:relative; flex:1; min-width:160px; max-width:420px; display:flex; align-items:center; gap:8px;}
   #globalSearch{width:100%;}
+  #searchScopeToggle{ display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-faint); white-space:nowrap; cursor:pointer; flex-shrink:0; user-select:none; }
+  #searchScopeToggle input{ width:13px; height:13px; accent-color:var(--gold); cursor:pointer; flex-shrink:0; }
+  #searchScopeToggle:hover{ color:var(--text); }
+  @media (max-width:900px){ #searchScopeToggle span{ display:none; } }
   #searchResults{position:absolute; top:calc(100% + 6px); left:0; right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); max-height:360px; overflow-y:auto; z-index:50; display:none;}
   #searchResults.show{display:block;}
   .search-hit{padding:9px 12px; border-bottom:1px solid var(--border-soft); font-size:13px; display:flex; flex-direction:column; gap:2px;}
@@ -169,7 +173,8 @@
   }
   #newProjectBtn:hover{background:var(--card-hover); color:var(--text);}
 
-  .btn{border:1px solid var(--border); background:var(--card); color:var(--text); padding:9px 15px; border-radius:var(--radius); font-size:13px; font-weight:500; transition:all .15s;}
+  .btn{display:inline-flex; align-items:center; gap:6px; border:1px solid var(--border); background:var(--card); color:var(--text); padding:9px 15px; border-radius:var(--radius); font-size:13px; font-weight:500; transition:all .15s;}
+  .btn-icon{flex-shrink:0; display:inline-block;}
   .btn:hover{background:var(--card-hover); border-color:var(--text-faint);}
   .btn-primary{background:var(--thread); border-color:var(--thread); color:#fff;}
   .btn-primary:hover{background:#a83a32; border-color:#a83a32;}
@@ -250,7 +255,11 @@
   .tl-collapsible-toggle:hover{text-decoration:underline;}
   .d-tags{display:flex; flex-wrap:wrap; gap:5px; margin-top:10px;}
   .d-tag{font-size:10px; background:var(--bg-alt); border:1px solid var(--border-soft); padding:2px 7px; border-radius:9px; color:var(--text-dim); font-family:'IBM Plex Mono',monospace;}
-  .d-actions{display:flex; gap:4px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-soft);}
+  .d-actions{display:flex; gap:4px; margin-top:12px; padding-top:10px; border-top:1px solid var(--border-soft); flex-wrap:wrap;}
+  @media (max-width:520px){
+    .d-actions{ flex-direction:column; align-items:stretch; flex-wrap:nowrap; }
+    .d-actions .btn{ width:100%; justify-content:center; }
+  }
 
   /* Timeline */
   #timelineList{position:relative; padding-left:26px; margin-top:6px;}
@@ -632,6 +641,10 @@
       <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c0 0 3-1.4 6.3-1.4 2 0 3.2.9 3.2.9v14.6c0 0-1.2-.8-3.2-.8-3.3 0-6.3 1.3-6.3 1.3V5.2Z"/><path d="M21.5 5.2c0 0-3-1.4-6.3-1.4-2 0-3.2.9-3.2.9v14.6c0 0 1.2-.8 3.2-.8 3.3 0 6.3 1.3 6.3 1.3V5.2Z"/><path d="M12 4.7v14.6" stroke-width="1" opacity="0.5"/></svg></span><h1>Мастерская миров</h1></div>
       <div id="globalSearchWrap">
         <input type="text" id="globalSearch" placeholder="Искать по всем проектам…">
+        <label id="searchScopeToggle" title="Ограничить поиск текущим проектом">
+          <input type="checkbox" id="searchScopeCheck">
+          <span>Только этот проект</span>
+        </label>
         <div id="searchResults"></div>
       </div>
       <div id="activeProjectChip"></div>
@@ -757,6 +770,17 @@ function activeProject(){ return proj(state.activeProjectId); }
 function itemsOf(coll, projectId){ return data[coll].filter(x=>x.projectId===projectId); }
 function charName(id){ const c = data.characters.find(c=>c.id===id); return c ? c.name : '???'; }
 function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// Small line-icons used on card action buttons (Читать/Копировать/Изменить),
+// sized to sit inline to the left of the button label rather than above it.
+const BTN_ICONS = {
+  book: '<path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+};
+function btnIconSvg(name){
+  return `<svg class="btn-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${BTN_ICONS[name]}</svg>`;
+}
 
 /* ---------------- RENDER ROOT ---------------- */
 function render(){
@@ -952,8 +976,9 @@ function characterCard(c){
     ${c.desc ? `<div class="d-desc">${esc(c.desc)}</div>` : ''}
     ${c.tags && c.tags.length ? `<div class="d-tags">${c.tags.map(t=>`<span class="d-tag">${esc(t)}</span>`).join('')}</div>` : ''}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('characters','${c.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditCharacterModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('characters','${c.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('characters','${c.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditCharacterModal('${c.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCharacter('${c.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1293,8 +1318,9 @@ function relCard(r){
     ${r.evolveNote ? `<div class="d-alias" style="margin-top:6px;">${esc(r.evolveNote)}</div>` : ''}
     ${r.desc ? `<div class="d-desc">${esc(r.desc)}</div>` : ''}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('relationships','${r.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditRelationshipModal('${r.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('relationships','${r.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('relationships','${r.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditRelationshipModal('${r.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteRelationship('${r.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1335,8 +1361,9 @@ function eventCard(e){
     ${collapsibleBlock('event-desc-'+e.id, 'Что произошло', e.desc)}
     ${e.charIds && e.charIds.length ? `<div class="d-tags">${e.charIds.map(id=>`<span class="d-tag">${esc(charName(id))}</span>`).join('')}</div>` : ''}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('events','${e.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${e.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('events','${e.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('events','${e.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditEventModal('${e.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteEvent('${e.id}')">Удалить</button>
     </div>
   </div></div>`;
@@ -1672,8 +1699,9 @@ function locCard(l){
     </div>
     ${collapsibleBlock('loc-desc-'+l.id, 'Описание', l.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('locations','${l.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditLocationModal('${l.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('locations','${l.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('locations','${l.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditLocationModal('${l.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteLocation('${l.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1691,8 +1719,9 @@ function facCard(f){
     </div>
     ${collapsibleBlock('fac-desc-'+f.id, 'Описание', f.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('factions','${f.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditFactionModal('${f.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('factions','${f.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('factions','${f.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditFactionModal('${f.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteFaction('${f.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1710,8 +1739,9 @@ function creatureCard(c){
     </div>
     ${collapsibleBlock('creature-desc-'+c.id, 'Описание, повадки, слабости', c.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('creatures','${c.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditCreatureModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('creatures','${c.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('creatures','${c.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditCreatureModal('${c.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCreature('${c.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1753,8 +1783,9 @@ function mythCard(m){
     ${collapsibleBlock('myth-desc-'+m.id, 'Пересказ легенды', m.desc)}
     ${collapsibleBlock('myth-truth-'+m.id, 'Правда за легендой', m.truth)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('myths','${m.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditMythModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('myths','${m.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('myths','${m.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditMythModal('${m.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMyth('${m.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1783,8 +1814,9 @@ function magicCard(m){
     ${collapsibleBlock('magic-desc-'+m.id, 'Как это работает', m.desc)}
     ${collapsibleBlock('magic-limits-'+m.id, 'Цена / ограничения', m.limits)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('magicSystems','${m.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditMagicModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('magicSystems','${m.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('magicSystems','${m.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditMagicModal('${m.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMagic('${m.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1823,8 +1855,9 @@ function artifactCard(a){
     ${collapsibleBlock('artifact-powers-'+a.id, 'Свойства и способности', a.powers)}
     ${collapsibleBlock('artifact-origin-'+a.id, 'Происхождение и история', a.origin)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('artifacts','${a.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditArtifactModal('${a.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('artifacts','${a.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('artifacts','${a.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditArtifactModal('${a.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteArtifact('${a.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1863,8 +1896,9 @@ function deityCard(d){
     </div>
     ${collapsibleBlock('deity-desc-'+d.id, 'Описание, история, обряды', d.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('deities','${d.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditDeityModal('${d.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('deities','${d.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('deities','${d.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditDeityModal('${d.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDeity('${d.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1903,8 +1937,9 @@ function countryCard(c){
     ${c.ruler ? `<div class="d-alias">Правитель: ${esc(c.ruler)}</div>` : ''}
     ${collapsibleBlock('country-desc-'+c.id, 'Описание, территория, устройство', c.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('countries','${c.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditCountryModal('${c.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('countries','${c.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('countries','${c.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditCountryModal('${c.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteCountry('${c.id}')">Удалить</button>
     </div>
   </div>`;
@@ -1950,8 +1985,9 @@ function dynastyCard(d){
     ${d.founder ? `<div class="d-alias">Основатель: ${esc(d.founder)}</div>` : ''}
     ${collapsibleBlock('dynasty-desc-'+d.id, 'История рода', d.desc)}
     <div class="d-actions">
-      <button class="btn btn-ghost btn-sm" onclick="openReadModal('dynasties','${d.id}')">Читать</button>
-      <button class="btn btn-ghost btn-sm" onclick="openEditDynastyModal('${d.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="openReadModal('dynasties','${d.id}')">${btnIconSvg('book')}Читать</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyEntityToClipboard('dynasties','${d.id}')">${btnIconSvg('copy')}Копировать</button>
+      <button class="btn btn-ghost btn-sm" onclick="openEditDynastyModal('${d.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteDynasty('${d.id}')">Удалить</button>
     </div>
   </div>`;
@@ -4128,15 +4164,30 @@ function askConfirm(message, confirmLabel, onConfirm){
   const box = document.getElementById('modalBox');
   box.style.maxWidth = '';
   box.innerHTML = `<h2>Подтверждение</h2>
-    <p style="font-size:13.5px; color:var(--text-dim); line-height:1.65; margin:0;">${esc(message)}</p>
+    <p style="font-size:13.5px; color:var(--text-dim); line-height:1.65; margin:0 0 14px;">${esc(message)}</p>
+    <label style="display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text); cursor:pointer; padding:10px 12px; background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:var(--radius);">
+      <input type="checkbox" id="confirmAgreeCheck" style="width:17px; height:17px; accent-color:var(--thread); cursor:pointer; flex-shrink:0;">
+      Подтверждаю удаление
+    </label>
     <div id="modalActions">
       <div id="modalLeftActions"></div>
       <div id="modalRightActions" style="display:flex; gap:10px;">
         <button class="btn" onclick="closeModal()">Отмена</button>
-        <button class="btn" id="confirmDangerBtn" style="background:var(--thread); border-color:var(--thread); color:#fff;">${esc(confirmLabel||'Удалить')}</button>
+        <button class="btn" id="confirmDangerBtn" disabled style="background:var(--thread); border-color:var(--thread); color:#fff; opacity:.45; cursor:not-allowed;">${esc(confirmLabel||'Удалить')}</button>
       </div>
     </div>`;
-  document.getElementById('confirmDangerBtn').onclick = ()=>{ closeModal(); onConfirm(); };
+  const checkEl = document.getElementById('confirmAgreeCheck');
+  const btnEl = document.getElementById('confirmDangerBtn');
+  checkEl.addEventListener('change', ()=>{
+    btnEl.disabled = !checkEl.checked;
+    btnEl.style.opacity = checkEl.checked ? '1' : '.45';
+    btnEl.style.cursor = checkEl.checked ? 'pointer' : 'not-allowed';
+  });
+  btnEl.onclick = ()=>{
+    if(!checkEl.checked) return;
+    closeModal();
+    onConfirm();
+  };
   document.getElementById('modalOverlay').classList.add('show');
 }
 
@@ -4188,19 +4239,19 @@ function renderRelatedBlock(kind, item){
 }
 
 const READ_MODAL_CONFIG = {
-  characters: { getItem:(id)=>data.characters.find(x=>x.id===id), fields:()=>characterFields(), title:(it)=>it.name },
+  characters: { getItem:(id)=>data.characters.find(x=>x.id===id), fields:()=>characterFields(), title:(it)=>it.name, editFn:openEditCharacterModal },
   relationships: { getItem:(id)=>data.relationships.find(x=>x.id===id), fields:()=>relationshipFields(), title:(it)=>`${charName(it.charA)} ↔ ${charName(it.charB)}`,
-    prepare:(it)=>Object.assign({}, it, { types: relTypes(it), evolvesTo: relEvolves(it) }) },
-  events: { getItem:(id)=>data.events.find(x=>x.id===id), fields:()=>eventFields(), title:(it)=>it.title },
-  locations: { getItem:(id)=>data.locations.find(x=>x.id===id), fields:()=>locationFields(), title:(it)=>it.name },
-  factions: { getItem:(id)=>data.factions.find(x=>x.id===id), fields:()=>factionFields(), title:(it)=>it.name },
-  creatures: { getItem:(id)=>data.creatures.find(x=>x.id===id), fields:()=>creatureFields(), title:(it)=>it.name },
-  myths: { getItem:(id)=>data.myths.find(x=>x.id===id), fields:()=>mythFields(), title:(it)=>it.name },
-  magicSystems: { getItem:(id)=>data.magicSystems.find(x=>x.id===id), fields:()=>magicFields(), title:(it)=>it.name },
-  deities: { getItem:(id)=>data.deities.find(x=>x.id===id), fields:()=>deityFields(), title:(it)=>it.name },
-  countries: { getItem:(id)=>data.countries.find(x=>x.id===id), fields:()=>countryFields(), title:(it)=>it.name },
-  dynasties: { getItem:(id)=>data.dynasties.find(x=>x.id===id), fields:()=>dynastyFields(), title:(it)=>it.name },
-  artifacts: { getItem:(id)=>data.artifacts.find(x=>x.id===id), fields:()=>artifactFields(), title:(it)=>it.name },
+    prepare:(it)=>Object.assign({}, it, { types: relTypes(it), evolvesTo: relEvolves(it) }), editFn:openEditRelationshipModal },
+  events: { getItem:(id)=>data.events.find(x=>x.id===id), fields:()=>eventFields(), title:(it)=>it.title, editFn:openEditEventModal },
+  locations: { getItem:(id)=>data.locations.find(x=>x.id===id), fields:()=>locationFields(), title:(it)=>it.name, editFn:openEditLocationModal },
+  factions: { getItem:(id)=>data.factions.find(x=>x.id===id), fields:()=>factionFields(), title:(it)=>it.name, editFn:openEditFactionModal },
+  creatures: { getItem:(id)=>data.creatures.find(x=>x.id===id), fields:()=>creatureFields(), title:(it)=>it.name, editFn:openEditCreatureModal },
+  myths: { getItem:(id)=>data.myths.find(x=>x.id===id), fields:()=>mythFields(), title:(it)=>it.name, editFn:openEditMythModal },
+  magicSystems: { getItem:(id)=>data.magicSystems.find(x=>x.id===id), fields:()=>magicFields(), title:(it)=>it.name, editFn:openEditMagicModal },
+  deities: { getItem:(id)=>data.deities.find(x=>x.id===id), fields:()=>deityFields(), title:(it)=>it.name, editFn:openEditDeityModal },
+  countries: { getItem:(id)=>data.countries.find(x=>x.id===id), fields:()=>countryFields(), title:(it)=>it.name, editFn:openEditCountryModal },
+  dynasties: { getItem:(id)=>data.dynasties.find(x=>x.id===id), fields:()=>dynastyFields(), title:(it)=>it.name, editFn:openEditDynastyModal },
+  artifacts: { getItem:(id)=>data.artifacts.find(x=>x.id===id), fields:()=>artifactFields(), title:(it)=>it.name, editFn:openEditArtifactModal },
 };
 function renderReadFieldValue(f, val){
   if(f.type==='image'){
@@ -4251,10 +4302,74 @@ function openReadModal(kind, id){
     <div id="modalActions">
       <div id="modalLeftActions"></div>
       <div id="modalRightActions" style="display:flex; gap:10px;">
+        <button class="btn" id="readModalCopyBtn">${btnIconSvg('copy')}Копировать</button>
+        ${cfg.editFn ? `<button class="btn" id="readModalEditBtn">${btnIconSvg('edit')}Изменить</button>` : ''}
         <button class="btn btn-primary" onclick="closeModal()">Закрыть</button>
       </div>
     </div>`;
   document.getElementById('modalOverlay').classList.add('show');
+  document.getElementById('readModalCopyBtn').addEventListener('click', ()=>{
+    copyCardToClipboard(cfg.title(item), fields, item);
+  });
+  if(cfg.editFn){
+    document.getElementById('readModalEditBtn').addEventListener('click', ()=>{
+      closeModal();
+      cfg.editFn(id);
+    });
+  }
+}
+// Generic "copy this card's fields to the clipboard" usable directly from a
+// card's action row, without first opening the read modal — reuses the
+// exact same field list/formatting the read modal's own copy button uses.
+function copyEntityToClipboard(kind, id){
+  const cfg = READ_MODAL_CONFIG[kind];
+  if(!cfg) return;
+  let item = cfg.getItem(id);
+  if(!item) return;
+  if(cfg.prepare) item = cfg.prepare(item);
+  const fields = cfg.fields(item);
+  copyCardToClipboard(cfg.title(item), fields, item);
+}
+function fieldValueToPlainText(f, val){
+  if(f.type==='image') return null; // nothing sensible to put in plain text for an image
+  if(val===undefined || val===null || val==='') return null;
+  if(f.type==='color') return String(val);
+  if(f.type==='select'){
+    const opt = (f.options||[]).find(o=>o[0]===val);
+    return opt ? opt[1] : String(val);
+  }
+  if(f.type==='multiselect'){
+    if(!val.length) return null;
+    return val.map(v=>{ const opt=(f.options||[]).find(o=>o[0]===v); return opt ? opt[1] : v; }).join(', ');
+  }
+  if(f.type==='tags'){
+    if(!val.length) return null;
+    return val.join(', ');
+  }
+  return String(val);
+}
+function copyCardToClipboard(title, fields, item){
+  const lines = [title, ''];
+  fields.forEach(f=>{
+    const text = fieldValueToPlainText(f, item[f.key]);
+    if(text===null) return;
+    lines.push(`${f.label}: ${text}`);
+  });
+  const text = lines.join('\n');
+  const done = ()=> showToast('Карточка скопирована в буфер обмена');
+  const fail = ()=> showToast('Не удалось скопировать — попробуйте выделить текст вручную');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(fail);
+  } else {
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      done();
+    }catch(e){ fail(); }
+  }
 }
 let modalMouseDownOnBackdrop = false;
 document.getElementById('modalOverlay').addEventListener('mousedown', (e)=>{
@@ -4268,12 +4383,15 @@ document.getElementById('newProjectBtn').addEventListener('click', openNewProjec
 /* ---------------- GLOBAL SEARCH ---------------- */
 const searchInput = document.getElementById('globalSearch');
 const searchResultsEl = document.getElementById('searchResults');
-searchInput.addEventListener('input', ()=>{
+const searchScopeCheck = document.getElementById('searchScopeCheck');
+function runGlobalSearch(){
   const q = searchInput.value.trim().toLowerCase();
   if(!q){ searchResultsEl.classList.remove('show'); return; }
+  const scoped = searchScopeCheck.checked && !!state.activeProjectId;
   const hits = [];
   const collect = (coll, kind, nameKey, extraKey)=>{
     data[coll].forEach(item=>{
+      if(scoped && item.projectId !== state.activeProjectId) return;
       const hay = ((item[nameKey]||'') + ' ' + (item[extraKey]||'') + ' ' + (item.desc||'')).toLowerCase();
       if(hay.includes(q)) hits.push({item, kind, coll});
     });
@@ -4291,17 +4409,27 @@ searchInput.addEventListener('input', ()=>{
   collect('dynasties','Династия','name','country');
   collect('artifacts','Артефакт / реликвия','name','owner');
   collect('maps','Карта','name');
-  collect('projects','Проект','name','type');
+  if(!scoped){
+    data.projects.forEach(item=>{
+      const hay = ((item.name||'') + ' ' + (item.type||'')).toLowerCase();
+      if(hay.includes(q)) hits.push({item, kind:'Проект', coll:'projects'});
+    });
+  }
   if(!hits.length){ searchResultsEl.innerHTML = '<div class="search-empty">Ничего не найдено</div>'; searchResultsEl.classList.add('show'); return; }
   searchResultsEl.innerHTML = hits.slice(0,30).map(h=>{
     const pname = h.coll==='projects' ? h.item.name : (proj(h.item.projectId)||{}).name || '';
     const name = h.item.name || h.item.title;
     return `<div class="search-hit" onclick='jumpTo(${JSON.stringify(h.coll)}, ${JSON.stringify(h.item.id)}, ${JSON.stringify(h.item.projectId||h.item.id)})'>
       <span class="hit-name">${esc(name)}</span>
-      <span class="hit-meta">${h.kind} · ${esc(pname)}</span>
+      <span class="hit-meta">${h.kind}${scoped ? '' : ' · ' + esc(pname)}</span>
     </div>`;
   }).join('');
   searchResultsEl.classList.add('show');
+}
+searchInput.addEventListener('input', runGlobalSearch);
+searchScopeCheck.addEventListener('change', ()=>{
+  searchInput.placeholder = searchScopeCheck.checked ? 'Искать в этом проекте…' : 'Искать по всем проектам…';
+  runGlobalSearch();
 });
 document.addEventListener('click', (e)=>{ if(!document.getElementById('globalSearchWrap').contains(e.target)) searchResultsEl.classList.remove('show'); });
 
