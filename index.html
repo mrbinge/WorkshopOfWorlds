@@ -256,6 +256,19 @@
   .dossier .d-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:6px;}
   .d-avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; background:var(--bg-alt);}
   .d-avatar-placeholder{display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--text-faint);}
+  .d-avatar, .rel-avatar img, .tree-avatar img, .ph-avatar img { cursor: zoom-in; }
+  .avatar-crop-backdrop{position:fixed;inset:0;z-index:500;background:rgba(5,6,10,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:18px;}
+  .avatar-crop-dialog{width:min(440px,96vw);background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.55);}
+  .avatar-crop-dialog h2{margin:0 0 6px;font-size:20px}.avatar-crop-dialog p{font-size:12px;color:var(--text-dim);margin:0 0 14px;line-height:1.5}
+  .avatar-crop-window{width:320px;height:320px;max-width:100%;aspect-ratio:1;margin:0 auto;position:relative;overflow:hidden;touch-action:none;cursor:grab;background:repeating-conic-gradient(#222 0% 25%,#333 0% 50%) 50%/20px 20px;border:2px solid var(--gold);border-radius:50%;box-shadow:0 0 0 999px rgba(0,0,0,.28)}
+  .avatar-crop-window:active{cursor:grabbing}.avatar-crop-image{position:absolute;max-width:none;max-height:none;user-select:none;pointer-events:none}
+  .avatar-crop-zoom{display:flex;align-items:center;justify-content:center;gap:8px;margin:14px 0;color:var(--text-dim);font-size:12px}.avatar-crop-zoom kbd{border:1px solid var(--border);border-radius:5px;padding:2px 6px;background:var(--bg-alt);font:inherit;color:var(--text)}
+  .avatar-crop-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  .image-viewer-backdrop{position:fixed; inset:0; z-index:300; background:rgba(5,6,10,.88); backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; padding:24px; cursor:zoom-out;}
+  .image-viewer-frame{position:relative; max-width:min(88vw,900px); max-height:88vh; display:flex; flex-direction:column; align-items:center; gap:10px; cursor:default;}
+  .image-viewer-frame img{display:block; width:auto; height:auto; max-width:min(88vw,900px); max-height:78vh; object-fit:contain; border-radius:12px; border:1px solid var(--border); box-shadow:0 20px 70px rgba(0,0,0,.6); background:var(--bg-alt);}
+  .image-viewer-caption{color:var(--text-dim); font-size:12px; text-align:center;}
+  .image-viewer-close{position:fixed; top:18px; right:22px; width:42px; height:42px; border:1px solid var(--border); border-radius:50%; color:var(--text); background:var(--card); font-size:25px; cursor:pointer;}
   .dossier h3{font-size:16.5px; margin-bottom:2px;}
   .dossier .d-alias{font-size:11.5px; color:var(--text-faint); font-style:italic;}
   .dossier .d-role{font-size:11px; color:var(--gold); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.05em; margin-top:6px;}
@@ -723,6 +736,66 @@ function resizeImageFile(file, maxW, maxH, quality){
     };
     reader.readAsDataURL(file);
   });
+}
+// Персонажные изображения храним как квадратные аватары: единый кадр в карточках и при увеличении.
+function makeAvatarImage(file, size=512, quality=.88){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader(); reader.onerror=reject;
+    reader.onload=()=>{ const img=new Image(); img.onerror=reject;
+      img.onload=()=>{
+        const side=Math.min(img.naturalWidth,img.naturalHeight);
+        const sx=Math.round((img.naturalWidth-side)/2), sy=Math.round((img.naturalHeight-side)/2);
+        const canvas=document.createElement('canvas'); canvas.width=size; canvas.height=size;
+        const ctx=canvas.getContext('2d'); ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+        ctx.drawImage(img,sx,sy,side,side,0,0,size,size);
+        resolve(canvas.toDataURL('image/jpeg',quality));
+      }; img.src=reader.result;
+    }; reader.readAsDataURL(file);
+  });
+}
+function openAvatarCropper(source, onApply){
+  const loadImage = src => new Promise((resolve,reject)=>{ const img=new Image(); img.onload=()=>resolve(img); img.onerror=reject; img.src=src; });
+  const readSource = source => {
+    if(typeof source==='string') return Promise.resolve(source);
+    return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(r.result); r.onerror=reject; r.readAsDataURL(source); });
+  };
+  readSource(source).then(loadImage).then(img=>{
+    const side=320, baseScale=Math.max(side/img.naturalWidth,side/img.naturalHeight);
+    let zoom=1, x=(side-img.naturalWidth*baseScale)/2, y=(side-img.naturalHeight*baseScale)/2;
+    const startX=x, startY=y;
+    const overlay=document.createElement('div'); overlay.className='avatar-crop-backdrop';
+    overlay.innerHTML=`<div class="avatar-crop-dialog" role="dialog" aria-modal="true"><h2>Настроить аватарку</h2><p>Перетаскивай изображение мышью. Колесо мыши приближает и отдаляет. В рамку попадёт круглая область.</p><div class="avatar-crop-window"><img class="avatar-crop-image" draggable="false"></div><div class="avatar-crop-zoom"><kbd>Колесо мыши</kbd><span>— приблизить / отдалить</span></div><div class="avatar-crop-actions"><button type="button" class="btn" data-crop-cancel>Отмена</button><button type="button" class="btn btn-ghost" data-crop-reset>Сбросить</button><button type="button" class="btn btn-primary" data-crop-apply>Применить</button></div></div>`;
+    document.body.appendChild(overlay);
+    const win=overlay.querySelector('.avatar-crop-window'), preview=overlay.querySelector('.avatar-crop-image');
+    preview.src=img.src;
+    const draw=()=>{const scale=baseScale*zoom,w=img.naturalWidth*scale,h=img.naturalHeight*scale; x=Math.min(0,Math.max(side-w,x)); y=Math.min(0,Math.max(side-h,y)); preview.style.width=w+'px';preview.style.height=h+'px';preview.style.left=x+'px';preview.style.top=y+'px';};
+    draw();
+    win.addEventListener('wheel',e=>{e.preventDefault();const rect=win.getBoundingClientRect(), px=(e.clientX-rect.left)*(side/rect.width), py=(e.clientY-rect.top)*(side/rect.height);const old=zoom, next=Math.min(8,Math.max(1,zoom*(e.deltaY<0?1.12:1/1.12))), ratio=next/old;x=px-(px-x)*ratio;y=py-(py-y)*ratio;zoom=next;draw();},{passive:false});
+    let drag=null;
+    win.addEventListener('pointerdown',e=>{drag={px:e.clientX,py:e.clientY,x,y};win.setPointerCapture?.(e.pointerId);});
+    win.addEventListener('pointermove',e=>{if(!drag)return;x=drag.x+e.clientX-drag.px;y=drag.y+e.clientY-drag.py;draw();});
+    const stop=()=>drag=null; win.addEventListener('pointerup',stop);win.addEventListener('pointercancel',stop);
+    const close=()=>overlay.remove();
+    overlay.querySelector('[data-crop-cancel]').onclick=close;
+    overlay.querySelector('[data-crop-reset]').onclick=()=>{zoom=1;x=startX;y=startY;draw();};
+    overlay.querySelector('[data-crop-apply]').onclick=()=>{
+      const scale=baseScale*zoom, sx=(0-x)/scale, sy=(0-y)/scale, sw=side/scale, sh=side/scale;
+      const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;const ctx=canvas.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';ctx.drawImage(img,sx,sy,sw,sh,0,0,512,512);
+      const result=canvas.toDataURL('image/jpeg',.9);close();onApply(result);
+    };
+    const escKey=e=>{if(e.key==='Escape'){close();document.removeEventListener('keydown',escKey);}};document.addEventListener('keydown',escKey);
+    overlay.addEventListener('click',e=>{if(e.target===overlay){close();document.removeEventListener('keydown',escKey);}});
+  }).catch(()=>showToast('Не удалось открыть изображение'));
+}
+
+function openImageViewer(src, caption=''){
+  if(!src) return;
+  const overlay=document.createElement('div'); overlay.className='image-viewer-backdrop'; overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
+  overlay.innerHTML=`<button class="image-viewer-close" aria-label="Закрыть">×</button><div class="image-viewer-frame"><img src="${src}" alt="${esc(caption)}">${caption?`<div class="image-viewer-caption">${esc(caption)}</div>`:''}</div>`;
+  overlay.addEventListener('click',e=>{if(e.target===overlay || e.target.closest('.image-viewer-close')) overlay.remove();});
+  const onKey=e=>{if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',onKey);}};
+  document.addEventListener('keydown',onKey); overlay.addEventListener('remove',()=>document.removeEventListener('keydown',onKey));
+  document.body.appendChild(overlay);
 }
 
 async function loadData(){
@@ -4097,12 +4170,14 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
       fileInput.onchange = ()=>{
         const file = fileInput.files[0];
         if(!file) return;
-        resizeImageFile(file, 260, 260, 0.82).then(dataUrl=>{
+        openAvatarCropper(file, dataUrl=>{
           input.value = dataUrl; img.src = dataUrl; img.style.display='block'; placeholder.style.display='none';
           removeBtn.style.display='inline-block'; addBtn.textContent='Изменить фото';
-        }).catch(()=>showToast('Не удалось загрузить изображение'));
+        });
+        fileInput.value='';
       };
-      controls.appendChild(fileInput); controls.appendChild(addBtn); controls.appendChild(removeBtn);
+      const hint=document.createElement('div'); hint.textContent='Выбери нужный фрагмент: двигай изображение и меняй масштаб. Аватар сохранится квадратным 512 × 512. Нажми на фото в карточке, чтобы увеличить.'; hint.style.cssText='font-size:11px; line-height:1.45; color:var(--text-faint); max-width:290px;';
+      controls.appendChild(fileInput); controls.appendChild(addBtn); controls.appendChild(removeBtn); controls.appendChild(hint);
       previewWrap.appendChild(img); previewWrap.appendChild(placeholder); previewWrap.appendChild(controls);
       wrap.appendChild(previewWrap);
     }
@@ -4274,7 +4349,7 @@ const READ_MODAL_CONFIG = {
 function renderReadFieldValue(f, val){
   if(f.type==='image'){
     if(!val) return null;
-    return `<img src="${val}" alt="" style="max-width:100%; max-height:340px; border-radius:6px; border:1px solid var(--border); display:block;">`;
+    return `<img src="${val}" alt="" title="Нажмите, чтобы увеличить" onclick="openImageViewer(this.src, '')" style="max-width:100%; max-height:340px; border-radius:8px; border:1px solid var(--border); display:block; cursor:zoom-in;">`;
   }
   if(f.type==='color'){
     if(!val) return null;
@@ -4544,6 +4619,7 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
 
 /* ---------------- INIT ---------------- */
 loadData();
+document.addEventListener('click', e=>{ const img=e.target.closest('.d-avatar, .rel-avatar img, .tree-avatar img, .ph-avatar img'); if(img && img.tagName==='IMG' && img.src){ e.preventDefault(); e.stopPropagation(); openImageViewer(img.src, img.alt || ''); } });
 </script>
 </body>
 </html>
