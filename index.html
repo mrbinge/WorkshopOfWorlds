@@ -844,8 +844,8 @@ function openImageViewer(src, caption=''){
 /* ---------------- CLOUD + LOCAL DATA LAYER ---------------- */
 // Вставь значения из Supabase → Project Settings → API.
 // Используй только Project URL и publishable/anon key. service_role сюда добавлять нельзя.
-const SUPABASE_URL = 'YOUR_SUPABASE_URL';
-const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const SUPABASE_URL = 'https://iuapbnrrgmyonhnzxksz.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_ejK9X8mexvAffhsbms7lbQ_VsGAUnsz';
 const supabaseConfigured = /^https:\/\/.+/.test(SUPABASE_URL) && !SUPABASE_URL.includes('YOUR_') && !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
 const supabase = (supabaseConfigured && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 const DEFAULT_DATA = { projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] };
