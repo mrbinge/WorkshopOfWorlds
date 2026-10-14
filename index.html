@@ -16,6 +16,7 @@
 <meta name="description" content="Инструмент для управления большими историями: персонажи, связи, структура сюжета, таймлайн и лор.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Kelly+Slab&family=Marck+Script&family=Pattaya&family=Bad+Script&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
     --bg:#14151b;
@@ -72,6 +73,7 @@
 
   /* Layout */
   #app{display:flex; flex-direction:column; min-height:100vh;}
+  #app[hidden]{display:none!important;}
   #sidebar{
     width:100%; flex-shrink:0; background:var(--bg-alt);
     display:flex; flex-direction:column; padding:14px 32px 0 32px; gap:12px; position:sticky; top:0; z-index:30;
@@ -662,10 +664,47 @@
   .tl-navitem.active .tl-navitem-num{color:var(--gold);}
   .tl-navitem-title{overflow:hidden; text-overflow:ellipsis; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;}
   @media (max-width:700px){ .tl-navlist{display:none !important;} }
+
+  /* Supabase authentication gate */
+  #authGate{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:24px;background:radial-gradient(ellipse at top left,rgba(193,68,59,.10),transparent 55%),var(--bg);}
+  #authGate[hidden]{display:none!important;}
+  .auth-card{width:min(440px,100%);background:var(--bg-alt);border:1px solid var(--border);border-radius:8px;padding:30px;box-shadow:var(--shadow);}
+  .auth-brand{display:flex;align-items:center;gap:12px;margin-bottom:8px;}
+  .auth-brand .mark{color:var(--gold);font-size:26px;}
+  .auth-card h1{font-size:25px;}
+  .auth-subtitle{font-size:13px;color:var(--text-dim);line-height:1.6;margin:0 0 22px;}
+  .auth-card .field{margin-bottom:14px;}
+  .auth-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px;}
+  #authMessage{font-size:12.5px;line-height:1.5;color:var(--text-dim);margin-top:14px;white-space:pre-wrap;}
+  #authMessage.error{color:#e58b83;}
+  #authMessage.success{color:var(--teal);}
+  #authSetupWarning{font-size:12px;line-height:1.55;background:rgba(201,162,76,.08);border:1px solid rgba(201,162,76,.35);padding:10px 12px;border-radius:5px;margin-bottom:16px;color:var(--text-dim);}
+  #authSetupWarning[hidden]{display:none;}
+  #accountControls{display:flex;align-items:center;gap:7px;min-width:0;}
+  #accountEmail{font-size:11px;color:var(--text-faint);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #signOutBtn{white-space:nowrap;}
+  @media(max-width:700px){#accountEmail{display:none}.auth-card{padding:22px;}}
 </style>
 </head>
 <body>
-<div id="app">
+
+<div id="authGate">
+  <section class="auth-card">
+    <div class="auth-brand"><span class="mark">✦</span><h1>Мастерская миров</h1></div>
+    <p class="auth-subtitle">Войди, чтобы открыть свои проекты и синхронизировать их между устройствами.</p>
+    <div id="authSetupWarning" hidden>Сначала укажи адрес проекта Supabase и публичный anon-ключ в настройках в начале скрипта. Секретный service_role-ключ здесь использовать нельзя.</div>
+    <form id="authForm">
+      <div class="field"><label for="authEmail">Электронная почта</label><input id="authEmail" type="email" autocomplete="email" required placeholder="name@example.com"></div>
+      <div class="field"><label for="authPassword">Пароль</label><input id="authPassword" type="password" autocomplete="current-password" minlength="6" required placeholder="Не менее 6 символов"></div>
+      <div class="auth-actions">
+        <button id="authSubmitBtn" class="btn btn-primary" type="submit">Войти</button>
+        <button id="authSignUpBtn" class="btn" type="button">Создать аккаунт</button>
+      </div>
+    </form>
+    <div id="authMessage" role="status" aria-live="polite"></div>
+  </section>
+</div>
+<div id="app" hidden>
   <div id="sidebar">
     <div class="sidebar-row">
       <div class="brand"><span class="mark"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 5.2c0 0 3-1.4 6.3-1.4 2 0 3.2.9 3.2.9v14.6c0 0-1.2-.8-3.2-.8-3.3 0-6.3 1.3-6.3 1.3V5.2Z"/><path d="M21.5 5.2c0 0-3-1.4-6.3-1.4-2 0-3.2.9-3.2.9v14.6c0 0 1.2-.8 3.2-.8 3.3 0 6.3 1.3 6.3 1.3V5.2Z"/><path d="M12 4.7v14.6" stroke-width="1" opacity="0.5"/></svg></span><h1>Мастерская миров</h1></div>
@@ -689,6 +728,10 @@
             <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
             <input type="file" id="importFile" accept="application/json" style="display:none;">
           </div>
+        </div>
+        <div id="accountControls" title="Аккаунт Supabase">
+          <span id="accountEmail"></span>
+          <button id="signOutBtn" class="btn btn-sm" type="button" title="Выйти из аккаунта">Выйти</button>
         </div>
         <button id="sidebarToggle" onclick="toggleSidebar()" title="Свернуть панель">▴</button>
       </div>
@@ -798,29 +841,148 @@ function openImageViewer(src, caption=''){
   document.body.appendChild(overlay);
 }
 
-async function loadData(){
+/* ---------------- CLOUD + LOCAL DATA LAYER ---------------- */
+// Вставь значения из Supabase → Project Settings → API.
+// Используй только Project URL и publishable/anon key. service_role сюда добавлять нельзя.
+const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+const supabaseConfigured = /^https:\/\/.+/.test(SUPABASE_URL) && !SUPABASE_URL.includes('YOUR_') && !!SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes('YOUR_');
+const supabase = (supabaseConfigured && window.supabase) ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+const DEFAULT_DATA = { projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] };
+let currentUser = null;
+let cloudLoadInProgress = false;
+let saveRevision = 0;
+let lastCloudSaveAt = 0;
+
+function parseData(raw){
+  const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+  if(!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Некорректный формат данных');
+  return Object.assign({}, DEFAULT_DATA, parsed);
+}
+function readLocalData(){
   try{
     let raw = localStorage.getItem(STORAGE_KEY);
     if(!raw){
-      // тихая миграция со старого имени приложения — Библия миров -> Мастерская миров
       const legacy = localStorage.getItem('story-bible-data');
       if(legacy){ raw = legacy; localStorage.setItem(STORAGE_KEY, legacy); }
     }
-    if(raw){
-      const parsed = JSON.parse(raw);
-      data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
-    }
-  }catch(e){ /* no data yet, or storage unavailable */ }
-  if(data.projects.length && !state.activeProjectId){ state.activeProjectId = data.projects[0].id; }
-  render();
+    return raw ? parseData(raw) : null;
+  }catch(e){ return null; }
 }
+function writeLocalData(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    return true;
+  }catch(e){
+    showToast('Не удалось сохранить локальную копию. Возможно, закончилось место в хранилище браузера.');
+    return false;
+  }
+}
+function setAuthMessage(message, kind=''){
+  const el = document.getElementById('authMessage');
+  if(!el) return;
+  el.textContent = message || '';
+  el.className = kind;
+}
+function showAuthGate(message='', kind=''){
+  document.getElementById('app').hidden = true;
+  document.getElementById('authGate').hidden = false;
+  document.getElementById('authSetupWarning').hidden = supabaseConfigured;
+  document.getElementById('accountEmail').textContent = '';
+  document.getElementById('signOutBtn').hidden = true;
+  setAuthMessage(message, kind);
+}
+function showAppForUser(user){
+  currentUser = user || null;
+  document.getElementById('authGate').hidden = true;
+  document.getElementById('app').hidden = false;
+  document.getElementById('accountEmail').textContent = user?.email || '';
+  document.getElementById('accountEmail').title = user?.email || '';
+  document.getElementById('signOutBtn').hidden = !user;
+}
+async function loadData(){
+  if(!supabaseConfigured || !supabase){
+    showAuthGate('Supabase еще не настроен. Заполни SUPABASE_URL и SUPABASE_ANON_KEY в коде, затем обнови страницу.', 'error');
+    return;
+  }
+  cloudLoadInProgress = true;
+  try{
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if(sessionError) throw sessionError;
+    const user = sessionData?.session?.user;
+    if(!user){
+      currentUser = null;
+      showAuthGate();
+      return;
+    }
+    currentUser = user;
+    const { data: row, error } = await supabase
+      .from('worlds')
+      .select('data, updated_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if(error) throw error;
 
+    if(row && row.data){
+      // Облачная версия является источником истины после входа.
+      data = parseData(row.data);
+      writeLocalData();
+    }else{
+      const localData = readLocalData();
+      if(localData && Object.values(localData).some(v=>Array.isArray(v) && v.length)){
+        const shouldMigrate = window.confirm('В облаке пока нет данных для этого аккаунта, но в браузере найдены локальные проекты. Перенести их в облако? Нажми «Отмена», если это данные другого аккаунта или ты хочешь начать с пустого архива.');
+        data = shouldMigrate ? localData : Object.assign({}, DEFAULT_DATA);
+        if(shouldMigrate){
+          await saveCloudData(true, true);
+        }else{
+          writeLocalData();
+        }
+      }else{
+        data = Object.assign({}, DEFAULT_DATA);
+        writeLocalData();
+      }
+    }
+    state.activeProjectId = data.projects.some(p=>p.id===state.activeProjectId) ? state.activeProjectId : (data.projects[0]?.id || null);
+    showAppForUser(user);
+    render();
+  }catch(e){
+    console.error('Ошибка загрузки данных Supabase:', e);
+    showAuthGate('Не удалось загрузить данные из облака. Проверь подключение, URL/ключ Supabase и политики RLS. Локальная копия не удалена.\n\n' + (e?.message || 'Неизвестная ошибка'), 'error');
+  }finally{
+    cloudLoadInProgress = false;
+  }
+}
+async function saveCloudData(silent=false, force=false){
+  if(!supabase || !currentUser || (cloudLoadInProgress && !force)) return false;
+  const revisionAtStart = saveRevision;
+  const payload = JSON.parse(JSON.stringify(data));
+  const { error } = await supabase.from('worlds').upsert({
+    user_id: currentUser.id,
+    data: payload,
+    updated_at: new Date().toISOString()
+  }, { onConflict:'user_id' });
+  if(error){
+    console.error('Ошибка облачного сохранения:', error);
+    if(!silent) showToast('Не удалось сохранить в облако. Локальная копия сохранена.');
+    return false;
+  }
+  lastCloudSaveAt = Date.now();
+  if(revisionAtStart !== saveRevision){
+    // Если данные изменились во время запроса, следующий таймер отправит новую версию.
+    queueSave();
+  }else if(!silent){
+    showToast('Сохранено в облако');
+  }
+  return true;
+}
 function queueSave(){
+  saveRevision++;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=>{
-    try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-    catch(e){ showToast('Не удалось сохранить — возможно, закончилось место в хранилище браузера.'); }
-  }, 350);
+  saveTimer = setTimeout(async ()=>{
+    writeLocalData();
+    if(!currentUser || !supabase) return;
+    await saveCloudData(true);
+  }, 1000);
 }
 
 function showToast(msg){
@@ -4617,7 +4779,83 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
   reader.readAsText(file);
 });
 
-/* ---------------- INIT ---------------- */
+/* ---------------- AUTH + INIT ---------------- */
+document.getElementById('authForm').addEventListener('submit', async e=>{
+  e.preventDefault();
+  if(!supabaseConfigured || !supabase){
+    setAuthMessage('Сначала заполни SUPABASE_URL и SUPABASE_ANON_KEY в начале скрипта.', 'error');
+    return;
+  }
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const btn = document.getElementById('authSubmitBtn');
+  btn.disabled = true;
+  setAuthMessage('Выполняется вход…');
+  try{
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if(error) throw error;
+    setAuthMessage('Вход выполнен. Загружаем проекты…', 'success');
+  }catch(err){
+    setAuthMessage(err?.message || 'Не удалось войти.', 'error');
+  }finally{ btn.disabled = false; }
+});
+document.getElementById('authSignUpBtn').addEventListener('click', async ()=>{
+  if(!supabaseConfigured || !supabase){
+    setAuthMessage('Сначала заполни SUPABASE_URL и SUPABASE_ANON_KEY в начале скрипта.', 'error');
+    return;
+  }
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  if(!email || !password || password.length < 6){
+    setAuthMessage('Укажи корректную почту и пароль длиной не менее 6 символов.', 'error');
+    return;
+  }
+  const btn = document.getElementById('authSignUpBtn');
+  btn.disabled = true;
+  setAuthMessage('Создаем аккаунт…');
+  try{
+    const { data: result, error } = await supabase.auth.signUp({
+      email, password,
+      options:{ emailRedirectTo: window.location.origin + window.location.pathname }
+    });
+    if(error) throw error;
+    if(!result?.session){
+      setAuthMessage('Аккаунт создан. Если в Supabase включено подтверждение почты, проверь почту и перейди по ссылке, затем войди.', 'success');
+    }
+  }catch(err){
+    setAuthMessage(err?.message || 'Не удалось создать аккаунт.', 'error');
+  }finally{ btn.disabled = false; }
+});
+document.getElementById('signOutBtn').addEventListener('click', async ()=>{
+  if(!supabase) return;
+  const btn = document.getElementById('signOutBtn');
+  btn.disabled = true;
+  try{
+    clearTimeout(saveTimer);
+    writeLocalData();
+    const { error } = await supabase.auth.signOut();
+    if(error) throw error;
+    currentUser = null;
+    data = Object.assign({}, DEFAULT_DATA);
+    state.activeProjectId = null;
+    showAuthGate('Ты вышел из аккаунта.');
+  }catch(err){
+    showToast('Не удалось выйти: ' + (err?.message || 'ошибка'));
+  }finally{ btn.disabled = false; }
+});
+if(supabase){
+  supabase.auth.onAuthStateChange((event, session)=>{
+    if(event === 'SIGNED_OUT'){
+      currentUser = null;
+      data = Object.assign({}, DEFAULT_DATA);
+      state.activeProjectId = null;
+      showAuthGate();
+    }else if(event === 'SIGNED_IN' && session?.user && !currentUser){
+      // Событие может прийти раньше ручного обработчика формы.
+      setTimeout(()=>loadData(), 0);
+    }
+  });
+}
 loadData();
 document.addEventListener('click', e=>{ const img=e.target.closest('.d-avatar, .rel-avatar img, .tree-avatar img, .ph-avatar img'); if(img && img.tagName==='IMG' && img.src){ e.preventDefault(); e.stopPropagation(); openImageViewer(img.src, img.alt || ''); } });
 </script>
