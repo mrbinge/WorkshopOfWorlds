@@ -52,19 +52,18 @@
       </div>
       <div id="activeProjectChip"></div>
       <div style="display:flex; align-items:center; gap:8px; margin-left:auto;">
-        <div id="dataSection">
-          <button id="dataToggle" title="Данные — бэкап и восстановление">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 19h16"/></svg>
+        <div id="settingsSection">
+          <button id="settingsToggle" type="button" aria-label="Настройки аккаунта" aria-expanded="false" title="Настройки">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.7 2.94-.08-.02a1.7 1.7 0 0 0-1.8.68l-.05.07h-3.4l-.03-.08a1.7 1.7 0 0 0-1.48-1.12 1.7 1.7 0 0 0-.78.1l-.08.03-2.94-1.7.02-.08a1.7 1.7 0 0 0-.68-1.8l-.07-.05v-3.4l.08-.03a1.7 1.7 0 0 0 1.02-2.26l-.03-.08 1.7-2.94.08.02a1.7 1.7 0 0 0 1.8-.68l.05-.07h3.4l.03.08a1.7 1.7 0 0 0 2.26 1.02l.08-.03 2.94 1.7-.02.08a1.7 1.7 0 0 0 .68 1.8l.07.05v3.4z" transform="translate(-1 -1) scale(1.08)"/></svg>
           </button>
-          <div id="dataPanel">
-            <button id="exportBtn" class="btn btn-sm" style="width:100%;">⭳ Скачать бэкап</button>
+          <div id="settingsPanel" aria-label="Настройки аккаунта">
+            <div id="accountEmail" title="Аккаунт"></div>
+            <div class="settings-divider"></div>
             <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
             <input type="file" id="importFile" accept="application/json" style="display:none;">
+            <div class="settings-divider"></div>
+            <button id="signOutBtn" class="btn btn-sm settings-signout" type="button" title="Выйти из аккаунта">Выйти из аккаунта</button>
           </div>
-        </div>
-        <div id="accountControls" title="Аккаунт Supabase">
-          <span id="accountEmail"></span>
-          <button id="signOutBtn" class="btn btn-sm" type="button" title="Выйти из аккаунта">Выйти</button>
         </div>
         <button id="sidebarToggle" onclick="toggleSidebar()" title="Свернуть панель">▴</button>
       </div>

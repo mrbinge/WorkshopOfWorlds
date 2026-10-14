@@ -399,7 +399,7 @@ function renderMain(){
         ${tabBtn('structure','Структура')}
         ${tabBtn('relationships','Связи')}
         ${tabBtn('timeline','Таймлайн')}
-        ${tabBtn('world','Мир и лор')}
+        ${WORLD_GROUPS.filter(g=>worldGroupSections(g).length).map(g=>tabBtn(g.key,g.title)).join('')}
       </div>
     </div>
     <div id="tabContent"></div>
@@ -412,7 +412,7 @@ function tabBtn(key,label){
 }
 function switchTab(key){
   if(state.activeTab==='timeline' && key!=='timeline') teardownTimelineNav();
-  state.activeTab = key; if(key!=='world'){ state.activeMapId = null; state.activeTreeId = null; exitMapFullscreen(); } renderMain();
+  state.activeTab = key; if(!isWorldTab(key)){ state.activeMapId = null; state.activeTreeId = null; exitMapFullscreen(); } renderMain();
 }
 
 function renderTabContent(){
@@ -423,7 +423,7 @@ function renderTabContent(){
   if(state.activeTab==='structure') return renderStructure(el, pid);
   if(state.activeTab==='relationships') return renderRelationships(el, pid);
   if(state.activeTab==='timeline') return renderTimeline(el, pid);
-  if(state.activeTab==='world') return renderWorld(el, pid);
+  if(isWorldTab(state.activeTab)) return renderWorld(el, pid);
 }
 
 /* ---------------- OVERVIEW ---------------- */
@@ -441,7 +441,7 @@ function renderOverview(pid){
     <div class="stat-row">${stats.map(([l,n])=>`<div class="stat-card"><div class="num">${n}</div><div class="label">${l}</div></div>`).join('')}</div>
     ${chars.length===0 && events.length===0 ? `<div class="empty-tab">Проект пуст. Начните с вкладки «Персонажи» или «Таймлайн» — заполните архив по кусочку, каша сама уляжется в систему.</div>` : `
     ${chars.filter(c=>c.pinned).length ? `
-    <div class="side-section-label" style="margin-bottom:10px;">📌 Закреплённые</div>
+    <div class="side-section-label pinned-label" style="margin-bottom:10px;"><svg class="pin-gold" viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M14.7 2.3c-.4-.4-1-.4-1.4 0L11 4.6c-1.7-.5-3.7 0-5 1.3L4.6 7.3c-.4.4-.4 1 0 1.4l3.6 3.6-4.9 4.9a1 1 0 0 0 1.4 1.4l4.9-4.9 3.6 3.6c.4.4 1 .4 1.4 0l1.4-1.4c1.3-1.3 1.8-3.3 1.3-5l2.3-2.3c.4-.4.4-1 0-1.4l-5-5Z"/></svg>Закреплённые</div>
     <div class="grid" style="margin-bottom:30px;">${chars.filter(c=>c.pinned).map(characterCard).join('')}</div>
     ` : ''}
     <div class="side-section-label" style="margin-bottom:10px;">Недавние персонажи</div>
@@ -663,7 +663,6 @@ function relNodeHtml(c){
   return `<div class="rel-node" data-id="${c.id}" style="left:${c.netX}px; top:${c.netY}px;">
     <div class="rel-avatar">${avatarInner}</div>
     <div class="rel-name">${esc(c.name)}</div>
-    <div class="rel-port" data-id="${c.id}" title="Тяните, чтобы создать связь"></div>
   </div>`;
 }
 
@@ -709,6 +708,7 @@ function attachRelCanvasEvents(){
   const viewport = document.getElementById('relCanvasViewport');
   if(!viewport) return;
   viewport.addEventListener('mousedown', onRelCanvasMouseDown);
+  viewport.addEventListener('contextmenu', onRelCanvasContextMenu);
   viewport.addEventListener('wheel', onRelCanvasWheel, {passive:false});
 }
 
@@ -726,7 +726,20 @@ function onRelCanvasWheel(e){
   applyRelCanvasTransform(); drawRelEdges();
 }
 
+function onRelCanvasContextMenu(e){
+  const nodeEl = e.target.closest('.rel-node');
+  if(nodeEl){
+    const c = itemsOf('characters', state.activeProjectId).find(x=>x.id===nodeEl.dataset.id);
+    if(c) return showCtxMenu(e, [
+      {label:'+ Новая связь от «'+(c.name||'персонажа')+'»', onClick:()=>openNewRelationshipModal(c.id)},
+      {label:'+ Новая связь', onClick:()=>openNewRelationshipModal()},
+    ]);
+  }
+  showCtxMenu(e, [{label:'+ Новая связь', onClick:()=>openNewRelationshipModal()}]);
+}
+
 function onRelCanvasMouseDown(e){
+  if(e.button!==0) return;
   const viewport = document.getElementById('relCanvasViewport');
   const rect = viewport.getBoundingClientRect();
   const portEl = e.target.closest('.rel-port');
@@ -1053,6 +1066,7 @@ function attachCanvasEvents(){
   const viewport = document.getElementById('storyCanvasViewport');
   if(!viewport) return;
   viewport.addEventListener('mousedown', onCanvasMouseDown);
+  viewport.addEventListener('contextmenu', onCanvasContextMenu);
   viewport.addEventListener('wheel', onCanvasWheel, {passive:false});
 }
 
@@ -1072,6 +1086,7 @@ function onCanvasWheel(e){
 }
 
 function onCanvasMouseDown(e){
+  if(e.button!==0) return;
   const viewport = document.getElementById('storyCanvasViewport');
   const rect = viewport.getBoundingClientRect();
   const portEl = e.target.closest('.port');
@@ -1146,6 +1161,31 @@ function onCanvasMouseDown(e){
   }
 }
 
+/* ---------------- CONTEXT MENU (правая кнопка мыши) ---------------- */
+function closeCtxMenu(){ const m=document.getElementById('ctxMenu'); if(m) m.remove(); }
+function showCtxMenu(e, items){
+  e.preventDefault(); e.stopPropagation();
+  closeCtxMenu();
+  const menu = document.createElement('div');
+  menu.id = 'ctxMenu';
+  menu.innerHTML = items.map((it,i)=> it.sep ? '<div class="ctx-sep"></div>' : `<button type="button" class="ctx-item" data-i="${i}">${esc(it.label)}</button>`).join('');
+  document.body.appendChild(menu);
+  const w = menu.offsetWidth, h = menu.offsetHeight;
+  menu.style.left = Math.max(4, Math.min(e.clientX, window.innerWidth - w - 4)) + 'px';
+  menu.style.top  = Math.max(4, Math.min(e.clientY, window.innerHeight - h - 4)) + 'px';
+  menu.addEventListener('mousedown', ev=>ev.stopPropagation());
+  menu.addEventListener('contextmenu', ev=>{ ev.preventDefault(); ev.stopPropagation(); });
+  menu.addEventListener('click', ev=>{
+    const b = ev.target.closest('.ctx-item'); if(!b) return;
+    const it = items[+b.dataset.i]; closeCtxMenu();
+    if(it && it.onClick) it.onClick();
+  });
+}
+document.addEventListener('mousedown', e=>{ if(!e.target.closest('#ctxMenu')) closeCtxMenu(); }, true);
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeCtxMenu(); });
+window.addEventListener('blur', closeCtxMenu);
+window.addEventListener('resize', closeCtxMenu);
+
 function createSceneLink(from, to){
   if(from===to) return;
   const exists = data.sceneLinks.find(l=>l.from===from && l.to===to && l.projectId===state.activeProjectId);
@@ -1155,12 +1195,34 @@ function createSceneLink(from, to){
 }
 function deleteSceneLink(id){ data.sceneLinks = data.sceneLinks.filter(l=>l.id!==id); queueSave(); drawEdges(); }
 
-function addScene(){
+function onCanvasContextMenu(e){
   const viewport = document.getElementById('storyCanvasViewport');
   const rect = viewport.getBoundingClientRect();
-  const localX = (rect.width/2 - canvasView.pan.x)/canvasView.scale - 100;
-  const localY = (rect.height/2 - canvasView.pan.y)/canvasView.scale - 40;
-  data.scenes.push({id:uid(), projectId: state.activeProjectId, title:'Новая сцена', summary:'', status:'idea', x: Math.max(0,localX), y: Math.max(0,localY), charIds:[]});
+  const lx = (e.clientX-rect.left-canvasView.pan.x)/canvasView.scale;
+  const ly = (e.clientY-rect.top-canvasView.pan.y)/canvasView.scale;
+  const nodeEl = e.target.closest('.scene-node');
+  if(nodeEl){
+    const id = nodeEl.dataset.id;
+    const sc = data.scenes.find(x=>x.id===id);
+    if(!sc) return;
+    return showCtxMenu(e, [
+      {label:'+ Новая сцена после этой', onClick:()=>addScene(sc.x+260, sc.y, id)},
+      {label:'+ Новая сцена здесь', onClick:()=>addScene(lx-100, ly-40)},
+      {sep:true},
+      {label:'Изменить сцену', onClick:()=>openEditSceneModal(id)},
+    ]);
+  }
+  showCtxMenu(e, [{label:'+ Новая сцена здесь', onClick:()=>addScene(lx-100, ly-40)}]);
+}
+function addScene(atX, atY, linkFromId){
+  const viewport = document.getElementById('storyCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const hasPos = typeof atX==='number' && typeof atY==='number';
+  const localX = hasPos ? atX : (rect.width/2 - canvasView.pan.x)/canvasView.scale - 100;
+  const localY = hasPos ? atY : (rect.height/2 - canvasView.pan.y)/canvasView.scale - 40;
+  const newScene = {id:uid(), projectId: state.activeProjectId, title:'Новая сцена', summary:'', status:'idea', x: Math.max(0,Math.round(localX)), y: Math.max(0,Math.round(localY)), charIds:[]};
+  data.scenes.push(newScene);
+  if(typeof linkFromId==='string') data.sceneLinks.push({id:uid(), projectId: state.activeProjectId, from: linkFromId, to: newScene.id});
   queueSave();
   renderStructure(document.getElementById('tabContent'), state.activeProjectId);
 }
@@ -1633,6 +1695,7 @@ function attachTreeCanvasEvents(){
   const viewport = document.getElementById('treeCanvasViewport');
   if(!viewport) return;
   viewport.addEventListener('mousedown', onTreeCanvasMouseDown);
+  viewport.addEventListener('contextmenu', onTreeCanvasContextMenu);
   viewport.addEventListener('wheel', onTreeCanvasWheel, {passive:false});
 }
 
@@ -1650,7 +1713,29 @@ function onTreeCanvasWheel(e){
   applyTreeCanvasTransform(); drawTreeEdges();
 }
 
+function onTreeCanvasContextMenu(e){
+  const dynastyId = state.activeTreeId;
+  if(!dynastyId) return;
+  const viewport = document.getElementById('treeCanvasViewport');
+  const rect = viewport.getBoundingClientRect();
+  const lx = Math.round((e.clientX-rect.left-treeCanvasView.pan.x)/treeCanvasView.scale);
+  const ly = Math.round((e.clientY-rect.top-treeCanvasView.pan.y)/treeCanvasView.scale);
+  const here = {tx:Math.max(0,lx-48), ty:Math.max(0,ly-27)};
+  const nodeEl = e.target.closest('.tree-node');
+  if(nodeEl){
+    const m = data.dynastyMembers.find(x=>x.id===nodeEl.dataset.id);
+    if(m) return showCtxMenu(e, [
+      {label:'+ Добавить ребёнка (участник и связь)', onClick:()=>openNewMemberModal(dynastyId, {tx:m.tx, ty:m.ty+150}, m.id)},
+      {label:'+ Новый участник здесь', onClick:()=>openNewMemberModal(dynastyId, here)},
+      {sep:true},
+      {label:'Изменить участника', onClick:()=>openEditMemberModal(dynastyId, m.id)},
+    ]);
+  }
+  showCtxMenu(e, [{label:'+ Новый участник здесь', onClick:()=>openNewMemberModal(dynastyId, here)}]);
+}
+
 function onTreeCanvasMouseDown(e){
+  if(e.button!==0) return;
   const viewport = document.getElementById('treeCanvasViewport');
   const rect = viewport.getBoundingClientRect();
   const portEl = e.target.closest('.tree-port');
@@ -1762,9 +1847,12 @@ function treeLinkCard(l, members){
   </div>`;
 }
 
-function openNewMemberModal(dynastyId){
+function openNewMemberModal(dynastyId, pos, parentId){
   openFormModal('Новый член рода', memberFields(), {}, (vals)=>{
-    data.dynastyMembers.push(Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals));
+    const nm = Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals);
+    if(pos && typeof pos.tx==='number'){ nm.tx = pos.tx; nm.ty = pos.ty; }
+    data.dynastyMembers.push(nm);
+    if(parentId) data.dynastyMemberLinks.push({id:uid(), projectId: state.activeProjectId, dynastyId, fromId: parentId, toId: nm.id});
     queueSave(); closeModal(); refreshTreeEditor();
   });
 }
@@ -1803,6 +1891,26 @@ const WORLD_SECTIONS = [
   {key:'creatures', title:'Бестиарий', addLabel:'+ Добавить', addFn:'openNewCreatureModal', card:creatureCardRef, emptyLabel:'Существ пока нет.'},
   {key:'myths', title:'Мифы и легенды', addLabel:'+ Добавить', addFn:'openNewMythModal', card:mythCardRef, emptyLabel:'Мифов и легенд пока нет.'},
 ];
+// Группы разделов (бывший единый раздел «Мир и лор»). Каждая группа — отдельная вкладка.
+// Всё, что не вошло ни в одну именованную группу, автоматически попадает в «Разное».
+const WORLD_GROUPS = [
+  {key:'geography', title:'География',      keys:['maps','countries','locations']},
+  {key:'society',   title:'Общество',       keys:['factions','dynasties','deities']},
+  {key:'magic',     title:'Магия и тайны',  keys:['magicSystems','artifacts','myths']},
+  {key:'creatures', title:'Существа',       keys:['creatures']},
+  {key:'misc',      title:'Разное',         keys:null},
+];
+function worldGroupSections(g){
+  if(g.keys) return g.keys.map(k=>WORLD_SECTIONS.find(s=>s.key===k)).filter(Boolean);
+  const used = new Set(WORLD_GROUPS.filter(x=>x.keys).flatMap(x=>x.keys));
+  return WORLD_SECTIONS.filter(s=>!used.has(s.key));
+}
+function isWorldTab(key){ return WORLD_GROUPS.some(g=>g.key===key); }
+function worldTabOf(coll){
+  const g = WORLD_GROUPS.find(g=>g.keys && g.keys.includes(coll));
+  if(g) return g.key;
+  return WORLD_SECTIONS.some(s=>s.key===coll) ? 'misc' : null;
+}
 function locCardRef(x){ return locCard(x); }
 function facCardRef(x){ return facCard(x); }
 function creatureCardRef(x){ return creatureCard(x); }
@@ -1883,7 +1991,9 @@ function renderWorld(el, pid){
     creatures: sortByOrder(itemsOf('creatures', pid)),
     myths: sortByOrder(itemsOf('myths', pid)),
   };
-  el.innerHTML = WORLD_SECTIONS.map(sec=>{
+  const group = WORLD_GROUPS.find(g=>g.key===state.activeTab) || WORLD_GROUPS[0];
+  const groupSections = worldGroupSections(group);
+  el.innerHTML = groupSections.map(sec=>{
     const items = dataByKey[sec.key];
     const open = !!state.worldOpen[sec.key];
     return `<div class="world-section ${open?'open':''}" id="world-sec-${sec.key}">
@@ -1900,7 +2010,7 @@ function renderWorld(el, pid){
       </div>
     </div>`;
   }).join('');
-  WORLD_SECTIONS.forEach(sec=>{
+  groupSections.forEach(sec=>{
     if(sec.key==='maps') return;
     attachWorldGridDrag(document.getElementById('world-grid-'+sec.key), sec.key, pid);
   });
@@ -3941,9 +4051,9 @@ document.addEventListener('click', (e)=>{ if(!document.getElementById('globalSea
 
 function jumpTo(coll, itemId, projectId){
   searchResultsEl.classList.remove('show'); searchInput.value='';
-  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', locations:'world', factions:'world', creatures:'world', myths:'world', magicSystems:'world', deities:'world', countries:'world', dynasties:'world', artifacts:'world', maps:'world', projects:'overview' };
+  const tabMap = { characters:'characters', scenes:'structure', events:'timeline', projects:'overview' };
   state.activeProjectId = coll==='projects' ? itemId : projectId;
-  state.activeTab = tabMap[coll] || 'overview';
+  state.activeTab = tabMap[coll] || worldTabOf(coll) || 'overview';
   render();
   setTimeout(()=>{
     const el = document.getElementById('char-'+itemId) || document.getElementById('tlevent-'+itemId);
@@ -3951,59 +4061,21 @@ function jumpTo(coll, itemId, projectId){
   }, 60);
 }
 
-/* ---------------- BACKUP ---------------- */
-const dataToggle = document.getElementById('dataToggle');
-const dataPanel = document.getElementById('dataPanel');
+/* ---------------- SETTINGS MENU ---------------- */
+const dataToggle = document.getElementById('settingsToggle');
+const dataPanel = document.getElementById('settingsPanel');
 dataToggle.addEventListener('click', (e)=>{
   e.stopPropagation();
-  dataPanel.classList.toggle('show');
+  const isOpen = dataPanel.classList.toggle('show');
+  dataToggle.setAttribute('aria-expanded', String(isOpen));
 });
 document.addEventListener('click', (e)=>{
-  if(!document.getElementById('dataSection').contains(e.target)) dataPanel.classList.remove('show');
-});
-
-/* Напоминание о бэкапе: жёлтое мигание, если давно не выгружали архив,
-   красное — если очень давно. Отсчёт идёт от последнего скачивания
-   бэкапа (или от первого запуска, если бэкап ещё ни разу не скачивали). */
-const BACKUP_REMIND_KEY = 'storyBibleLastBackupAt';
-const BACKUP_DUE_MS = 1 * 24 * 60 * 60 * 1000;      // 1 день — жёлтый
-const BACKUP_OVERDUE_MS = 3 * 24 * 60 * 60 * 1000;  // 3 дня — красный
-function getLastBackupAt(){
-  let t = Number(localStorage.getItem(BACKUP_REMIND_KEY));
-  if(!t){ t = Date.now(); localStorage.setItem(BACKUP_REMIND_KEY, String(t)); }
-  return t;
-}
-function markBackupDone(){
-  localStorage.setItem(BACKUP_REMIND_KEY, String(Date.now()));
-  updateBackupReminder();
-}
-function updateBackupReminder(){
-  const elapsed = Date.now() - getLastBackupAt();
-  dataToggle.classList.remove('backup-due-soon','backup-overdue');
-  if(elapsed >= BACKUP_OVERDUE_MS){
-    dataToggle.classList.add('backup-overdue');
-    dataToggle.title = 'Данные — бэкап и восстановление. Бэкап давно не скачивался, стоит сохранить архив.';
-  } else if(elapsed >= BACKUP_DUE_MS){
-    dataToggle.classList.add('backup-due-soon');
-    dataToggle.title = 'Данные — бэкап и восстановление. Пора скачать свежий бэкап.';
-  } else {
-    dataToggle.title = 'Данные — бэкап и восстановление';
+  if(!document.getElementById('settingsSection').contains(e.target)){
+    dataPanel.classList.remove('show');
+    dataToggle.setAttribute('aria-expanded', 'false');
   }
-}
-updateBackupReminder();
-setInterval(updateBackupReminder, 60*1000);
-
-document.getElementById('exportBtn').addEventListener('click', ()=>{
-  const blob = new Blob([JSON.stringify(data, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  const date = new Date().toISOString().slice(0,10);
-  a.href = url; a.download = `masterskaya-mirov-backup-${date}.json`;
-  document.body.appendChild(a); a.click(); a.remove();
-  URL.revokeObjectURL(url);
-  markBackupDone();
-  showToast('Бэкап скачан');
 });
+
 document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -4013,16 +4085,16 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
     try{
       const parsed = JSON.parse(reader.result);
       if(!parsed || !Array.isArray(parsed.projects)) throw new Error('bad format');
-      askConfirm('Загрузить бэкап? Это заменит все текущие данные в архиве — сохраните текущий бэкап на всякий случай, если ещё не сделали.', 'Загрузить', ()=>{
+      askConfirm('Восстановление заменит текущие данные данными из выбранного файла. Продолжить?', 'Восстановить', ()=>{
         data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
         state.activeProjectId = data.projects[0] ? data.projects[0].id : null;
         state.activeTab = 'overview';
         queueSave();
         render();
-        showToast('Бэкап загружен');
+        showToast('Данные восстановлены из файла');
       });
     }catch(err){
-      showToast('Не удалось прочитать файл — это не бэкап архива');
+      showToast('Не удалось прочитать файл — формат не распознан');
     }
     e.target.value = '';
   };
@@ -4107,4 +4179,4 @@ if(supabaseClient){
   });
 }
 loadData();
-document.addEventListener('click', e=>{ const img=e.target.closest('.d-avatar, .rel-avatar img, .tree-avatar img, .ph-avatar img'); if(img && img.tagName==='IMG' && img.src){ e.preventDefault(); e.stopPropagation(); openImageViewer(img.src, img.alt || ''); } });
+document.addEventListener('click', e=>{ const img=e.target.closest('.d-avatar, .ph-avatar img'); if(img && img.tagName==='IMG' && img.src){ e.preventDefault(); e.stopPropagation(); openImageViewer(img.src, img.alt || ''); } });

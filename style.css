@@ -69,7 +69,7 @@
   #sidebar.collapsed{ padding:10px 32px 0 32px; gap:0; }
   #sidebar.collapsed .brand h1,
   #sidebar.collapsed #globalSearchWrap,
-  #sidebar.collapsed #dataSection,
+  #sidebar.collapsed #settingsSection,
   #sidebar.collapsed #projectsRow{ display:none; }
   #activeProjectChip{ display:none; align-items:center; gap:8px; flex:1; min-width:0; overflow:hidden; }
   #sidebar.collapsed #activeProjectChip{ display:flex; }
@@ -117,25 +117,22 @@
   .search-hit .hit-meta{color:var(--text-faint); font-size:11px;}
   .search-empty{padding:12px; font-size:12.5px; color:var(--text-faint);}
 
-  #dataSection{position:relative; flex-shrink:0;}
-  #dataToggle{
-    width:26px; height:26px; padding:0; border-radius:50%;
+  #settingsSection{position:relative; flex-shrink:0;}
+  #settingsToggle{
+    width:30px; height:30px; padding:0; border-radius:50%;
     background:var(--card); border:1px solid var(--border); color:var(--text-dim);
     display:flex; align-items:center; justify-content:center; cursor:pointer;
+    transition:color .15s ease, border-color .15s ease, transform .2s ease;
   }
-  #dataToggle:hover{ color:var(--text); border-color:var(--text-faint); }
-  #dataToggle.backup-due-soon{ animation: backupBlinkYellow 1.4s ease-in-out infinite; }
-  #dataToggle.backup-overdue{ animation: backupBlinkRed 1s ease-in-out infinite; }
-  @keyframes backupBlinkYellow{
-    0%,100%{ background:var(--card); border-color:var(--border); color:var(--text-dim); box-shadow:none; }
-    50%{ background:#c9a24c; border-color:#c9a24c; color:#14151b; box-shadow:0 0 10px rgba(201,162,76,.7); }
-  }
-  @keyframes backupBlinkRed{
-    0%,100%{ background:var(--card); border-color:var(--border); color:var(--text-dim); box-shadow:none; }
-    50%{ background:#c1443b; border-color:#c1443b; color:#fff; box-shadow:0 0 12px rgba(193,68,59,.8); }
-  }
-  #dataPanel{position:absolute; top:calc(100% + 8px); right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:10px; box-shadow:var(--shadow); display:none; flex-direction:column; gap:8px; min-width:210px; z-index:60;}
-  #dataPanel.show{display:flex;}
+  #settingsToggle:hover{ color:var(--text); border-color:var(--text-faint); }
+  #settingsToggle[aria-expanded="true"] svg{transform:rotate(35deg);}
+  #settingsToggle svg{transition:transform .2s ease;}
+  #settingsPanel{position:absolute; top:calc(100% + 8px); right:0; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:12px; box-shadow:var(--shadow); display:none; flex-direction:column; gap:8px; width:245px; max-width:calc(100vw - 24px); z-index:60;}
+  #settingsPanel.show{display:flex;}
+  #accountEmail{font-size:12px;color:var(--text);line-height:1.45;overflow-wrap:anywhere;padding:2px 2px 4px;}
+  .settings-divider{height:1px;background:var(--border-soft);margin:2px 0;}
+  #settingsPanel .settings-signout{margin-top:1px;color:var(--danger, #d96c64);border-color:rgba(217,108,100,.35);}
+  #settingsPanel .settings-signout:hover{background:rgba(217,108,100,.1);border-color:rgba(217,108,100,.65);}
 
   .side-section-label{font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; margin-bottom:2px;}
   #projectsRow{display:flex; align-items:flex-end; gap:10px; min-width:0;}
@@ -231,6 +228,8 @@
   .pin-btn{background:none; border:none; padding:3px; color:var(--text-faint); cursor:pointer; display:flex; align-items:center; border-radius:3px;}
   .pin-btn:hover{color:var(--gold); background:var(--bg-alt);}
   .pin-btn.pinned{color:var(--gold);}
+  .pinned-label{display:flex; align-items:center; gap:7px;}
+  .pin-gold{color:var(--gold); flex-shrink:0; transform:rotate(-12deg);}
   .dossier::before{
     content:''; position:absolute; top:-1px; left:16px; width:26px; height:6px; background:var(--gold);
     clip-path: polygon(0 0,100% 0,85% 100%,15% 100%); opacity:.85;
@@ -238,7 +237,7 @@
   .dossier .d-top{display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-top:6px;}
   .d-avatar{width:44px; height:44px; border-radius:50%; object-fit:cover; border:1px solid var(--border); flex-shrink:0; background:var(--bg-alt);}
   .d-avatar-placeholder{display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--text-faint);}
-  .d-avatar, .rel-avatar img, .tree-avatar img, .ph-avatar img { cursor: zoom-in; }
+  .d-avatar, .ph-avatar img { cursor: zoom-in; }
   .avatar-crop-backdrop{position:fixed;inset:0;z-index:500;background:rgba(5,6,10,.88);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;padding:18px;}
   .avatar-crop-dialog{width:min(440px,96vw);background:var(--card);color:var(--text);border:1px solid var(--border);border-radius:14px;padding:20px;box-shadow:0 24px 80px rgba(0,0,0,.55);}
   .avatar-crop-dialog h2{margin:0 0 6px;font-size:20px}.avatar-crop-dialog p{font-size:12px;color:var(--text-dim);margin:0 0 14px;line-height:1.5}
@@ -660,7 +659,11 @@
   #authMessage.success{color:var(--teal);}
   #authSetupWarning{font-size:12px;line-height:1.55;background:rgba(201,162,76,.08);border:1px solid rgba(201,162,76,.35);padding:10px 12px;border-radius:5px;margin-bottom:16px;color:var(--text-dim);}
   #authSetupWarning[hidden]{display:none;}
-  #accountControls{display:flex;align-items:center;gap:7px;min-width:0;}
-  #accountEmail{font-size:11px;color:var(--text-faint);max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   #signOutBtn{white-space:nowrap;}
-  @media(max-width:700px){#accountEmail{display:none}.auth-card{padding:22px;}}
+  @media(max-width:700px){#settingsPanel{right:0}.auth-card{padding:22px;}}
+
+  /* Контекстное меню (правая кнопка мыши) */
+  #ctxMenu{position:fixed; z-index:400; min-width:230px; background:var(--card); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:5px; display:flex; flex-direction:column;}
+  #ctxMenu .ctx-item{background:none; border:none; color:var(--text); text-align:left; font-size:13px; padding:8px 11px; border-radius:6px; cursor:pointer; font-family:inherit;}
+  #ctxMenu .ctx-item:hover{background:var(--card-hover); color:var(--gold);}
+  #ctxMenu .ctx-sep{height:1px; background:var(--border-soft); margin:4px 2px;}
