@@ -302,7 +302,7 @@
   .rel-edge:hover{stroke-width:3.6;}
   .rel-node{position:absolute; width:84px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; transition:opacity .2s;}
   .rel-node.dragging{cursor:grabbing; z-index:20;}
-  .rel-avatar{width:52px; height:52px; border-radius:50%; overflow:hidden; border:2px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
+  .rel-avatar{width:52px; height:52px; border-radius:50%; overflow:hidden; border:3px solid var(--hex-ring, var(--gold)); transition:box-shadow .15s; background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
   .rel-avatar img{width:100%; height:100%; object-fit:cover;}
   .rel-name{font-size:11px; color:var(--text-dim); text-align:center; max-width:84px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .rel-port{position:absolute; bottom:2px; right:10px; width:14px; height:14px; border-radius:50%; background:var(--gold); border:2px solid var(--bg-alt); cursor:crosshair;}
@@ -328,7 +328,7 @@
   .tree-edge:hover{stroke-width:3.4;}
   .tree-node{position:absolute; width:96px; display:flex; flex-direction:column; align-items:center; gap:4px; cursor:grab; user-select:none; transition:opacity .2s;}
   .tree-node.dragging{cursor:grabbing; z-index:20;}
-  .tree-avatar{width:54px; height:54px; border-radius:50%; overflow:hidden; border:2px solid var(--border); background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
+  .tree-avatar{width:54px; height:54px; border-radius:50%; overflow:hidden; border:3px solid var(--hex-ring, var(--gold)); transition:box-shadow .15s; background:var(--card); display:flex; align-items:center; justify-content:center; font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--text-dim); position:relative; box-shadow:var(--shadow);}
   .tree-avatar img{width:100%; height:100%; object-fit:cover;}
   .tree-name{font-size:11px; color:var(--text); text-align:center; max-width:96px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:600;}
   .tree-dates{font-size:9.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; text-align:center;}
@@ -667,3 +667,112 @@
   #ctxMenu .ctx-item{background:none; border:none; color:var(--text); text-align:left; font-size:13px; padding:8px 11px; border-radius:6px; cursor:pointer; font-family:inherit;}
   #ctxMenu .ctx-item:hover{background:var(--card-hover); color:var(--gold);}
   #ctxMenu .ctx-sep{height:1px; background:var(--border-soft); margin:4px 2px;}
+
+  /* Переключатель режимов «Свободный | Соты» */
+  .view-mode-seg{ display:inline-flex; border:1px solid var(--border-soft); border-radius:var(--radius); overflow:hidden; }
+  .view-mode-seg button{ border:none; background:transparent; padding:6px 10px; font-size:13px; cursor:pointer; color:var(--text-faint); display:inline-flex; align-items:center; gap:5px; white-space:nowrap; font-family:inherit; transition:background .12s, color .12s; }
+  .view-mode-seg button:hover{ background:rgba(255,255,255,.04); color:var(--text); }
+  .view-mode-seg button.active{ background:var(--gold); color:#14151b; cursor:pointer; }
+  .view-mode-seg button.active:hover{ background:var(--gold); color:#14151b; }
+  .view-mode-seg button svg{ display:inline-block; vertical-align:-2px; flex-shrink:0; }
+  .view-mode-seg button.active .hex-ico{ fill:currentColor; }
+
+  /* Режим «Соты» */
+  .hex-viewport{ position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius); background:var(--bg-alt); height:560px; cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none; }
+  .hex-viewport.panning{ cursor:grabbing; }
+  .hex-layer{ position:absolute; left:0; top:0; width:0; height:0; transform-origin:0 0; will-change:transform; }
+  .hex-grid{ position:absolute; left:0; top:0; width:1px; height:1px; overflow:visible; pointer-events:none; }
+  .hex-grid polygon{ fill:none; stroke:var(--border); stroke-opacity:.35; stroke-width:1.2; stroke-linejoin:round; }
+  .hex-hint polygon{ stroke:var(--gold); stroke-opacity:.9; stroke-width:2; stroke-dasharray:5 4; fill:rgba(201,162,76,.10); }
+  .hex-card{ position:absolute; cursor:grab; }
+  .hex-card.dragging{ cursor:grabbing; z-index:20; opacity:.92; }
+  #hexRelCards.snapping .hex-card, #hexTreeCards.snapping .hex-card{ transition:left .18s ease, top .18s ease; }
+  .hex-photo{ position:absolute; inset:0; clip-path:polygon(50% 0, 100% 25%, 100% 75%, 50% 100%, 0 75%, 0 25%); background:var(--card); }
+  .hex-photo img{ width:100%; height:100%; object-fit:cover; display:block; pointer-events:none; }
+  .hex-ph{ width:100%; height:100%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:22px; }
+  .hex-ring{ position:absolute; left:0; top:0; overflow:visible; pointer-events:none; }
+  .hex-ring polygon{ fill:none; stroke:var(--hex-ring, var(--gold)); stroke-width:3; stroke-linejoin:round; }
+  .hex-card:hover:not(.dragging){ filter:drop-shadow(0 0 10px color-mix(in srgb, var(--hex-ring, var(--gold)) 65%, transparent)); z-index:5; }
+  .hex-name{ position:absolute; top:100%; left:50%; transform:translateX(-50%); margin-top:2px; font-size:11px; color:var(--text-dim); text-align:center; white-space:nowrap; opacity:0; pointer-events:none; transition:opacity .15s; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+  .hex-card:hover .hex-name, .hex-card.dragging .hex-name{ opacity:1; }
+
+  /* Выбор цвета в контекстном меню */
+  #ctxMenu .ctx-colors{ padding:6px 11px 8px; }
+  #ctxMenu .ctx-colors-title{ font-size:11px; color:var(--text-faint); margin-bottom:6px; }
+  #ctxMenu .ctx-swatches{ display:flex; gap:6px; flex-wrap:wrap; }
+  #ctxMenu .ctx-sw{ width:18px; height:18px; border-radius:50%; border:2px solid transparent; cursor:pointer; padding:0; box-shadow:0 0 0 1px var(--border); }
+  #ctxMenu .ctx-sw:hover{ transform:scale(1.15); }
+  #ctxMenu .ctx-sw.on{ border-color:var(--text); }
+
+  /* Свободный режим: мягкая подсветка при наведении (цвет задаётся через правую кнопку) */
+  .rel-node:hover:not(.dragging) .rel-avatar, .tree-node:hover:not(.dragging) .tree-avatar{ box-shadow:0 0 18px color-mix(in srgb, var(--hex-ring, var(--gold)) 65%, transparent); }
+  .rel-node:hover, .tree-node:hover{ z-index:5; }
+
+  /* Линии связей по граням сот */
+  .hex-lines{ z-index:6; }
+  .hex-line{ fill:none; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; opacity:.95; }
+  .hex-ehover{ z-index:7; }
+  .hex-ehover line, .hex-ehover polyline{ fill:none; stroke:var(--gold); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; opacity:.95; filter:drop-shadow(0 0 6px rgba(201,162,76,.8)); }
+  .hex-chain-tip{ position:absolute; z-index:30; display:none; align-items:center; gap:6px; transform:translate(-50%,-50%); padding:6px 11px; font-size:12px; font-weight:600; color:#14151b; background:var(--gold); border-radius:var(--radius); box-shadow:0 4px 16px rgba(0,0,0,.45); cursor:pointer; white-space:nowrap; user-select:none; }
+  .hex-chain-tip.show{ display:inline-flex; }
+  .hex-chain-tip:hover{ filter:brightness(1.1); }
+
+  /* Свободный режим: имя скрыто, появляется при наведении (как в сотах) */
+  .rel-name, .tree-name, .tree-dates{ position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; max-width:200px; opacity:0; pointer-events:none; transition:opacity .15s; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+  .rel-name, .tree-name{ top:100%; margin-top:3px; }
+  .tree-dates{ top:calc(100% + 19px); }
+  .rel-node:hover .rel-name, .rel-node.dragging .rel-name,
+  .tree-node:hover .tree-name, .tree-node.dragging .tree-name,
+  .tree-node:hover .tree-dates, .tree-node.dragging .tree-dates{ opacity:1; }
+
+/* Кнопки «Новый персонаж» / «Новое событие» — закреплены в правом нижнем углу */
+.fab-add{ position:fixed; right:28px; bottom:28px; z-index:50; padding:12px 20px; font-size:14px; box-shadow:0 6px 22px rgba(0,0,0,.5); }
+@media (max-width:700px){ .fab-add{ right:16px; bottom:16px; } }
+
+
+#ctxMenu .ctx-item.ctx-danger{ color:#e0685f; }
+#ctxMenu .ctx-item.ctx-danger:hover{ background:rgba(224,104,95,.14); }
+
+/* Крестик и «Свернуть» в модалках */
+#modalBox{ position:relative; }
+#modalBox > h2{ padding-right:72px; }
+.modal-ctrl{ position:absolute; top:12px; right:12px; display:flex; gap:4px; z-index:2; }
+.modal-ctrl-btn{ width:28px; height:28px; display:inline-flex; align-items:center; justify-content:center; padding:0; background:transparent; border:1px solid transparent; border-radius:var(--radius); color:var(--text-faint); cursor:pointer; transition:color .15s, background .15s, border-color .15s; }
+.modal-ctrl-btn:hover{ color:var(--text); background:var(--card); border-color:var(--border); }
+.modal-ctrl-btn[data-act="close"]:hover{ color:#e0685f; border-color:rgba(224,104,95,.45); }
+.modal-ctrl-btn:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+
+/* Панель свёрнутых окон внизу экрана */
+#modalDock{ position:fixed; left:16px; bottom:0; z-index:101; display:none; gap:8px; max-width:calc(100% - 32px); flex-wrap:wrap; pointer-events:none; }
+#modalDock.has-items{ display:flex; }
+.modal-dock-chip{ pointer-events:auto; display:flex; align-items:center; gap:8px; max-width:260px; padding:9px 8px 9px 14px; background:var(--card, #1d1f27); border:1px solid var(--border); border-bottom:0; border-top:2px solid var(--gold); border-radius:var(--radius) var(--radius) 0 0; box-shadow:0 -4px 18px rgba(0,0,0,.45); font-size:13px; color:var(--text); cursor:pointer; user-select:none; transition:padding-bottom .12s, background .15s; }
+.modal-dock-chip:hover{ background:var(--bg-alt); padding-bottom:13px; }
+.modal-dock-title{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.modal-dock-x{ flex-shrink:0; width:22px; height:22px; display:inline-flex; align-items:center; justify-content:center; padding:0; background:transparent; border:0; border-radius:4px; color:var(--text-faint); cursor:pointer; }
+.modal-dock-x:hover{ color:#e0685f; background:rgba(224,104,95,.14); }
+@media (max-width:700px){ #modalDock{ left:8px; } .modal-dock-chip{ max-width:200px; } }
+
+/* Кнопки «отменить / вернуть» в панелях инструментов */
+.hist-btns{ display:inline-flex; gap:4px; }
+.hist-btn{ display:inline-flex; align-items:center; justify-content:center; padding:5px 9px; }
+.hist-btn:disabled{ opacity:.35; cursor:not-allowed; }
+
+/* Всплывающая карточка связи при наведении на линию */
+.hex-edge-info{ position:absolute; z-index:35; display:none; flex-direction:column; gap:8px; padding:9px 12px; background:var(--card, #1d1f27); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 6px 22px rgba(0,0,0,.5); pointer-events:none; max-width:min(520px, calc(100% - 12px)); }
+.hex-edge-info.show{ display:flex; }
+.hex-edge-info .ei-main{ display:flex; align-items:center; gap:10px; }
+.hex-edge-info .ei-who{ display:inline-flex; align-items:center; gap:7px; flex-shrink:0; font-size:12.5px; font-weight:600; color:var(--text); }
+.hex-edge-info .ei-ava{ width:28px; height:28px; border-radius:50%; object-fit:cover; display:inline-flex; align-items:center; justify-content:center; background:var(--bg-alt); border:1px solid var(--border); font-size:11px; color:var(--text-dim); flex-shrink:0; }
+.hex-edge-info .ei-name{ white-space:nowrap; max-width:110px; overflow:hidden; text-overflow:ellipsis; }
+.hex-edge-info .ei-mid{ display:flex; align-items:center; gap:7px; min-width:70px; }
+.hex-edge-info .ei-lab{ font-size:11.5px; font-weight:600; white-space:nowrap; }
+.hex-edge-info .ei-line{ flex:1; min-width:26px; height:3px; border-radius:2px; }
+.hex-edge-info .ei-note{ font-size:11px; color:var(--text-faint); line-height:1.4; }
+
+/* Полноэкранный режим полей «Связи» и «Древо династии» */
+.board-fs{ position:fixed !important; inset:0; width:auto !important; height:auto !important; max-width:none !important; margin:0 !important; z-index:90; border:0 !important; border-radius:0 !important; }
+.board-fs-bar{ display:none; position:absolute; top:12px; right:12px; z-index:36; align-items:center; gap:8px; padding:6px; background:var(--card, #1d1f27); border:1px solid var(--border); border-radius:var(--radius); box-shadow:0 6px 22px rgba(0,0,0,.5); }
+.board-fs > .board-fs-bar{ display:flex; }
+
+/* Одинаковая панель инструментов у «Связей» и «Древа»: заголовок слева, кнопки справа */
+.board-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; margin-left:auto; }
