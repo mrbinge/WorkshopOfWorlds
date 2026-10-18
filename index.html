@@ -59,7 +59,10 @@
           <div id="settingsPanel" aria-label="Настройки аккаунта">
             <div id="accountEmail" title="Аккаунт"></div>
             <div class="settings-divider"></div>
-            <button id="importBtn" class="btn btn-sm" style="width:100%;">⭱ Восстановить из файла</button>
+            <div class="settings-label">Резервная копия на компьютер</div>
+            <button id="exportAllBtn" class="btn btn-sm" style="width:100%;" title="Скачать файл со всеми проектами">⭳ Скачать все проекты</button>
+            <button id="exportProjectBtn" class="btn btn-sm" style="width:100%;" title="Скачать файл с текущим проектом">⭳ Скачать текущий проект</button>
+            <button id="importBtn" class="btn btn-sm" style="width:100%;" title="Загрузить проект или все данные из файла">⭱ Загрузить из файла</button>
             <input type="file" id="importFile" accept="application/json" style="display:none;">
             <div class="settings-divider"></div>
             <button id="signOutBtn" class="btn btn-sm settings-signout" type="button" title="Выйти из аккаунта">Выйти из аккаунта</button>

@@ -111,30 +111,21 @@ function parseData(raw){
   const st = (parsed.settings && typeof parsed.settings==='object' && !Array.isArray(parsed.settings)) ? parsed.settings : {};
   res.settings = Object.assign({}, st, {
     viewModeNetworks: st.viewModeNetworks==='hex' ? 'hex' : 'free',
-    viewModeDynasty: st.viewModeDynasty==='hex' ? 'hex' : 'free'
+    viewModeDynasty: (st.viewModeDynasty==='hex' || st.viewModeDynasty==='family') ? st.viewModeDynasty : 'free'
   });
   state.viewModeNetworks = res.settings.viewModeNetworks;
   state.viewModeDynasty = res.settings.viewModeDynasty;
   return res;
 }
+/* Данные хранятся только в облаке (Supabase). Старая локальная копия читается один раз — для предложения переноса. */
 function readLocalData(){
   try{
-    let raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw){
-      const legacy = localStorage.getItem('story-bible-data');
-      if(legacy){ raw = legacy; localStorage.setItem(STORAGE_KEY, legacy); }
-    }
+    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('story-bible-data');
     return raw ? parseData(raw) : null;
   }catch(e){ return null; }
 }
-function writeLocalData(){
-  try{
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    return true;
-  }catch(e){
-    showToast('Не удалось сохранить локальную копию. Возможно, закончилось место в хранилище браузера.');
-    return false;
-  }
+function clearLocalData(){
+  try{ localStorage.removeItem(STORAGE_KEY); localStorage.removeItem('story-bible-data'); }catch(e){}
 }
 function setAuthMessage(message, kind=''){
   const el = document.getElementById('authMessage');
@@ -184,7 +175,7 @@ async function loadData(){
     if(row && row.data){
       // Облачная версия является источником истины после входа.
       data = parseData(row.data);
-      writeLocalData();
+      clearLocalData();          // локальная копия больше не нужна — освобождаем место в браузере
     }else{
       const localData = readLocalData();
       if(localData && Object.values(localData).some(v=>Array.isArray(v) && v.length)){
@@ -192,12 +183,10 @@ async function loadData(){
         data = shouldMigrate ? localData : Object.assign({}, DEFAULT_DATA);
         if(shouldMigrate){
           await saveCloudData(true, true);
-        }else{
-          writeLocalData();
+          clearLocalData();
         }
       }else{
         data = Object.assign({}, DEFAULT_DATA);
-        writeLocalData();
       }
     }
     syncViewModes();
@@ -206,25 +195,36 @@ async function loadData(){
     render();
   }catch(e){
     console.error('Ошибка загрузки данных Supabase:', e);
-    showAuthGate('Не удалось загрузить данные из облака. Проверь подключение, URL/ключ Supabase и политики RLS. Локальная копия не удалена.\n\n' + (e?.message || 'Неизвестная ошибка'), 'error');
+    showAuthGate('Не удалось загрузить данные из облака. Проверь подключение, URL/ключ Supabase и политики RLS.\n\n' + (e?.message || 'Неизвестная ошибка'), 'error');
   }finally{
     cloudLoadInProgress = false;
   }
+}
+let unsavedChanges = false, lastCloudWarn = 0;
+function warnCloudFailure(){
+  const now = Date.now();
+  if(now - lastCloudWarn < 30000) return;
+  lastCloudWarn = now;
+  showToast('Не удалось сохранить в облако. Проверьте соединение — изменения пока не сохранены. Резервную копию можно скачать в настройках.');
 }
 async function saveCloudData(silent=false, force=false){
   if(!supabaseClient || !currentUser || (cloudLoadInProgress && !force)) return false;
   const revisionAtStart = saveRevision;
   const payload = JSON.parse(JSON.stringify(data));
-  const { error } = await supabaseClient.from('worlds').upsert({
-    user_id: currentUser.id,
-    data: payload,
-    updated_at: new Date().toISOString()
-  }, { onConflict:'user_id' });
+  let error = null;
+  try{
+    ({ error } = await supabaseClient.from('worlds').upsert({
+      user_id: currentUser.id,
+      data: payload,
+      updated_at: new Date().toISOString()
+    }, { onConflict:'user_id' }));
+  }catch(e){ error = e; }
   if(error){
     console.error('Ошибка облачного сохранения:', error);
-    if(!silent) showToast('Не удалось сохранить в облако. Локальная копия сохранена.');
+    warnCloudFailure();
     return false;
   }
+  if(revisionAtStart === saveRevision) unsavedChanges = false;
   lastCloudSaveAt = Date.now();
   if(revisionAtStart !== saveRevision){
     // Если данные изменились во время запроса, следующий таймер отправит новую версию.
@@ -236,9 +236,9 @@ async function saveCloudData(silent=false, force=false){
 }
 function queueSave(){
   saveRevision++;
+  unsavedChanges = true;
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async ()=>{
-    writeLocalData();
     if(!currentUser || !supabaseClient) return;
     await saveCloudData(true);
   }, 1000);
@@ -659,7 +659,7 @@ function renderRelationships(el, pid){
         <button class="btn btn-primary btn-sm" onclick="openNewRelationshipModal()">+ Связь</button>
       </div>
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке, а если ячейка занята, карточки меняются местами. Клик по карточке — редактировать персонажа.' : 'Тащите персонажей, чтобы расставить как хотите. Тяните от золотой точки к другому персонажу — так рождается связь. Клик по персонажу — подсветить его нити. Клик по линии — открыть связь.'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">${hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — создастся связь, а карточка вернётся на место. Клик по карточке — редактировать персонажа.' : 'Тащите персонажей, чтобы расставить как хотите. Бросьте карточку точно в центр другой — создастся связь, а карточка вернётся на место. Или тяните от золотой точки к другому персонажу. Клик по персонажу — подсветить его нити. Клик по линии — открыть связь.'}</div>
     ${hexMode ? hexBoardHtml('rel') : `<div id="relCanvasViewport">
       <div id="relCanvasInner">
         <svg id="relEdgesSvg" width="4000" height="3000"></svg>
@@ -810,7 +810,7 @@ function onRelCanvasMouseDown(e){
     const c = itemsOf('characters', state.activeProjectId).find(x=>x.id===id);
     if(!c) return;
     const startX=e.clientX, startY=e.clientY, ox=c.netX, oy=c.netY;
-    let moved = false;
+    let moved = false, dropId = null;
     nodeEl.classList.add('dragging');
     const move=(ev)=>{
       if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
@@ -818,11 +818,21 @@ function onRelCanvasMouseDown(e){
       c.netY = oy + (ev.clientY-startY)/relCanvasView.scale;
       nodeEl.style.left = c.netX+'px'; nodeEl.style.top = c.netY+'px';
       drawRelEdges();
+      if(moved){ const t = freeDropTarget('rel', ev, viewport, relCanvasView, id); if(t!==dropId){ dropId = t; setFreeDropHighlight(viewport, 'rel-node', t); } }
     };
-    const up=()=>{
+    const up=(ev)=>{
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
       nodeEl.classList.remove('dragging');
+      setFreeDropHighlight(viewport, 'rel-node', null);
+      if(moved && dropId){
+        // брошена в центр другой карточки — возвращаем на место и создаём связь
+        c.netX = ox; c.netY = oy;
+        nodeEl.style.left = ox+'px'; nodeEl.style.top = oy+'px';
+        drawRelEdges();
+        cardDropRelation('rel', id, dropId, ev);
+        return;
+      }
       if(moved) queueSave(); else relToggleSelect(id);
     };
     document.addEventListener('mousemove', move);
@@ -1206,7 +1216,7 @@ const hexTreeView = { pan:{x:0,y:0}, scale:1, key:null };
 function ensureSettings(){
   if(!data.settings || typeof data.settings!=='object' || Array.isArray(data.settings)) data.settings = {};
   if(data.settings.viewModeNetworks!=='hex') data.settings.viewModeNetworks = 'free';
-  if(data.settings.viewModeDynasty!=='hex') data.settings.viewModeDynasty = 'free';
+  if(data.settings.viewModeDynasty!=='hex' && data.settings.viewModeDynasty!=='family') data.settings.viewModeDynasty = 'free';
 }
 function syncViewModes(){
   ensureSettings();
@@ -1243,6 +1253,9 @@ function pixelToHex(x, y){
 /* --- переключатель режимов --- */
 function viewModeIcon(mode){
   const svgOpen = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">';
+  if(mode==='family'){
+    return svgOpen + '<circle cx="12" cy="5.5" r="2.6"/><circle cx="6" cy="18.5" r="2.6"/><circle cx="18" cy="18.5" r="2.6"/><path d="M12 8.1v3.4M6 15.9v-2.4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2.4"/></svg>';
+  }
   if(mode==='hex'){
     const r = 4.4, D = Math.sqrt(3)*r + 1.3;
     const cs = [[12, 8.2], [12 - D/2, 15.7], [12 + D/2, 15.7]];
@@ -1254,10 +1267,24 @@ function viewModeIcon(mode){
     '<circle cx="10" cy="12" r="6"/></svg>';
 }
 function viewSwitchHtml(kind){
+  if(kind==='dynasty'){
+    const cur = state.viewModeDynasty;
+    const defs = [['family','Древо','Режим «Древо» — круги сами встают по родственным связям'], ['hex','Соты','Режим «Соты»'], ['free','Свободный','Режим «Свободный»']];
+    return `<div class="view-mode-seg" role="group" aria-label="Режим отображения">${defs.map(d=>`<button type="button" class="${cur===d[0]?'active':''}" onclick="setViewMode('dynasty','${d[0]}')" title="${d[2]}">${viewModeIcon(d[0])}<span>${d[1]}</span></button>`).join('')}</div>`;
+  }
   const cur = (kind==='networks' ? state.viewModeNetworks : state.viewModeDynasty)==='hex' ? 'hex' : 'free';
   const other = cur==='hex' ? 'free' : 'hex';
   const btn = (m, act)=>`<button type="button" class="${act?'active':''}" onclick="toggleViewMode('${kind}')" title="${m==='hex'?'Режим «Соты»':'Режим «Свободный»'}">${viewModeIcon(m)}<span>${m==='hex'?'Соты':'Свободный'}</span></button>`;
   return `<div class="view-mode-seg" role="group" aria-label="Режим отображения">${btn(cur,true)}${btn(other,false)}</div>`;
+}
+function setViewMode(kind, mode){
+  ensureSettings();
+  const key = kind==='networks' ? 'viewModeNetworks' : 'viewModeDynasty';
+  if(data.settings[key]===mode) return;
+  data.settings[key] = mode;
+  state[key] = mode;
+  queueSave();
+  if(kind==='networks') renderMain(); else refreshTreeEditor();
 }
 function toggleViewMode(kind){
   ensureSettings();
@@ -1555,7 +1582,8 @@ function edgeInfoHtml(kind, aId, bId){
   } else {
     people = data.dynastyMembers.filter(m=>m.dynastyId===state.activeTreeId);
     data.dynastyMemberLinks.filter(l=>l.dynastyId===state.activeTreeId && pairHit(l.fromId, l.toId)).forEach(l=>{
-      rows.push({from:l.fromId, to:l.toId, l1:'родитель', l2:'ребёнок', c1:'#c9a24c', c2:'#c9a24c', note:''});
+      const sp = l.kind==='spouse', sb = l.kind==='sibling';
+      rows.push({from:l.fromId, to:l.toId, l1: sp ? 'супруги' : sb ? 'братья / сёстры' : 'родитель', l2: (sp||sb) ? '' : 'ребёнок', c1: sp ? '#d98aa0' : sb ? '#7fb5d6' : '#c9a24c', c2: sp ? '#d98aa0' : sb ? '#7fb5d6' : '#c9a24c', note:''});
     });
   }
   if(!rows.length) return '';
@@ -1752,6 +1780,10 @@ function onHexContextMenu(kind, e){
   const dynastyId = state.activeTreeId;
   if(it) return showCtxMenu(e, [
     {label:'+ Добавить ребёнка (участник и связь)', onClick:()=>openNewMemberModal(dynastyId, findFreeHexNear(items, it.hexQ, it.hexR), it.id)},
+    {label:'+ Добавить ребёнка', onClick:()=>openNewRelativeModal(dynastyId, it.id, 'child')},
+    {label:'+ Добавить супруга / супругу', onClick:()=>openNewRelativeModal(dynastyId, it.id, 'spouse')},
+    {label:'+ Добавить родителя', onClick:()=>openNewRelativeModal(dynastyId, it.id, 'parent')},
+    {label:'+ Добавить брата / сестру', onClick:()=>openNewRelativeModal(dynastyId, it.id, 'sibling')},
     {label:'+ Новая связь от «'+(it.name||'участника')+'»', onClick:()=>openNewMemberLinkModal(dynastyId, it.id)},
     {label:'+ Новая связь', onClick:()=>openNewMemberLinkModal(dynastyId)},
     {label:'+ Новый участник рядом', onClick:()=>openNewMemberModal(dynastyId, findFreeHexNear(items, it.hexQ, it.hexR))},
@@ -1794,7 +1826,7 @@ function onHexMouseDown(kind, e){
   const hintSvg = document.getElementById(c.hint);
   const last = { x: e.clientX, y: e.clientY };
   const sx = e.clientX, sy = e.clientY;
-  let moved = false, raf = null;
+  let moved = false, raf = null, hlId = null;
   v.busy = true;
   const linesSvg = document.getElementById(c.lines);
 
@@ -1805,6 +1837,17 @@ function onHexMouseDown(kind, e){
     cardEl.style.top = (cy - HEX_H/2) + 'px';
     const t = pixelToHex(cx, cy), tp = axialToPixel(t.q, t.r);
     if(hintSvg) hintSvg.innerHTML = `<polygon points="${hexPts(tp.x, tp.y, HEX_SIZE)}"/>`;
+    // подсвечиваем карточку, на которую «бросаем»
+    const occ = items.find(o=>o!==item && o.hexQ===t.q && o.hexR===t.r);
+    const occId = occ ? occ.id : null;
+    if(occId!==hlId){
+      const host = document.getElementById(c.cards);
+      if(host){
+        host.querySelectorAll('.hex-card.drop-target').forEach(el=>el.classList.remove('drop-target'));
+        if(occId){ const el = host.querySelector(`.hex-card[data-id="${occId}"]`); if(el) el.classList.add('drop-target'); }
+      }
+      hlId = occId;
+    }
   };
   const loop = ()=>{
     if(!moved){ raf = null; return; }
@@ -1830,11 +1873,12 @@ function onHexMouseDown(kind, e){
     }
     place();
   };
-  const up = ()=>{
+  const up = (ev)=>{
     document.removeEventListener('mousemove', mv);
     document.removeEventListener('mouseup', up);
     if(raf) cancelAnimationFrame(raf);
     if(hintSvg) hintSvg.innerHTML = '';
+    { const h = document.getElementById(c.cards); if(h) h.querySelectorAll('.hex-card.drop-target').forEach(el=>el.classList.remove('drop-target')); }
     v.busy = false;
     if(linesSvg) linesSvg.style.opacity = '';
     if(!moved){ c.open(id); return; }
@@ -1842,11 +1886,15 @@ function onHexMouseDown(kind, e){
     const p = toLayer(last.x, last.y);
     const t = pixelToHex(p.x - grab.x, p.y - grab.y);
     const fromQ = item.hexQ, fromR = item.hexR;
+    let dropOn = null;
     if(t.q !== fromQ || t.r !== fromR){
       const other = items.find(o=>o!==item && o.hexQ===t.q && o.hexR===t.r);
-      if(other){ other.hexQ = fromQ; other.hexR = fromR; }   // занято — меняем местами
-      item.hexQ = t.q; item.hexR = t.r;
-      queueSave();
+      if(other){
+        dropOn = other;                      // ячейка занята — создаём связь, карточка вернётся на место
+      } else {
+        item.hexQ = t.q; item.hexR = t.r;
+        queueSave();
+      }
     }
     const host = document.getElementById(c.cards);
     if(host){
@@ -1856,16 +1904,30 @@ function onHexMouseDown(kind, e){
     }
     cardEl.classList.remove('dragging');
     invalidateHexGrid(kind); drawHexGrid(kind); drawHexLines(kind);
+    if(dropOn) cardDropRelation(kind, item.id, dropOn.id, ev);
   };
   document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
 }
 
 /* ---------------- CONTEXT MENU (правая кнопка мыши) ---------------- */
 const CTX_COLORS = [
-  {v:'', n:'По умолчанию (золотой)'}, {v:'#e8e8ee', n:'Белый'}, {v:'#d9534f', n:'Красный'}, {v:'#e08a3c', n:'Оранжевый'},
-  {v:'#e6d04a', n:'Жёлтый'}, {v:'#5fae6a', n:'Зелёный'}, {v:'#4bb3b3', n:'Бирюзовый'}, {v:'#5a8fd8', n:'Синий'},
-  {v:'#9a6fd1', n:'Фиолетовый'}, {v:'#d86fa8', n:'Розовый'}
+  {v:'', n:'По умолчанию (золотой)'}, {v:'#e8e8ee', n:'Белый'}, {v:'#8a8d99', n:'Серый'}, {v:'#0c0c0f', n:'Чёрный'},
+  {v:'#d9534f', n:'Красный'}, {v:'#e08a3c', n:'Оранжевый'}, {v:'#5fae6a', n:'Зелёный'}, {v:'#4bb3b3', n:'Бирюзовый'},
+  {v:'#5a8fd8', n:'Синий'}, {v:'#9a6fd1', n:'Фиолетовый'}, {v:'#d86fa8', n:'Розовый'}
 ];
+const CTX_PLUS_ICON = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>';
+// выбор своего цвета через системную палитру
+function pickCustomColor(current, rect, onPick){
+  const inp = document.createElement('input');
+  inp.type = 'color';
+  inp.value = /^#[0-9a-f]{6}$/i.test(current||'') ? current : '#c9a24c';
+  inp.style.cssText = `position:fixed; left:${Math.round(rect.left)}px; top:${Math.round(rect.bottom)}px; width:1px; height:1px; opacity:0; pointer-events:none;`;
+  document.body.appendChild(inp);
+  inp.addEventListener('change', ()=>{ onPick(inp.value); setTimeout(()=>inp.remove(), 300); });
+  inp.addEventListener('cancel', ()=>setTimeout(()=>inp.remove(), 300));
+  if(typeof inp.showPicker==='function'){ try{ inp.showPicker(); return; }catch(e){} }
+  inp.click();
+}
 function closeCtxMenu(){ const m=document.getElementById('ctxMenu'); if(m) m.remove(); }
 function showCtxMenu(e, items){
   e.preventDefault(); e.stopPropagation();
@@ -1874,7 +1936,8 @@ function showCtxMenu(e, items){
   menu.id = 'ctxMenu';
   menu.innerHTML = items.map((it,i)=>{
     if(it.sep) return '<div class="ctx-sep"></div>';
-    if(it.colors) return `<div class="ctx-colors"><div class="ctx-colors-title">${esc(it.title)}</div><div class="ctx-swatches">${CTX_COLORS.map(c=>`<button type="button" class="ctx-sw${(it.value||'')===(c.v||'')?' on':''}" data-i="${i}" data-c="${c.v}" title="${esc(c.n)}" style="background:${c.v||'var(--gold)'}"></button>`).join('')}</div></div>`;
+    if(it.heading) return `<div class="ctx-heading">${esc(it.heading)}</div>`;
+    if(it.colors) return `<div class="ctx-colors"><div class="ctx-colors-title">${esc(it.title)}</div><div class="ctx-swatches">${CTX_COLORS.map(c=>`<button type="button" class="ctx-sw${(it.value||'')===(c.v||'')?' on':''}" data-i="${i}" data-c="${c.v}" title="${esc(c.n)}" style="background:${c.v||'var(--gold)'}"></button>`).join('')}${(it.value && !CTX_COLORS.some(c=>c.v===it.value)) ? `<button type="button" class="ctx-sw on" data-i="${i}" data-c="${esc(it.value)}" title="Свой цвет" style="background:${esc(it.value)}"></button>` : ''}<button type="button" class="ctx-sw ctx-sw-add" data-i="${i}" title="Выбрать свой цвет" aria-label="Выбрать свой цвет">${CTX_PLUS_ICON}</button></div></div>`;
     return `<button type="button" class="ctx-item${it.danger?' ctx-danger':''}" data-i="${i}">${esc(it.label)}</button>`;
   }).join('');
   document.body.appendChild(menu);
@@ -1884,6 +1947,8 @@ function showCtxMenu(e, items){
   menu.addEventListener('mousedown', ev=>ev.stopPropagation());
   menu.addEventListener('contextmenu', ev=>{ ev.preventDefault(); ev.stopPropagation(); });
   menu.addEventListener('click', ev=>{
+    const add = ev.target.closest('.ctx-sw-add');
+    if(add){ const it = items[+add.dataset.i]; const rect = add.getBoundingClientRect(); closeCtxMenu(); if(it && it.onPick) pickCustomColor(it.value, rect, it.onPick); return; }
     const sw = ev.target.closest('.ctx-sw');
     if(sw){ const it = items[+sw.dataset.i]; closeCtxMenu(); if(it && it.onPick) it.onPick(sw.dataset.c || ''); return; }
     const b = ev.target.closest('.ctx-item'); if(!b) return;
@@ -2329,7 +2394,8 @@ function renderTreeEditor(el, dynasty){
   const members = data.dynastyMembers.filter(m=>m.dynastyId===dynasty.id);
   const links = data.dynastyMemberLinks.filter(l=>l.dynastyId===dynasty.id);
   const hexMode = state.viewModeDynasty==='hex';
-  if(!hexMode) ensureTreePositions(members);
+  const famMode = state.viewModeDynasty==='family';
+  if(!hexMode && !famMode) ensureTreePositions(members);
   el.innerHTML = `
     <div class="canvas-toolbar">
       <div style="display:flex; align-items:center; gap:10px; min-width:0;">
@@ -2350,22 +2416,468 @@ function renderTreeEditor(el, dynasty){
         <button class="btn btn-primary btn-sm" onclick="openNewMemberModal('${dynasty.id}')">+ Участник</button>
       </div>
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке, а если ячейка занята, карточки меняются местами. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">${famMode ? 'Перетащите один круг на другой — и выберите, кем они приходятся друг другу: круги сами встанут на место. Клик по кругу — подсветить родню, двойной клик — изменить, правая кнопка — меню.' : hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — выберите, кем они приходятся друг другу, и карточка вернётся на место. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Бросьте карточку точно в центр другой — выберите, кем они приходятся друг другу. Или тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
     ${members.length===0 ? `<div class="empty-tab" style="margin-bottom:14px;">Пусто. Добавьте первого члена рода.</div>` : ''}
-    ${hexMode ? hexBoardHtml('tree') : `<div id="treeCanvasViewport">
+    ${famMode ? familyBoardHtml(members, links) : hexMode ? hexBoardHtml('tree') : `<div id="treeCanvasViewport">
       <div id="treeCanvasInner">
         <svg id="treeEdgesSvg" width="4000" height="3000"></svg>
         ${members.map(treeNodeHtml).join('')}
       </div>
     </div>`}
-    <div class="side-section-label" style="margin:26px 0 10px;">Связи «родитель → ребёнок»</div>
+    <div class="side-section-label" style="margin:26px 0 10px;">Родственные связи</div>
     <div class="grid">${links.length ? links.map(l=>treeLinkCard(l, members)).join('') : '<div class="empty-tab">Связей пока нет.</div>'}</div>
   `;
+  if(famMode){ initFamilyBoard(); setupBoardFs('tree'); return; }
   if(hexMode){ initHexBoard('tree'); setupBoardFs('tree'); return; }
   applyTreeCanvasTransform();
   drawTreeEdges();
   attachTreeCanvasEvents();
   setupBoardFs('tree');
+}
+
+/* ---------------- РЕЖИМ «ДРЕВО»: круги сами встают по родственным связям ---------------- */
+const FAM = { SLOT:150, ROW:190, R:32, PAD:70 };
+const familyView = { pan:{x:0,y:0}, scale:1, fitFor:null, n:0, needFit:true, W:800, H:400 };
+let familySel = null;
+
+function familyYear(m){ const x = /-?\d{1,5}/.exec((m && m.birth) || ''); return x ? parseInt(x[0], 10) : null; }
+
+// Раскладка: супруги образуют «блок», блок ставится по центру над своими детьми,
+// родители — на ряд выше детей. Позиции не хранятся — считаются заново при каждой отрисовке.
+function familyLayout(members, links){
+  const { SLOT, ROW, R } = FAM;
+  const byId = {}, ord = {};
+  members.forEach((m,i)=>{ byId[m.id] = m; ord[m.id] = i; });
+  const ok = l => ord[l.fromId]!==undefined && ord[l.toId]!==undefined && l.fromId!==l.toId;
+  const spouseLinks = links.filter(l=>ok(l) && l.kind==='spouse');
+  const parentLinks = links.filter(l=>ok(l) && l.kind!=='spouse' && l.kind!=='sibling');
+  const sibLinks = links.filter(l=>ok(l) && l.kind==='sibling');
+
+  // 1. блоки супругов (union-find по связям «супруги»)
+  const uf = {}; members.forEach(m=>{ uf[m.id] = m.id; });
+  const find = x=>{ while(uf[x]!==x){ uf[x] = uf[uf[x]]; x = uf[x]; } return x; };
+  spouseLinks.forEach(l=>{ uf[find(l.fromId)] = find(l.toId); });
+  const groups = {};
+  members.forEach(m=>{ const r = find(m.id); (groups[r] = groups[r] || []).push(m.id); });
+  const adj = {}; members.forEach(m=>{ adj[m.id] = []; });
+  spouseLinks.forEach(l=>{
+    if(!adj[l.fromId].includes(l.toId)) adj[l.fromId].push(l.toId);
+    if(!adj[l.toId].includes(l.fromId)) adj[l.toId].push(l.fromId);
+  });
+  const hasParent = new Set(parentLinks.map(l=>l.toId));
+
+  const units = [], unitOf = {};
+  Object.values(groups).sort((a,b)=>Math.min(...a.map(i=>ord[i])) - Math.min(...b.map(i=>ord[i]))).forEach(ids=>{
+    ids.sort((a,b)=>ord[a]-ord[b]);
+    // порядок внутри блока: «кровный» родственник (у кого есть родители) — в центре, супруги по сторонам
+    const start = ids.find(i=>hasParent.has(i)) || ids[0];
+    const arr = [start], seen = new Set([start]), sideOf = {}, queue = [start];
+    while(queue.length){
+      const n = queue.shift(); let k = 0;
+      adj[n].slice().sort((a,b)=>ord[a]-ord[b]).forEach(nb=>{
+        if(seen.has(nb)) return;
+        seen.add(nb);
+        const side = n===start ? (k%2===0 ? 'R' : 'L') : sideOf[n];
+        k++; sideOf[nb] = side;
+        if(side==='L') arr.unshift(nb); else arr.push(nb);
+        queue.push(nb);
+      });
+    }
+    const u = { idx:units.length, ids:arr, parent:null, kids:[], ord:ord[ids[0]], depth:0 };
+    units.push(u); arr.forEach(i=>{ unitOf[i] = u; });
+  });
+
+  // 2. родитель блока — блок первого найденного родителя; остальные связи рисуются линиями
+  parentLinks.forEach(l=>{
+    const u = unitOf[l.toId], p = unitOf[l.fromId];
+    if(!u.parent && p!==u) u.parent = p;
+  });
+  // братья и сёстры без родителей в древе: ставим в один ряд под «невидимым» общим родителем
+  {
+    const real = units.slice(), up = {};
+    real.forEach(u=>{ up[u.idx] = u.idx; });
+    const f2 = x=>{ while(up[x]!==x){ up[x] = up[up[x]]; x = up[x]; } return x; };
+    sibLinks.forEach(l=>{
+      const a = unitOf[l.fromId], b = unitOf[l.toId];
+      if(a!==b && !a.parent && !b.parent) up[f2(a.idx)] = f2(b.idx);
+    });
+    const comps = {};
+    real.forEach(u=>{ if(!u.parent){ (comps[f2(u.idx)] = comps[f2(u.idx)] || []).push(u); } });
+    Object.values(comps).forEach(list=>{
+      if(list.length<2) return;
+      const v = { idx:units.length, ids:[], parent:null, kids:[], ord:Math.min(...list.map(u=>u.ord)), depth:0, virtual:true };
+      units.push(v);
+      list.forEach(u=>{ u.parent = v; });
+    });
+  }
+  units.forEach(u=>{ if(u.parent) u.parent.kids.push(u); });
+  const unitYear = u=>{
+    const ys = u.ids.filter(i=>hasParent.has(i)).map(i=>familyYear(byId[i])).filter(y=>y!==null);
+    return ys.length ? Math.min(...ys) : null;
+  };
+  units.forEach(u=>{
+    if(u.kids.length<2) return;
+    // дети слева направо — по году рождения, если он указан у всех, иначе в порядке добавления
+    if(u.kids.every(k=>unitYear(k)!==null)) u.kids.sort((a,b)=>unitYear(a)-unitYear(b));
+    else u.kids.sort((a,b)=>a.ord-b.ord);
+  });
+
+  // 3. корни и защита от циклов
+  const visited = new Set(), roots = [];
+  const visit = (u, d)=>{ u.depth = d; visited.add(u); u.kids.forEach(k=>visit(k, d + (u.ids.length ? 1 : 0))); };
+  units.filter(u=>!u.parent).forEach(u=>{ roots.push(u); visit(u, 0); });
+  units.forEach(u=>{
+    if(visited.has(u)) return;
+    if(u.parent){ u.parent.kids = u.parent.kids.filter(k=>k!==u); u.parent = null; }
+    roots.push(u); visit(u, 0);
+  });
+
+  // 4. ширины и позиции
+  const w = u=>{
+    if(u._w!==undefined) return u._w;
+    return u._w = Math.max(u.ids.length*SLOT, u.kids.reduce((a,k)=>a+w(k), 0));
+  };
+  const pos = {}; let maxDepth = 0;
+  const place = (u, x0)=>{
+    const W = w(u), cx = x0 + W/2;
+    maxDepth = Math.max(maxDepth, u.depth);
+    u.ids.forEach((id,i)=>{ pos[id] = { x: cx - (u.ids.length-1)*SLOT/2 + i*SLOT, y: R + u.depth*ROW }; });
+    let kx = x0 + (W - u.kids.reduce((a,k)=>a+w(k), 0))/2;
+    u.kids.forEach(k=>{ place(k, kx); kx += w(k); });
+  };
+  let x = 0;
+  roots.forEach(r=>{ place(r, x); x += w(r); });
+  return { pos, W:x, H:R*2 + maxDepth*ROW + 56 };
+}
+
+function familyEdgesSvg(L, members, links){
+  const { R, PAD:P, SLOT } = FAM;
+  const pos = {};
+  members.forEach(m=>{ const p = L.pos[m.id]; if(p) pos[m.id] = { x:p.x+P, y:p.y+P }; });
+  const valid = l => pos[l.fromId] && pos[l.toId] && l.fromId!==l.toId;
+  const near = new Set();      // супруги, стоящие рядом в одном ряду
+  let out = '';
+  links.filter(l=>valid(l) && l.kind==='spouse').forEach(l=>{
+    const a = pos[l.fromId], b = pos[l.toId];
+    const [p1, p2] = a.x<=b.x ? [a, b] : [b, a];
+    const ids = l.fromId+','+l.toId;
+    if(Math.abs(a.y-b.y)<1 && p2.x-p1.x < SLOT*1.01){
+      near.add(l.fromId+'|'+l.toId); near.add(l.toId+'|'+l.fromId);
+      out += `<path class="fam-edge fam-spouse" data-ids="${ids}" d="M${p1.x+R},${p1.y} H${p2.x-R}"/>`;
+      out += `<circle class="fam-edge fam-knot" data-ids="${ids}" cx="${(p1.x+p2.x)/2}" cy="${p1.y}" r="4.5"/>`;
+    } else {
+      const y1 = a.y+R, y2 = b.y+R;
+      out += `<path class="fam-edge fam-spouse fam-far" data-ids="${ids}" d="M${a.x},${y1} C${a.x},${y1+70} ${b.x},${y2+70} ${b.x},${y2}"/>`;
+    }
+  });
+  const byChild = {};
+  links.filter(l=>valid(l) && l.kind!=='spouse' && l.kind!=='sibling').forEach(l=>{ (byChild[l.toId] = byChild[l.toId] || []).push(l.fromId); });
+  Object.keys(byChild).forEach(cid=>{
+    const c = pos[cid], ps = [...new Set(byChild[cid])], used = new Set(), anchors = [];
+    ps.forEach(a=>{
+      if(used.has(a)) return;
+      const b = ps.find(x=>x!==a && !used.has(x) && near.has(a+'|'+x));
+      if(b){ used.add(a); used.add(b); anchors.push({ x:(pos[a].x+pos[b].x)/2, y:pos[a].y, ids:[a,b] }); }
+    });
+    ps.forEach(a=>{ if(!used.has(a)) anchors.push({ x:pos[a].x, y:pos[a].y+R, ids:[a] }); });
+    anchors.forEach(an=>{
+      const ty = c.y - R, ids = an.ids.join(',')+','+cid;
+      if(ty > an.y+24){
+        const busY = Math.max(an.y+12, ty-38);
+        const d = Math.abs(c.x-an.x)<1 ? `M${an.x},${an.y} V${ty}` : `M${an.x},${an.y} V${busY} H${c.x} V${ty}`;
+        out += `<path class="fam-edge fam-parent" data-ids="${ids}" d="${d}"/>`;
+      } else {
+        out += `<path class="fam-edge fam-parent fam-far" data-ids="${ids}" d="M${an.x},${an.y} L${c.x},${c.y}"/>`;
+      }
+    });
+  });
+  // братья и сёстры без общих родителей в древе — скобка над их кругами
+  const sibLinks = links.filter(l=>valid(l) && l.kind==='sibling');
+  if(sibLinks.length){
+    const adj = {};
+    sibLinks.forEach(l=>{ (adj[l.fromId] = adj[l.fromId] || []).push(l.toId); (adj[l.toId] = adj[l.toId] || []).push(l.fromId); });
+    const seen = new Set();
+    Object.keys(adj).forEach(start=>{
+      if(seen.has(start)) return;
+      const comp = [], q = [start]; seen.add(start);
+      while(q.length){ const n = q.shift(); comp.push(n); adj[n].forEach(x=>{ if(!seen.has(x)){ seen.add(x); q.push(x); } }); }
+      const ids = comp.join(',');
+      const ys = new Set(comp.map(i=>Math.round(pos[i].y)));
+      if(ys.size===1){
+        const xs = comp.map(i=>pos[i].x), y = pos[comp[0]].y - R;
+        const bus = y - 26;
+        out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="M${Math.min(...xs)},${bus} H${Math.max(...xs)}"/>`;
+        comp.forEach(i=>{ out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="M${pos[i].x},${bus} V${y}"/>`; });
+      } else {
+        sibLinks.filter(l=>comp.includes(l.fromId)).forEach(l=>{
+          const a = pos[l.fromId], b = pos[l.toId];
+          out += `<path class="fam-edge fam-sibling fam-far" data-ids="${l.fromId},${l.toId}" d="M${a.x},${a.y+R} C${a.x},${a.y+R+70} ${b.x},${b.y+R+70} ${b.x},${b.y+R}"/>`;
+        });
+      }
+    });
+  }
+  return out;
+}
+
+function familyBoardHtml(members, links){
+  const L = familyLayout(members, links);
+  const P = FAM.PAD;
+  const dynId = state.activeTreeId;
+  familyView.W = Math.max(L.W, FAM.SLOT) + P*2;
+  familyView.H = L.H + P*2;
+  familyView.needFit = familyView.fitFor!==dynId || (familyView.n===0 && members.length>0);
+  familyView.n = members.length;
+  const nodes = members.map(m=>{
+    const p = L.pos[m.id];
+    const avatar = m.photo ? `<img src="${m.photo}" alt="">` : `<span>${esc(initials(m.name))}</span>`;
+    const dates = [m.birth, m.death].filter(Boolean).join(' — ');
+    return `<div class="fam-node" data-id="${m.id}" style="left:${p.x+P-FAM.SLOT/2}px; top:${p.y+P-FAM.R}px;${cardColorVars(m)}">
+      <div class="tree-avatar fam-avatar">${avatar}</div>
+      <div class="fam-name" title="${esc(m.name)}">${esc(m.name)}</div>
+      ${dates ? `<div class="fam-dates">${esc(dates)}</div>` : ''}
+    </div>`;
+  }).join('');
+  return `<div id="familyViewport"><div id="familyInner" style="width:${familyView.W}px; height:${familyView.H}px;">
+    <svg id="familyEdges" width="${familyView.W}" height="${familyView.H}">${familyEdgesSvg(L, members, links)}</svg>${nodes}
+  </div></div>`;
+}
+
+function familyApply(){
+  const inner = document.getElementById('familyInner');
+  if(!inner) return;
+  inner.style.transform = `translate(${familyView.pan.x}px, ${familyView.pan.y}px) scale(${familyView.scale})`;
+  const lbl = document.getElementById('treeZoomLabel');
+  if(lbl) lbl.textContent = Math.round(familyView.scale*100)+'%';
+}
+function familyFit(){
+  const vp = document.getElementById('familyViewport');
+  if(!vp) return;
+  const vw = vp.clientWidth, vh = vp.clientHeight;
+  const sc = Math.max(0.25, Math.min(1, vw/familyView.W, vh/familyView.H));
+  familyView.scale = sc;
+  familyView.pan = { x:(vw - familyView.W*sc)/2, y:Math.max(0, (vh - familyView.H*sc)/2) };
+  familyView.fitFor = state.activeTreeId;
+  familyApply();
+}
+function familyZoomAt(cx, cy, newScale){
+  const old = familyView.scale;
+  newScale = Math.min(2.2, Math.max(0.2, newScale));
+  const lx = (cx - familyView.pan.x)/old, ly = (cy - familyView.pan.y)/old;
+  familyView.pan = { x:cx - lx*newScale, y:cy - ly*newScale };
+  familyView.scale = newScale;
+  familyApply();
+}
+function zoomFamily(delta){
+  const vp = document.getElementById('familyViewport');
+  if(!vp) return;
+  familyZoomAt(vp.clientWidth/2, vp.clientHeight/2, familyView.scale + delta);
+}
+
+function familyRelatives(id){
+  const links = data.dynastyMemberLinks.filter(l=>l.dynastyId===state.activeTreeId);
+  const rel = new Set([id]);
+  const parents = new Set();
+  links.forEach(l=>{
+    if(l.kind==='spouse' || l.kind==='sibling'){ if(l.fromId===id) rel.add(l.toId); if(l.toId===id) rel.add(l.fromId); }
+    else { if(l.fromId===id) rel.add(l.toId); if(l.toId===id){ rel.add(l.fromId); parents.add(l.fromId); } }
+  });
+  links.forEach(l=>{ if(l.kind!=='spouse' && l.kind!=='sibling' && parents.has(l.fromId)) rel.add(l.toId); });   // братья и сёстры
+  return rel;
+}
+function familyApplySel(){
+  const vp = document.getElementById('familyViewport');
+  if(!vp) return;
+  if(familySel && !data.dynastyMembers.some(m=>m.id===familySel)) familySel = null;
+  const rel = familySel ? familyRelatives(familySel) : null;
+  vp.querySelectorAll('.fam-node').forEach(n=>{
+    n.classList.toggle('dim', !!rel && !rel.has(n.dataset.id));
+    n.classList.toggle('sel', n.dataset.id===familySel);
+  });
+  vp.querySelectorAll('.fam-edge').forEach(e=>{
+    e.classList.toggle('dim', !!rel && !e.dataset.ids.split(',').every(i=>rel.has(i)));
+  });
+}
+
+function onFamilyContextMenu(e){
+  const dynastyId = state.activeTreeId;
+  if(!dynastyId) return;
+  const nodeEl = e.target.closest('.fam-node');
+  const m = nodeEl ? data.dynastyMembers.find(x=>x.id===nodeEl.dataset.id) : null;
+  if(m) return showCtxMenu(e, [
+    {label:'+ Добавить ребёнка', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'child')},
+    {label:'+ Добавить супруга / супругу', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'spouse')},
+    {label:'+ Добавить родителя', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'parent')},
+    {label:'+ Добавить брата / сестру', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'sibling')},
+    {label:'+ Новая связь от «'+(m.name||'участника')+'»', onClick:()=>openNewMemberLinkModal(dynastyId, m.id)},
+    {sep:true},
+    {label:'Изменить участника', onClick:()=>openEditMemberModal(dynastyId, m.id)},
+    ...colorMenuRows('tree', m, nodeEl),
+    {sep:true},
+    {label:'Удалить персонажа', danger:true, onClick:()=>deleteMember(dynastyId, m.id)}
+  ]);
+  showCtxMenu(e, [
+    {label:'+ Новый участник', onClick:()=>openNewMemberModal(dynastyId)},
+    {label:'+ Новая связь', onClick:()=>openNewMemberLinkModal(dynastyId)},
+  ]);
+}
+
+
+/* --- перетаскивание круга на круг: быстро задать родство --- */
+let familyJustDragged = false;
+function familyShort(name){ const n = (name||'Без имени').trim(); return n.length>20 ? n.slice(0,19)+'…' : n; }
+function familyIsAncestor(anc, id, links, seen){
+  // true, если anc — предок id (по связям «родитель → ребёнок»)
+  seen = seen || new Set();
+  if(seen.has(id)) return false; seen.add(id);
+  return links.some(l=>l.kind!=='spouse' && l.kind!=='sibling' && l.toId===id && (l.fromId===anc || familyIsAncestor(anc, l.fromId, links, seen)));
+}
+// relation: 'parent' — A родитель B; 'child' — A ребёнок B; 'spouse'; 'sibling'
+function familyAddRelation(aId, bId, relation){
+  const dynastyId = state.activeTreeId;
+  const links = data.dynastyMemberLinks.filter(l=>l.dynastyId===dynastyId);
+  if(aId===bId) return;
+  if(links.some(l=>(l.fromId===aId && l.toId===bId) || (l.fromId===bId && l.toId===aId))){ showToast('Эти участники уже связаны — измените связь в списке ниже'); return; }
+  const mk = (fromId, toId, kind)=>{ const l = {id:uid(), projectId:state.activeProjectId, dynastyId, fromId, toId}; if(kind) l.kind = kind; data.dynastyMemberLinks.push(l); links.push(l); };
+  const parentsOf = id => [...new Set(links.filter(l=>l.kind!=='spouse' && l.kind!=='sibling' && l.toId===id).map(l=>l.fromId))];
+  const spousesOf = id => [...new Set(links.filter(l=>l.kind==='spouse' && (l.fromId===id || l.toId===id)).map(l=>l.fromId===id ? l.toId : l.fromId))];
+  if(relation==='parent' || relation==='child'){
+    const [p, c] = relation==='parent' ? [aId, bId] : [bId, aId];
+    if(familyIsAncestor(c, p, links)){ showToast('Так получится замкнутый круг: один и тот же человек был бы и предком, и потомком'); return; }
+    const hadParents = parentsOf(c).length>0;
+    mk(p, c);
+    const sp = spousesOf(p);
+    if(!hadParents && sp.length===1) mk(sp[0], c);          // ребёнок общий с супругом(ой)
+  } else if(relation==='spouse'){
+    mk(aId, bId, 'spouse');
+  } else if(relation==='sibling'){
+    const pa = parentsOf(aId), pb = parentsOf(bId);
+    if(pa.length && !pb.length) pa.forEach(p=>mk(p, bId));
+    else if(pb.length && !pa.length) pb.forEach(p=>mk(p, aId));
+    else mk(aId, bId, 'sibling');
+  }
+  queueSave();
+  familySel = aId;
+  refreshTreeEditor();
+}
+function familyDropMenu(e, aId, bId){
+  const a = data.dynastyMembers.find(m=>m.id===aId), b = data.dynastyMembers.find(m=>m.id===bId);
+  if(!a || !b) return;
+  const A = '«'+familyShort(a.name)+'»', B = '«'+familyShort(b.name)+'»';
+  showCtxMenu({clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}}, [
+    {heading: A+' → '+B+': кто они друг другу?'},
+    {label: A+' — родитель для '+B, onClick:()=>familyAddRelation(aId, bId, 'parent')},
+    {label: A+' — ребёнок '+B, onClick:()=>familyAddRelation(aId, bId, 'child')},
+    {label: A+' и '+B+' — супруги', onClick:()=>familyAddRelation(aId, bId, 'spouse')},
+    {label: A+' и '+B+' — братья / сёстры', onClick:()=>familyAddRelation(aId, bId, 'sibling')},
+  ]);
+}
+// карточка брошена на карточку (режимы «Соты» и «Свободный»): задаём связь
+function cardDropRelation(kind, aId, bId, ev){
+  if(kind==='rel') return openNewRelationshipModal(aId, bId);
+  familyDropMenu(ev, aId, bId);
+}
+// свободный режим: «невидимый круг» в центре карточки; возвращает id карточки под курсором или null
+const DROP_CORE_R = 24;
+function freeDropTarget(kind, ev, viewport, view, selfId){
+  const rect = viewport.getBoundingClientRect();
+  const lx = (ev.clientX-rect.left-view.pan.x)/view.scale, ly = (ev.clientY-rect.top-view.pan.y)/view.scale;
+  const list = kind==='rel'
+    ? itemsOf('characters', state.activeProjectId).map(c=>({id:c.id, x:c.netX+42, y:c.netY+26}))
+    : data.dynastyMembers.filter(m=>m.dynastyId===state.activeTreeId).map(m=>({id:m.id, x:m.tx+48, y:m.ty+27}));
+  let best = null;
+  list.forEach(n=>{
+    if(n.id===selfId) return;
+    const d = Math.hypot(lx-n.x, ly-n.y);
+    if(d<=DROP_CORE_R && (!best || d<best.d)) best = {d, id:n.id};
+  });
+  return best ? best.id : null;
+}
+function setFreeDropHighlight(viewport, cls, id){
+  viewport.querySelectorAll('.'+cls+'.drop-target').forEach(el=>el.classList.remove('drop-target'));
+  if(id){ const el = viewport.querySelector(`.${cls}[data-id="${id}"]`); if(el) el.classList.add('drop-target'); }
+}
+
+function familyStartDrag(e, vp){
+  const src = e.target.closest('.fam-node');
+  if(!src || e.button!==0) return;
+  const sx = e.clientX, sy = e.clientY;
+  let ghost = null, target = null;
+  const setTarget = t=>{
+    if(target===t) return;
+    if(target) target.classList.remove('drop-target');
+    target = t;
+    if(target) target.classList.add('drop-target');
+  };
+  const mv = ev=>{
+    if(!ghost){
+      if(Math.hypot(ev.clientX-sx, ev.clientY-sy) < 6) return;
+      ghost = src.cloneNode(true);
+      ghost.classList.add('fam-ghost');
+      ghost.classList.remove('dim','sel');
+      ghost.style.cssText += `;position:fixed; left:0; top:0; width:${FAM.SLOT}px; z-index:500; pointer-events:none; transform-origin:50% 32px;`;
+      document.body.appendChild(ghost);
+      src.classList.add('dragging');
+      closeCtxMenu();
+    }
+    ghost.style.transform = `translate(${ev.clientX - FAM.SLOT/2}px, ${ev.clientY - FAM.R*familyView.scale}px) scale(${familyView.scale})`;
+    const el = document.elementFromPoint(ev.clientX, ev.clientY);
+    const n = el && el.closest ? el.closest('.fam-node') : null;
+    setTarget(n && n!==src && vp.contains(n) ? n : null);
+  };
+  const up = ev=>{
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+    if(!ghost) return;                         // это был обычный клик
+    ghost.remove();
+    src.classList.remove('dragging');
+    const t = target; setTarget(null);
+    familyJustDragged = true; setTimeout(()=>{ familyJustDragged = false; }, 0);
+    if(t) familyDropMenu(ev, src.dataset.id, t.dataset.id);
+  };
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
+}
+
+function initFamilyBoard(){
+  const vp = document.getElementById('familyViewport');
+  if(!vp) return;
+  if(familyView.needFit){ familySel = null; familyFit(); } else familyApply();
+  familyApplySel();
+  vp.addEventListener('mousedown', e=>{
+    if(e.button!==0 || e.target.closest('.fam-node') || e.target.closest('.board-fs-bar')) return;
+    const sx = e.clientX, sy = e.clientY, ox = familyView.pan.x, oy = familyView.pan.y;
+    let moved = false;
+    vp.classList.add('panning');
+    const mv = ev=>{
+      if(Math.hypot(ev.clientX-sx, ev.clientY-sy) > 3) moved = true;
+      familyView.pan = { x:ox + ev.clientX - sx, y:oy + ev.clientY - sy };
+      familyApply();
+    };
+    const up = ()=>{
+      document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up);
+      vp.classList.remove('panning');
+      if(!moved && familySel){ familySel = null; familyApplySel(); }
+    };
+    document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+  });
+  vp.addEventListener('wheel', e=>{
+    e.preventDefault();
+    const rect = vp.getBoundingClientRect();
+    familyZoomAt(e.clientX-rect.left, e.clientY-rect.top, familyView.scale + (e.deltaY<0 ? 0.1 : -0.1));
+  }, {passive:false});
+  vp.addEventListener('mousedown', e=>familyStartDrag(e, vp));
+  vp.addEventListener('click', e=>{
+    if(familyJustDragged) return;
+    const n = e.target.closest('.fam-node');
+    if(!n) return;
+    familySel = familySel===n.dataset.id ? null : n.dataset.id;
+    familyApplySel();
+  });
+  vp.addEventListener('dblclick', e=>{
+    const n = e.target.closest('.fam-node');
+    if(n) openEditMemberModal(state.activeTreeId, n.dataset.id);
+  });
+  vp.addEventListener('contextmenu', onFamilyContextMenu);
 }
 
 function treeNodeHtml(m){
@@ -2386,8 +2898,8 @@ function applyTreeCanvasTransform(){
   const lbl = document.getElementById('treeZoomLabel');
   if(lbl) lbl.textContent = Math.round(treeCanvasView.scale*100)+'%';
 }
-function zoomTreeCanvas(delta){ if(state.viewModeDynasty==='hex') return hexZoomBy('tree', delta); treeCanvasView.scale = Math.min(2, Math.max(0.35, treeCanvasView.scale+delta)); applyTreeCanvasTransform(); drawTreeEdges(); }
-function resetTreeCanvasView(){ if(state.viewModeDynasty==='hex') return resetHexView('tree'); treeCanvasView.pan = {x:220,y:90}; treeCanvasView.scale = 1; applyTreeCanvasTransform(); drawTreeEdges(); }
+function zoomTreeCanvas(delta){ if(state.viewModeDynasty==='family') return zoomFamily(delta); if(state.viewModeDynasty==='hex') return hexZoomBy('tree', delta); treeCanvasView.scale = Math.min(2, Math.max(0.35, treeCanvasView.scale+delta)); applyTreeCanvasTransform(); drawTreeEdges(); }
+function resetTreeCanvasView(){ if(state.viewModeDynasty==='family') return familyFit(); if(state.viewModeDynasty==='hex') return resetHexView('tree'); treeCanvasView.pan = {x:220,y:90}; treeCanvasView.scale = 1; applyTreeCanvasTransform(); drawTreeEdges(); }
 
 function drawTreeEdges(){
   const svg = document.getElementById('treeEdgesSvg');
@@ -2443,6 +2955,9 @@ function onTreeCanvasContextMenu(e){
     const m = data.dynastyMembers.find(x=>x.id===nodeEl.dataset.id);
     if(m) return showCtxMenu(e, [
       {label:'+ Добавить ребёнка (участник и связь)', onClick:()=>openNewMemberModal(dynastyId, {tx:m.tx, ty:m.ty+150}, m.id)},
+      {label:'+ Добавить супруга / супругу', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'spouse')},
+      {label:'+ Добавить родителя', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'parent')},
+      {label:'+ Добавить брата / сестру', onClick:()=>openNewRelativeModal(dynastyId, m.id, 'sibling')},
       {label:'+ Новая связь от «'+(m.name||'участника')+'»', onClick:()=>openNewMemberLinkModal(dynastyId, m.id)},
       {label:'+ Новая связь', onClick:()=>openNewMemberLinkModal(dynastyId)},
       {label:'+ Новый участник здесь', onClick:()=>openNewMemberModal(dynastyId, here)},
@@ -2498,7 +3013,7 @@ function onTreeCanvasMouseDown(e){
     const m = data.dynastyMembers.find(x=>x.id===id);
     if(!m) return;
     const startX=e.clientX, startY=e.clientY, ox=m.tx, oy=m.ty;
-    let moved = false;
+    let moved = false, dropId = null;
     nodeEl.classList.add('dragging');
     const move=(ev)=>{
       if(Math.abs(ev.clientX-startX)>3 || Math.abs(ev.clientY-startY)>3) moved = true;
@@ -2506,11 +3021,21 @@ function onTreeCanvasMouseDown(e){
       m.ty = oy + (ev.clientY-startY)/treeCanvasView.scale;
       nodeEl.style.left = m.tx+'px'; nodeEl.style.top = m.ty+'px';
       drawTreeEdges();
+      if(moved){ const t = freeDropTarget('tree', ev, viewport, treeCanvasView, id); if(t!==dropId){ dropId = t; setFreeDropHighlight(viewport, 'tree-node', t); } }
     };
-    const up=()=>{
+    const up=(ev)=>{
       document.removeEventListener('mousemove', move);
       document.removeEventListener('mouseup', up);
       nodeEl.classList.remove('dragging');
+      setFreeDropHighlight(viewport, 'tree-node', null);
+      if(moved && dropId){
+        // брошена в центр другой карточки — возвращаем на место и задаём родство
+        m.tx = ox; m.ty = oy;
+        nodeEl.style.left = ox+'px'; nodeEl.style.top = oy+'px';
+        drawTreeEdges();
+        cardDropRelation('tree', id, dropId, ev);
+        return;
+      }
       if(moved) queueSave(); else treeToggleSelect(id);
     };
     document.addEventListener('mousemove', move);
@@ -2555,27 +3080,31 @@ function createMemberLink(dynastyId, fromId, toId){
 function memberLinkFields(dynastyId){
   const members = data.dynastyMembers.filter(m=>m.dynastyId===dynastyId).map(m=>[m.id, m.name]);
   return [
-    {key:'fromId', label:'Родитель', type:'select', options: members, required:true},
-    {key:'toId', label:'Ребёнок', type:'select', options: members, required:true},
+    {key:'kind', label:'Тип связи', type:'select', options:[['parent','Первый — родитель, второй — ребёнок'],['spouse','Супруги / партнёры'],['sibling','Братья / сёстры']], required:true},
+    {key:'fromId', label:'Первый участник', type:'select', options: members, required:true},
+    {key:'toId', label:'Второй участник', type:'select', options: members, required:true},
   ];
 }
 function openNewMemberLinkModal(dynastyId, presetFrom, presetTo){
   dynastyId = dynastyId || state.activeTreeId;
   if(data.dynastyMembers.filter(m=>m.dynastyId===dynastyId).length<2){ showToast('Для связи нужно минимум два участника'); return; }
-  openFormModal('Новая связь', memberLinkFields(dynastyId), {fromId: presetFrom||'', toId: presetTo||''}, (vals)=>{
+  openFormModal('Новая связь', memberLinkFields(dynastyId), {kind:'parent', fromId: presetFrom||'', toId: presetTo||''}, (vals)=>{
     if(vals.fromId===vals.toId){ showToast('Выберите двух разных участников'); return; }
     if(data.dynastyMemberLinks.some(l=>l.dynastyId===dynastyId && ((l.fromId===vals.fromId && l.toId===vals.toId) || (l.fromId===vals.toId && l.toId===vals.fromId)))){ showToast('Эти участники уже связаны'); return; }
-    data.dynastyMemberLinks.push({id:uid(), projectId: state.activeProjectId, dynastyId, fromId: vals.fromId, toId: vals.toId});
+    const nl = {id:uid(), projectId: state.activeProjectId, dynastyId, fromId: vals.fromId, toId: vals.toId};
+    if(vals.kind && vals.kind!=='parent') nl.kind = vals.kind;
+    data.dynastyMemberLinks.push(nl);
     queueSave(); closeModal(); refreshTreeEditor();
   });
 }
 function openEditMemberLinkModal(id){
   const l = data.dynastyMemberLinks.find(x=>x.id===id);
   if(!l) return;
-  openFormModal('Изменить связь', memberLinkFields(l.dynastyId), {fromId:l.fromId, toId:l.toId}, (vals)=>{
+  openFormModal('Изменить связь', memberLinkFields(l.dynastyId), {kind:l.kind||'parent', fromId:l.fromId, toId:l.toId}, (vals)=>{
     if(vals.fromId===vals.toId){ showToast('Выберите двух разных участников'); return; }
     if(data.dynastyMemberLinks.some(x=>x.id!==l.id && x.dynastyId===l.dynastyId && ((x.fromId===vals.fromId && x.toId===vals.toId) || (x.fromId===vals.toId && x.toId===vals.fromId)))){ showToast('Эти участники уже связаны'); return; }
     l.fromId = vals.fromId; l.toId = vals.toId;
+    if(vals.kind && vals.kind!=='parent') l.kind = vals.kind; else delete l.kind;
     queueSave(); closeModal(); refreshTreeEditor();
   }, { label:'Удалить связь', onClick: ()=>{ closeModal(); deleteMemberLinkConfirm(id); } });
 }
@@ -2592,7 +3121,8 @@ function treeMemberName(id, members){
 }
 function treeLinkCard(l, members){
   return `<div class="dossier">
-    <div class="d-top"><h3 style="font-size:14.5px;">${esc(treeMemberName(l.fromId, members))} → ${esc(treeMemberName(l.toId, members))}</h3></div>
+    <div class="d-top"><h3 style="font-size:14.5px;">${esc(treeMemberName(l.fromId, members))} ${l.kind==='spouse' ? '⚭' : l.kind==='sibling' ? '↔' : '→'} ${esc(treeMemberName(l.toId, members))}</h3></div>
+    <div style="font-size:11.5px; color:var(--text-faint); margin:2px 0 6px;">${l.kind==='spouse' ? 'Супруги / партнёры' : l.kind==='sibling' ? 'Братья / сёстры' : 'Родитель → ребёнок'}</div>
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditMemberLinkModal('${l.id}')">${btnIconSvg('edit')}Изменить</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="deleteMemberLinkConfirm('${l.id}')">Удалить</button>
@@ -2607,6 +3137,30 @@ function openNewMemberModal(dynastyId, pos, parentId){
     if(pos && Number.isFinite(pos.hexQ)){ nm.hexQ = pos.hexQ; nm.hexR = pos.hexR; }
     data.dynastyMembers.push(nm);
     if(parentId) data.dynastyMemberLinks.push({id:uid(), projectId: state.activeProjectId, dynastyId, fromId: parentId, toId: nm.id});
+    queueSave(); closeModal(); refreshTreeEditor();
+  });
+}
+function openNewRelativeModal(dynastyId, anchorId, relation){
+  const titles = {child:'Новый ребёнок', parent:'Новый родитель', spouse:'Новый супруг / партнёр', sibling:'Новый брат / сестра'};
+  openFormModal(titles[relation] || 'Новый член рода', memberFields(), {}, (vals)=>{
+    const nm = Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals);
+    data.dynastyMembers.push(nm);
+    const mk = (fromId, toId, kind)=>{ const l = {id:uid(), projectId: state.activeProjectId, dynastyId, fromId, toId}; if(kind) l.kind = kind; data.dynastyMemberLinks.push(l); };
+    if(relation==='child'){
+      mk(anchorId, nm.id);
+      // если у родителя ровно один супруг(а) — ребёнок общий
+      const sp = data.dynastyMemberLinks.filter(l=>l.dynastyId===dynastyId && l.kind==='spouse' && (l.fromId===anchorId || l.toId===anchorId)).map(l=>l.fromId===anchorId ? l.toId : l.fromId);
+      if(new Set(sp).size===1) mk(sp[0], nm.id);
+    } else if(relation==='parent'){
+      mk(nm.id, anchorId);
+    } else if(relation==='sibling'){
+      // у брата/сестры те же родители, что у выбранного человека — связи прописываются сами
+      const parents = [...new Set(data.dynastyMemberLinks.filter(l=>l.dynastyId===dynastyId && l.kind!=='spouse' && l.kind!=='sibling' && l.toId===anchorId).map(l=>l.fromId))];
+      if(parents.length) parents.forEach(p=>mk(p, nm.id));
+      else mk(anchorId, nm.id, 'sibling');   // родителей в древе нет — связываем напрямую
+    } else {
+      mk(anchorId, nm.id, 'spouse');
+    }
     queueSave(); closeModal(); refreshTreeEditor();
   });
 }
@@ -4963,6 +5517,7 @@ document.addEventListener('keydown', e=>{
 const BOARD_FS_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>';
 const BOARD_FS_EXIT_ICON = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/></svg>';
 function boardVp(kind){
+  if(kind==='tree' && state.viewModeDynasty==='family') return document.getElementById('familyViewport');
   const hex = (kind==='rel' ? state.viewModeNetworks : state.viewModeDynasty)==='hex';
   return document.getElementById(kind==='rel' ? (hex ? 'hexRelViewport' : 'relCanvasViewport') : (hex ? 'hexTreeViewport' : 'treeCanvasViewport'));
 }
@@ -4987,7 +5542,8 @@ function applyBoardFs(kind){
   if(on) boardFsBar(vp, kind);
   vp.classList.toggle('board-fs', on);
   document.body.style.overflow = on ? 'hidden' : '';
-  if((kind==='rel' ? state.viewModeNetworks : state.viewModeDynasty)==='hex'){
+  if(kind==='tree' && state.viewModeDynasty==='family') requestAnimationFrame(()=>familyFit());
+  else if((kind==='rel' ? state.viewModeNetworks : state.viewModeDynasty)==='hex'){
     requestAnimationFrame(()=>{ invalidateHexGrid(kind); drawHexGrid(kind); });
   }
 }
@@ -5094,6 +5650,71 @@ document.addEventListener('click', (e)=>{
   }
 });
 
+/* ---------------- РЕЗЕРВНЫЕ КОПИИ: скачать на ПК / загрузить из файла ---------------- */
+// Рабочие данные живут в облаке; файл — это бэкап «по требованию» (или способ перенести данные в другое место).
+function downloadJsonFile(obj, filename){
+  const blob = new Blob([JSON.stringify(obj)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function backupDateStamp(){ const d = new Date(), p = n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}_${p(d.getHours())}-${p(d.getMinutes())}`; }
+function safeFileName(name){ return (name||'проект').replace(/[\\/:*?"<>|]+/g,'').trim().replace(/\s+/g,'_').slice(0,50) || 'проект'; }
+function projectScopedKeys(src){ return Object.keys(src).filter(k=>k!=='projects' && k!=='settings' && k!=='_export' && Array.isArray(src[k])); }
+// все данные одного проекта, включая участников и связи его древ
+function collectProjectData(pid){
+  const p = data.projects.find(x=>x.id===pid);
+  if(!p) return null;
+  const out = { projects:[p] };
+  projectScopedKeys(data).forEach(k=>{ out[k] = data[k].filter(x=>x && x.projectId===pid); });
+  const dynIds = new Set((out.dynasties||[]).map(d=>d.id));
+  ['dynastyMembers','dynastyMemberLinks'].forEach(k=>{
+    if(Array.isArray(data[k])) out[k] = data[k].filter(x=>x && (x.projectId===pid || dynIds.has(x.dynastyId)));
+  });
+  return out;
+}
+function exportAllProjects(){
+  if(!data.projects.length){ showToast('Пока нечего скачивать — проектов нет'); return; }
+  downloadJsonFile(Object.assign({ _export:{ type:'all', version:1, at:new Date().toISOString() } }, data), `masterskaya-vse-proekty_${backupDateStamp()}.json`);
+  showToast('Резервная копия всех проектов скачана');
+}
+function exportCurrentProject(){
+  const pid = state.activeProjectId;
+  const part = pid ? collectProjectData(pid) : null;
+  if(!part){ showToast('Сначала выберите проект'); return; }
+  const p = part.projects[0];
+  downloadJsonFile(Object.assign({ _export:{ type:'project', version:1, at:new Date().toISOString() } }, part), `masterskaya-${safeFileName(p.name)}_${backupDateStamp()}.json`);
+  showToast(`Проект «${p.name||'без названия'}» скачан`);
+}
+// файл с одним проектом: добавляем к существующим или заменяем проект с тем же id; остальные проекты не трогаем
+function importProjectFile(parsed){
+  const p = parsed.projects && parsed.projects[0];
+  if(!p || !p.id) throw new Error('bad project');
+  const exists = data.projects.some(x=>x.id===p.id);
+  const msg = exists
+    ? `Проект «${p.name||'без названия'}» уже есть. Заменить его данными из файла? Остальные проекты не изменятся.`
+    : `Добавить проект «${p.name||'без названия'}» из файла к вашим проектам?`;
+  askConfirm(msg, exists ? 'Заменить' : 'Добавить', ()=>{
+    if(exists){
+      const old = collectProjectData(p.id);
+      const oldIds = {};
+      projectScopedKeys(old).forEach(k=>{ oldIds[k] = new Set(old[k].map(x=>x.id)); });
+      data.projects = data.projects.filter(x=>x.id!==p.id);
+      projectScopedKeys(data).forEach(k=>{ if(oldIds[k]) data[k] = data[k].filter(x=>!oldIds[k].has(x.id)); });
+    }
+    data.projects.push(p);
+    projectScopedKeys(parsed).forEach(k=>{ data[k] = (Array.isArray(data[k]) ? data[k] : []).concat(parsed[k]); });
+    state.activeProjectId = p.id;
+    state.activeTab = 'overview';
+    queueSave();
+    render();
+    showToast(exists ? 'Проект заменён данными из файла' : 'Проект добавлен');
+  });
+}
+document.getElementById('exportAllBtn').addEventListener('click', ()=>{ dataPanel.classList.remove('show'); exportAllProjects(); });
+document.getElementById('exportProjectBtn').addEventListener('click', ()=>{ dataPanel.classList.remove('show'); exportCurrentProject(); });
 document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', (e)=>{
   const file = e.target.files[0];
@@ -5103,13 +5724,18 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
     try{
       const parsed = JSON.parse(reader.result);
       if(!parsed || !Array.isArray(parsed.projects)) throw new Error('bad format');
-      askConfirm('Восстановление заменит текущие данные данными из выбранного файла. Продолжить?', 'Восстановить', ()=>{
+      dataPanel.classList.remove('show');
+      if(parsed._export && parsed._export.type==='project'){ importProjectFile(parsed); return; }
+      askConfirm('Загрузка заменит ВСЕ текущие данные данными из выбранного файла. Продолжить?', 'Заменить всё', ()=>{
+        delete parsed._export;
         data = Object.assign({ projects:[], characters:[], relationships:[], events:[], locations:[], factions:[], scenes:[], sceneLinks:[], creatures:[], myths:[], magicSystems:[], deities:[], maps:[], countries:[], dynasties:[], dynastyMembers:[], dynastyMemberLinks:[], artifacts:[] }, parsed);
+        ensureSettings();
+        syncViewModes();
         state.activeProjectId = data.projects[0] ? data.projects[0].id : null;
         state.activeTab = 'overview';
         queueSave();
         render();
-        showToast('Данные восстановлены из файла');
+        showToast('Данные загружены из файла');
       });
     }catch(err){
       showToast('Не удалось прочитать файл — формат не распознан');
@@ -5117,6 +5743,10 @@ document.getElementById('importFile').addEventListener('change', (e)=>{
     e.target.value = '';
   };
   reader.readAsText(file);
+});
+// без локальной копии: предупреждаем, если закрывают вкладку, пока изменения не дошли до облака
+window.addEventListener('beforeunload', e=>{
+  if(unsavedChanges && currentUser){ e.preventDefault(); e.returnValue = ''; }
 });
 
 /* ---------------- AUTH + INIT ---------------- */
@@ -5172,7 +5802,7 @@ document.getElementById('signOutBtn').addEventListener('click', async ()=>{
   btn.disabled = true;
   try{
     clearTimeout(saveTimer);
-    writeLocalData();
+    if(currentUser && saveRevision>0) await saveCloudData(true);   // перед выходом досохраняем в облако
     const { error } = await supabaseClient.auth.signOut();
     if(error) throw error;
     currentUser = null;

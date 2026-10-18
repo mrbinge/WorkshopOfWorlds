@@ -776,3 +776,44 @@
 
 /* Одинаковая панель инструментов у «Связей» и «Древа»: заголовок слева, кнопки справа */
 .board-actions{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; margin-left:auto; }
+
+/* Режим «Древо»: круги сами встают по родственным связям */
+#familyViewport{ position:relative; overflow:hidden; border:1px solid var(--border-soft); border-radius:var(--radius);
+  background: radial-gradient(circle, var(--border-soft) 1px, transparent 1px) 0 0/22px 22px, var(--bg-alt);
+  height:620px; cursor:grab; touch-action:none; }
+#familyViewport.panning{ cursor:grabbing; }
+#familyInner{ position:absolute; top:0; left:0; transform-origin:0 0; }
+#familyEdges{ position:absolute; top:0; left:0; pointer-events:none; overflow:visible; }
+.fam-edge{ fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; transition:opacity .2s; }
+.fam-parent{ stroke:var(--gold); }
+.fam-spouse{ stroke:#d98aa0; }
+.fam-knot{ fill:#d98aa0; stroke:none; }
+.fam-far{ stroke-dasharray:5 5; opacity:.8; }
+.fam-edge.dim{ opacity:.1; }
+.fam-node{ position:absolute; width:150px; display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; user-select:none; transition:opacity .2s; }
+.fam-avatar{ width:64px; height:64px; font-size:17px; flex-shrink:0; }
+.fam-name{ position:relative; z-index:1; margin-top:3px; max-width:120px; padding:1px 8px; border-radius:6px; background:var(--bg-alt); font-size:12px; font-weight:600; color:var(--text); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.fam-dates{ position:relative; z-index:1; padding:0 6px; border-radius:6px; background:var(--bg-alt); font-size:10px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace; text-align:center; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fam-node:hover .tree-avatar, .fam-node.sel .tree-avatar{ box-shadow:0 0 18px color-mix(in srgb, var(--hex-ring, var(--gold)) 65%, transparent); }
+.fam-node.dim{ opacity:.22; }
+.fam-node:hover{ z-index:5; }
+
+/* Кружок «+» — свой цвет обводки */
+#ctxMenu .ctx-sw-add{ display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--text-dim); border:1px dashed var(--text-faint); box-shadow:none; }
+#ctxMenu .ctx-sw-add:hover{ color:var(--text); border-color:var(--text); }
+
+.fam-sibling{ stroke:#7fb5d6; }
+
+/* Перетаскивание круга на круг */
+.fam-node.dragging{ opacity:.3; }
+.fam-node.drop-target .tree-avatar{ box-shadow:0 0 0 4px var(--gold), 0 0 26px var(--gold); transform:scale(1.08); }
+.fam-ghost{ display:flex; flex-direction:column; align-items:center; opacity:.92; filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
+#ctxMenu .ctx-heading{ padding:8px 12px 6px; font-size:11.5px; color:var(--text-faint); max-width:300px; }
+
+/* Бросок карточки на карточку: подсветка цели */
+.hex-card.drop-target{ filter:drop-shadow(0 0 16px var(--gold)); z-index:6; }
+.hex-card.drop-target .hex-ring polygon{ stroke:var(--gold); stroke-width:5; }
+.rel-node.drop-target .rel-avatar, .tree-node.drop-target .tree-avatar{ box-shadow:0 0 0 4px var(--gold), 0 0 24px var(--gold); transform:scale(1.08); }
+
+#settingsPanel{ min-width:250px; }
+.settings-label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; }
