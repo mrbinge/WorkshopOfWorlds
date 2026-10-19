@@ -311,8 +311,9 @@
   /* Dynasty card tree button */
   .tree-add-btn{display:flex; flex-direction:column; align-items:center; gap:3px; background:none; border:none; color:var(--text-faint); flex-shrink:0; padding:2px;}
   .tree-add-btn:hover{color:var(--gold);}
-  .tree-add-icon{width:26px; height:26px; border-radius:50%; border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:300; line-height:1; transition:border-color .15s, color .15s;}
-  .tree-add-btn:hover .tree-add-icon{border-color:var(--gold); color:var(--gold);}
+  .tree-add-icon{width:34px; height:34px; display:flex; align-items:center; justify-content:center; color:var(--gold); opacity:.8; transition:opacity .15s, transform .15s;}
+  .tree-add-icon svg{width:100%; height:100%; display:block;}
+  .tree-add-btn:hover .tree-add-icon{opacity:1; transform:scale(1.08);}
   .tree-add-label{font-size:9px; font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap;}
 
   /* Genealogy tree canvas */
@@ -710,6 +711,12 @@
 
   /* Линии связей по граням сот */
   .hex-lines{ z-index:6; }
+  .hex-route{ z-index:7; pointer-events:none; }
+  .hex-route-line{ fill:none; stroke:#fff; stroke-width:3.5; stroke-dasharray:7 6; stroke-linecap:round; stroke-linejoin:round; opacity:.9; }
+  .hex-route-dot{ fill:#fff; stroke:var(--gold); stroke-width:2; }
+  .hex-route-hover{ fill:none; stroke:var(--gold); stroke-width:2; }
+  .hex-viewport.route-editing{ cursor:crosshair; }
+  .hex-route-banner{ position:absolute; left:50%; bottom:14px; transform:translateX(-50%); z-index:20; display:flex; align-items:center; gap:8px; flex-wrap:wrap; justify-content:center; max-width:calc(100% - 20px); padding:8px 12px; background:var(--card); border:1px solid var(--gold); border-radius:10px; font-size:12.5px; color:var(--text); box-shadow:0 6px 22px rgba(0,0,0,.5); cursor:default; }
   .hex-line{ fill:none; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; opacity:.95; }
 
   /* Свободный режим: имя скрыто, появляется при наведении (как в сотах) */

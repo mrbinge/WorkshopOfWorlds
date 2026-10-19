@@ -1330,15 +1330,20 @@ function hexCfg(kind){
     kind, view:hexRelView, vp:'hexRelViewport', layer:'hexRelLayer', grid:'hexRelGrid', hint:'hexRelHint', cards:'hexRelCards', label:'relZoomLabel', lines:'hexRelLines',
     edges:()=>itemsOf('relationships', state.activeProjectId).map(r=>{
       const types = relTypes(r), ev = relEvolves(r);
-      return {id:r.id, from:r.charA, to:r.charB, c1:relTypeColor(types[0]), c2: ev.length ? relTypeColor(ev[0]) : relTypeColor(types[types.length-1])};
+      return {id:r.id, from:r.charA, to:r.charB, c1:relTypeColor(types[0]), c2: ev.length ? relTypeColor(ev[0]) : relTypeColor(types[types.length-1]), route:r.route};
     }),
+    findEdge:(id)=>data.relationships.find(x=>x.id===id),
     boardKey:()=>'rel:'+state.activeProjectId,
     items:()=>itemsOf('characters', state.activeProjectId),
     open:(id)=>openEditCharacterModal(id)
   };
   return {
     kind, view:hexTreeView, vp:'hexTreeViewport', layer:'hexTreeLayer', grid:'hexTreeGrid', hint:'hexTreeHint', cards:'hexTreeCards', label:'treeZoomLabel', lines:'hexTreeLines',
-    edges:()=>data.dynastyMemberLinks.filter(l=>l.dynastyId===state.activeTreeId).map(l=>({id:l.id, from:l.fromId, to:l.toId, c1:'#c9a24c', c2:'#c9a24c'})),
+    edges:()=>data.dynastyMemberLinks.filter(l=>l.dynastyId===state.activeTreeId).map(l=>{
+      const col = l.kind==='spouse' ? '#d98aa0' : l.kind==='sibling' ? '#7fb5d6' : '#c9a24c';
+      return {id:l.id, from:l.fromId, to:l.toId, c1:col, c2:col, route:l.route};
+    }),
+    findEdge:(id)=>data.dynastyMemberLinks.find(x=>x.id===id),
     boardKey:()=>'tree:'+state.activeTreeId,
     items:()=>data.dynastyMembers.filter(m=>m.dynastyId===state.activeTreeId),
     open:(id)=>openEditMemberModal(state.activeTreeId, id)
@@ -1483,6 +1488,7 @@ function hexZoomBy(kind, delta){
 function initHexBoard(kind){
   const c = hexCfg(kind), vp = document.getElementById(c.vp);
   if(!vp) return;
+  if(c.view.routeEdit){ c.view.routeEdit = null; if(c.view.routeKey){ document.removeEventListener('keydown', c.view.routeKey); c.view.routeKey = null; } }
   ensureHexPositions(c.items());
   buildHexCards(kind);
   drawHexLines(kind);
@@ -1590,6 +1596,123 @@ function hexSmartPath(a, b, centers){
   }
   return out;
 }
+/* --- ручной маршрут линии: точки ставятся на углы сот, концы цепляются к ближайшим углам карточек --- */
+function nearestCornerOf(item, pt){
+  let best = null;
+  hexCorners(item.hexQ, item.hexR).forEach(p=>{ const d = Math.hypot(p.x-pt.x, p.y-pt.y); if(!best || d<best.d) best = {d, p}; });
+  return best.p;
+}
+function hexManualPath(a, b, route){
+  const pts = route.filter(p=>p && Number.isFinite(p.x) && Number.isFinite(p.y));
+  if(!pts.length) return null;
+  return [nearestCornerOf(a, pts[0]), ...pts, nearestCornerOf(b, pts[pts.length-1])];
+}
+// ближайший угол сетки к точке (x, y)
+function snapToHexVertex(x, y){
+  const c0 = pixelToHex(x, y);
+  let best = null;
+  const cells = [[0,0], ...HEX_DIRS];
+  cells.forEach(([dq,dr])=>hexCorners(c0.q+dq, c0.r+dr).forEach(p=>{
+    const d = Math.hypot(p.x-x, p.y-y);
+    if(!best || d<best.d) best = {d, p};
+  }));
+  return {x:Math.round(best.p.x*100)/100, y:Math.round(best.p.y*100)/100};
+}
+function hexRouteOverlay(kind){
+  const c = hexCfg(kind), layer = document.getElementById(c.layer);
+  let svg = document.getElementById(c.layer+'Route');
+  if(!svg){
+    svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = c.layer+'Route'; svg.setAttribute('class', 'hex-grid hex-route');
+    layer.appendChild(svg);
+  }
+  return svg;
+}
+function drawHexRoutePreview(kind){
+  const c = hexCfg(kind), v = c.view, re = v.routeEdit;
+  const svg = hexRouteOverlay(kind);
+  if(!re){ svg.innerHTML = ''; return; }
+  const pts = re.pts.slice();
+  if(re.hover) pts.push(re.hover);
+  let out = '';
+  if(pts.length>=2) out += `<polyline class="hex-route-line" points="${pts.map(p=>p.x+','+p.y).join(' ')}"/>`;
+  re.pts.forEach((p,i)=>{ out += `<circle class="hex-route-dot" cx="${p.x}" cy="${p.y}" r="${i===0||i===re.pts.length-1?5:4}"/>`; });
+  if(re.hover) out += `<circle class="hex-route-hover" cx="${re.hover.x}" cy="${re.hover.y}" r="6"/>`;
+  svg.innerHTML = out;
+}
+function hexRouteBanner(kind, on){
+  const vp = document.getElementById(hexCfg(kind).vp);
+  let el = vp.querySelector(':scope > .hex-route-banner');
+  if(!on){ if(el) el.remove(); return; }
+  if(!el){
+    el = document.createElement('div'); el.className = 'hex-route-banner';
+    el.addEventListener('mousedown', ev=>ev.stopPropagation());
+    vp.appendChild(el);
+  }
+  el.innerHTML = `<span>Рисуем линию: кликайте по углам сот. Backspace — убрать точку, Enter — готово, Esc — отмена.</span>` +
+    `<button type="button" class="btn btn-sm" data-act="undo">Назад</button>` +
+    `<button type="button" class="btn btn-sm btn-primary" data-act="done">Готово</button>` +
+    `<button type="button" class="btn btn-sm" data-act="cancel">Отмена</button>`;
+  el.onclick = ev=>{
+    const b = ev.target.closest('button'); if(!b) return;
+    if(b.dataset.act==='undo') hexRouteUndo(kind);
+    else if(b.dataset.act==='done') finishHexRoute(kind, true);
+    else finishHexRoute(kind, false);
+  };
+}
+function startHexRouteEdit(kind, edgeId){
+  const c = hexCfg(kind), v = c.view;
+  const ed = c.findEdge(edgeId); if(!ed) return;
+  if(v.routeEdit) finishHexRoute(kind, false);
+  v.routeEdit = {id:edgeId, pts:[], hover:null};
+  const vp = document.getElementById(c.vp);
+  vp.classList.add('route-editing');
+  const line = vp.querySelector('.hex-line'); // линии остаются видимыми, но приглушаются
+  document.getElementById(c.lines).style.opacity = '0.35';
+  v.routeKey = e=>{
+    if(!v.routeEdit) return;
+    if(e.key==='Escape'){ e.preventDefault(); finishHexRoute(kind, false); }
+    else if(e.key==='Enter'){ e.preventDefault(); finishHexRoute(kind, true); }
+    else if(e.key==='Backspace'){ e.preventDefault(); hexRouteUndo(kind); }
+  };
+  document.addEventListener('keydown', v.routeKey);
+  hexRouteBanner(kind, true);
+  drawHexRoutePreview(kind);
+}
+function hexRouteUndo(kind){
+  const v = hexCfg(kind).view; if(!v.routeEdit) return;
+  v.routeEdit.pts.pop(); drawHexRoutePreview(kind);
+}
+function finishHexRoute(kind, save){
+  const c = hexCfg(kind), v = c.view, re = v.routeEdit;
+  if(!re) return;
+  v.routeEdit = null;
+  document.removeEventListener('keydown', v.routeKey); v.routeKey = null;
+  const vp = document.getElementById(c.vp);
+  if(vp) vp.classList.remove('route-editing');
+  const ls = document.getElementById(c.lines); if(ls) ls.style.opacity = '';
+  hexRouteBanner(kind, false);
+  drawHexRoutePreview(kind);
+  if(save && re.pts.length){
+    const ed = c.findEdge(re.id);
+    if(ed){ ed.route = re.pts.map(p=>({x:p.x, y:p.y})); queueSave(); showToast('Линия проложена'); }
+  } else if(save){ showToast('Поставьте хотя бы одну точку'); }
+  drawHexLines(kind);
+}
+function resetHexRoute(kind, edgeId){
+  const ed = hexCfg(kind).findEdge(edgeId); if(!ed) return;
+  delete ed.route; queueSave(); drawHexLines(kind); showToast('Маршрут сброшен — линия снова автоматическая');
+}
+function hexRouteMenuItems(kind, ids){
+  const c = hexCfg(kind), items = [];
+  ids.forEach(id=>{
+    const ed = c.findEdge(id); if(!ed) return;
+    const suffix = ids.length>1 ? ' ('+(kind==='tree' ? memberLinkDesc(ed) : 'связь')+')' : '';
+    items.push({label:'Нарисовать линию вручную…'+suffix, onClick:()=>startHexRouteEdit(kind, id)});
+    if(Array.isArray(ed.route) && ed.route.length) items.push({label:'Вернуть автоматический маршрут'+suffix, onClick:()=>resetHexRoute(kind, id)});
+  });
+  return items;
+}
 function drawHexLines(kind){
   const c = hexCfg(kind), svg = document.getElementById(c.lines);
   if(!svg) return;
@@ -1600,7 +1723,9 @@ function drawHexLines(kind){
   c.edges().forEach((ed, n)=>{
     const a = byId[ed.from], b = byId[ed.to];
     if(!a || !b || a===b) return;
-    const path = hexSmartPath({q:a.hexQ, r:a.hexR}, {q:b.hexQ, r:b.hexR}, centers);
+    let path = null;
+    if(Array.isArray(ed.route) && ed.route.length) path = hexManualPath(a, b, ed.route);
+    if(!path) path = hexSmartPath({q:a.hexQ, r:a.hexR}, {q:b.hexQ, r:b.hexR}, centers);
     if(!path || path.length<2) return;
     c.view.edgeHit.push({a:ed.from, b:ed.to, id:ed.id, path});
     const p0 = path[0], pe = path[path.length-1];
@@ -1712,6 +1837,13 @@ function attachFreeEdgeHover(kind, vp){
 function onHexHover(kind, e){
   const c = hexCfg(kind), vp = document.getElementById(c.vp), v = c.view;
   if(!vp) return;
+  if(v.routeEdit){
+    hideEdgeInfo(vp);
+    const r0 = vp.getBoundingClientRect();
+    v.routeEdit.hover = snapToHexVertex((e.clientX-r0.left-v.pan.x)/v.scale, (e.clientY-r0.top-v.pan.y)/v.scale);
+    drawHexRoutePreview(kind);
+    return;
+  }
   if(v.busy){ hideEdgeInfo(vp); return; }
   const rect = vp.getBoundingClientRect();
   const lx = (e.clientX-rect.left-v.pan.x)/v.scale, ly = (e.clientY-rect.top-v.pan.y)/v.scale;
@@ -1762,21 +1894,23 @@ function confirmDeleteMemberLinks(ids, text){
     refreshTreeEditor();
   });
 }
-function memberLinkLineMenu(e, linkIds){
+function memberLinkLineMenu(e, linkIds, hexKind){
   const ids = [...new Set((linkIds||'').split(',').filter(Boolean))].filter(id=>data.dynastyMemberLinks.some(l=>l.id===id));
   if(!ids.length) return;
+  const routeItems = hexKind ? hexRouteMenuItems(hexKind, ids).concat([{sep:true}]) : [];
   const pt = {clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}};
   if(ids.length===1){
     const l = data.dynastyMemberLinks.find(x=>x.id===ids[0]);
     return showCtxMenu(e, [
       {heading: memberLinkDesc(l)},
+      ...routeItems,
       {label:'Изменить родство…', onClick:()=>memberLinkChangeMenu(pt, ids[0])},
       {sep:true},
       {label:'Удалить линию', danger:true, onClick:()=>confirmDeleteMemberLinks(ids, 'Удалить эту линию родства?')}
     ]);
   }
   // общая линия пары родителей ведёт к ребёнку: две связи
-  const items = [{heading:'Эта линия объединяет несколько связей'}];
+  const items = [{heading:'Эта линия объединяет несколько связей'}, ...routeItems];
   ids.forEach(id=>{
     const l = data.dynastyMemberLinks.find(x=>x.id===id);
     items.push({label:'Удалить: '+memberLinkDesc(l), danger:true, onClick:()=>confirmDeleteMemberLinks([id], 'Удалить эту линию родства?')});
@@ -1786,19 +1920,21 @@ function memberLinkLineMenu(e, linkIds){
   showCtxMenu(e, items);
 }
 // «Связи» (соты): удалить линию-связь между персонажами
-function relationLineMenu(e, ids){
+function relationLineMenu(e, ids, hexKind){
   const rels = ids.map(id=>data.relationships.find(r=>r.id===id)).filter(Boolean);
   if(!rels.length) return;
+  const routeItems = hexKind ? hexRouteMenuItems(hexKind, rels.map(r=>r.id)).concat([{sep:true}]) : [];
   const nm = id=>{ const c = data.characters.find(x=>x.id===id); return '«'+familyShort(c && c.name)+'»'; };
   const desc = r=>nm(r.charA)+' — '+nm(r.charB)+': '+(relTypes(r).map(relTypeLabel).join(', ') || 'связь');
   const del = (list, text)=>askConfirm(text, 'Удалить', ()=>{ const s = new Set(list); data.relationships = data.relationships.filter(r=>!s.has(r.id)); queueSave(); renderMain(); });
   if(rels.length===1) return showCtxMenu(e, [
     {heading: desc(rels[0])},
+    ...routeItems,
     {label:'Изменить связь…', onClick:()=>openEditRelationshipModal(rels[0].id)},
     {sep:true},
     {label:'Удалить линию', danger:true, onClick:()=>del([rels[0].id], 'Удалить эту связь?')}
   ]);
-  const items = [{heading:'Между этими персонажами несколько связей'}];
+  const items = [{heading:'Между этими персонажами несколько связей'}, ...routeItems];
   rels.forEach(r=>items.push({label:'Удалить: '+desc(r), danger:true, onClick:()=>del([r.id], 'Удалить эту связь?')}));
   items.push({sep:true});
   items.push({label:'Удалить все линии', danger:true, onClick:()=>del(rels.map(r=>r.id), 'Удалить все связи между этими персонажами ('+rels.length+')?')});
@@ -1830,7 +1966,7 @@ function onHexContextMenu(kind, e){
 
   if(!it){
     const lineIds = hexEdgesAt(kind, lx, ly);
-    if(lineIds.length) return kind==='tree' ? memberLinkLineMenu(e, lineIds.join(',')) : relationLineMenu(e, lineIds);
+    if(lineIds.length) return kind==='tree' ? memberLinkLineMenu(e, lineIds.join(','), 'tree') : relationLineMenu(e, lineIds, 'rel');
   }
   const colorRows = it ? colorMenuRows(kind, it, cardEl) : [];
 
@@ -1877,6 +2013,26 @@ function onHexMouseDown(kind, e){
   if(e.button!==0) return;
   const c = hexCfg(kind), vp = document.getElementById(c.vp), v = c.view;
   if(!vp) return;
+  if(v.routeEdit){
+    // режим рисования линии: клик — точка, перетаскивание — сдвиг поля
+    const sx = e.clientX, sy = e.clientY, ox = v.pan.x, oy = v.pan.y; let moved = false;
+    const mv = ev=>{
+      if(!moved && Math.hypot(ev.clientX-sx, ev.clientY-sy) < 4) return;
+      moved = true; v.pan.x = ox + ev.clientX - sx; v.pan.y = oy + ev.clientY - sy; applyHexTransform(kind);
+    };
+    const up = ev=>{
+      document.removeEventListener('mousemove', mv); document.removeEventListener('mouseup', up);
+      if(moved || !v.routeEdit) return;
+      const rect = vp.getBoundingClientRect();
+      const pt = snapToHexVertex((ev.clientX-rect.left-v.pan.x)/v.scale, (ev.clientY-rect.top-v.pan.y)/v.scale);
+      const last = v.routeEdit.pts[v.routeEdit.pts.length-1];
+      if(!last || last.x!==pt.x || last.y!==pt.y) v.routeEdit.pts.push(pt);
+      drawHexRoutePreview(kind);
+    };
+    document.addEventListener('mousemove', mv); document.addEventListener('mouseup', up);
+    e.preventDefault();
+    return;
+  }
   const cardEl = e.target.closest('.hex-card');
   if(!cardEl){
     const sx = e.clientX, sy = e.clientY, ox = v.pan.x, oy = v.pan.y;
@@ -2391,7 +2547,7 @@ function dynastyCard(d){
         </div>
       </div>
       <button class="tree-add-btn" onclick="event.stopPropagation(); openTreeEditor('${d.id}')" title="${esc(treeBtnLabel)}">
-        <span class="tree-add-icon">+</span>
+        <span class="tree-add-icon"><svg viewBox="0 0 60 60" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="30" cy="10" r="9"/><circle cx="30" cy="7.4" r="2.7" fill="currentColor" stroke="none"/><path d="M24.4 16.2a5.6 5.2 0 0 1 11.2 0Z" fill="currentColor" stroke="none"/><circle cx="10" cy="50" r="9"/><circle cx="10" cy="47.4" r="2.7" fill="currentColor" stroke="none"/><path d="M4.4 56.2a5.6 5.2 0 0 1 11.2 0Z" fill="currentColor" stroke="none"/><circle cx="50" cy="50" r="9"/><circle cx="50" cy="47.4" r="2.7" fill="currentColor" stroke="none"/><path d="M44.4 56.2a5.6 5.2 0 0 1 11.2 0Z" fill="currentColor" stroke="none"/><path d="M30 19v11M10 41V30h40v11"/></svg></span>
         <span class="tree-add-label">${esc(treeBtnLabel)}</span>
       </button>
     </div>
@@ -2509,14 +2665,14 @@ function renderTreeEditor(el, dynasty){
 }
 
 /* ---------------- РЕЖИМ «ДРЕВО»: круги сами встают по родственным связям ---------------- */
-const FAM = { SLOT:150, ROW:190, R:32, PAD:70 };
+const FAM = { SLOT:150, ROW:200, R:32, PAD:70, LBL:44 };   // LBL — высота подписи под кругом
 const familyView = { pan:{x:0,y:0}, scale:1, fitFor:null, n:0, needFit:true, W:800, H:400 };
 let familySel = null;
 
 function familyYear(m){ const x = /-?\d{1,5}/.exec((m && m.birth) || ''); return x ? parseInt(x[0], 10) : null; }
 
 // Раскладка: супруги образуют «блок», блок ставится по центру над своими детьми,
-// родители — на ряд выше детей. Позиции не хранятся — считаются заново при каждой отрисовке.
+// родители — на ряд ниже детей (древо растёт снизу вверх). Позиции не хранятся — считаются заново при каждой отрисовке.
 function familyLayout(members, links){
   const { SLOT, ROW, R } = FAM;
   const byId = {}, ord = {};
@@ -2556,7 +2712,7 @@ function familyLayout(members, links){
         queue.push(nb);
       });
     }
-    const u = { idx:units.length, ids:arr, parent:null, kids:[], ord:ord[ids[0]], depth:0 };
+    const u = { idx:units.length, ids:arr, start, parent:null, kids:[], ord:ord[ids[0]], depth:0 };
     units.push(u); arr.forEach(i=>{ unitOf[i] = u; });
   });
 
@@ -2594,6 +2750,17 @@ function familyLayout(members, links){
     if(u.kids.every(k=>unitYear(k)!==null)) u.kids.sort((a,b)=>unitYear(a)-unitYear(b));
     else u.kids.sort((a,b)=>a.ord-b.ord);
   });
+  // в блоке из нескольких супругов дети встают рядом с тем родителем (или парой), от которого они
+  units.forEach(u=>{
+    if(u.kids.length<2 || u.ids.length<2) return;
+    const idx = {}; u.ids.forEach((id,i)=>{ idx[id] = i; });
+    const gpos = k=>{
+      const ps = [];
+      k.ids.forEach(cid=>parentLinks.forEach(l=>{ if(l.toId===cid && idx[l.fromId]!==undefined) ps.push(idx[l.fromId]); }));
+      return ps.length ? ps.reduce((a,b)=>a+b,0)/ps.length : 1e9;
+    };
+    u.kids.sort((a,b)=>gpos(a)-gpos(b));      // сортировка устойчивая: внутри группы остаётся порядок по годам
+  });
 
   // 3. корни и защита от циклов
   const visited = new Set(), roots = [];
@@ -2605,22 +2772,58 @@ function familyLayout(members, links){
     roots.push(u); visit(u, 0);
   });
 
-  // 4. ширины и позиции
-  const w = u=>{
-    if(u._w!==undefined) return u._w;
-    return u._w = Math.max(u.ids.length*SLOT, u.kids.reduce((a,k)=>a+w(k), 0));
+  // 4. позиции. «Ствол»: ребёнок, у которого есть продолжение рода (наследник), ставится строго над
+  // тем из родителей, через кого идёт линия, — от отца к сыну вертикально. Остальные дети
+  // (дяди, тёти) смещаются в стороны: старшие левее, младшие правее.
+  // Если ни у кого из детей нет потомков — дети просто центрируются под родителями.
+  const height = u=> u._h!==undefined ? u._h : (u._h = u.kids.reduce((a,k)=>Math.max(a, 1+height(k)), 0));
+  const offOf = u=> u.ids.length ? (Math.max(0, u.ids.indexOf(u.start)) - (u.ids.length-1)/2)*SLOT : 0;   // смещение «ствола» от центра блока
+  const ext = u=>{            // сколько места занимает ветка слева (l) и справа (r) от «ствола» блока
+    if(u._e) return u._e;
+    const n = u.ids.length, off = offOf(u);
+    const bl = n ? off + n*SLOT/2 : 0, br = n ? -off + n*SLOT/2 : 0;
+    const kids = u.kids; u._rel = new Map();
+    let hi = -1, best = 0;
+    kids.forEach((k,i)=>{ const h = height(k); if(h>best){ best = h; hi = i; } });
+    if(hi<0 && kids.length===1) hi = 0;                 // единственный ребёнок продолжает «ствол»
+    let lo, hiX;
+    if(hi>=0){
+      const H = ext(kids[hi]); u._rel.set(kids[hi], 0);
+      let lb = -H.l, rb = H.r;
+      for(let i=hi-1; i>=0; i--){ const e = ext(kids[i]), r = lb - e.r; u._rel.set(kids[i], r); lb = r - e.l; }
+      for(let i=hi+1; i<kids.length; i++){ const e = ext(kids[i]), r = rb + e.l; u._rel.set(kids[i], r); rb = r + e.r; }
+      lo = lb; hiX = rb;
+    } else {
+      const tot = kids.reduce((a,k)=>{ const e = ext(k); return a + e.l + e.r; }, 0);
+      let cur = -off - tot/2; lo = cur; hiX = cur + tot;
+      kids.forEach(k=>{ const e = ext(k); u._rel.set(k, cur + e.l); cur += e.l + e.r; });
+    }
+    return u._e = { l:Math.max(bl, kids.length ? -lo : 0), r:Math.max(br, kids.length ? hiX : 0) };
   };
-  const pos = {}; let maxDepth = 0;
-  const place = (u, x0)=>{
-    const W = w(u), cx = x0 + W/2;
+  const level = {}, pos = {}; let maxDepth = 0;
+  const place = (u, ax)=>{
+    const n = u.ids.length, cx = ax - offOf(u);
     maxDepth = Math.max(maxDepth, u.depth);
-    u.ids.forEach((id,i)=>{ pos[id] = { x: cx - (u.ids.length-1)*SLOT/2 + i*SLOT, y: R + u.depth*ROW }; });
-    let kx = x0 + (W - u.kids.reduce((a,k)=>a+w(k), 0))/2;
-    u.kids.forEach(k=>{ place(k, kx); kx += w(k); });
+    u.ids.forEach((id,i)=>{ pos[id] = { x: cx - (n-1)*SLOT/2 + i*SLOT, y: u.depth }; });
+    // у каждого из супругов своя «шина» к детям; крайние — ближе к кругам, средние — выше
+    u.ids.map((id,i)=>i).sort((a,b)=>Math.abs(b-(n-1)/2)-Math.abs(a-(n-1)/2) || a-b).forEach((i,rank)=>{ level[u.ids[i]] = rank; });
+    ext(u); u.kids.forEach(k=>place(k, ax + u._rel.get(k)));
   };
   let x = 0;
-  roots.forEach(r=>{ place(r, x); x += w(r); });
-  return { pos, W:x, H:R*2 + maxDepth*ROW + 56 };
+  roots.forEach(r=>{ const e = ext(r); place(r, x + e.l); x += e.l + e.r; });
+  // снизу вверх: самые старшие — в нижнем ряду, потомки выше
+  Object.values(pos).forEach(p=>{ p.y = R + (maxDepth - p.y)*ROW; });
+  return { pos, level, W:x, H:R*2 + maxDepth*ROW + FAM.LBL + 12 };
+}
+
+// цвет линии = цвет обрамления родителя; слишком тёмные (например, чёрный у умерших) заменяем на светло-серый,
+// иначе линия сливается с тёмным фоном
+function familyLineColor(c){
+  const m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(String(c).trim());
+  if(!m) return c;
+  let h = m[1]; if(h.length===3) h = h.split('').map(x=>x+x).join('');
+  const r = parseInt(h.slice(0,2),16), g = parseInt(h.slice(2,4),16), b = parseInt(h.slice(4,6),16);
+  return (0.299*r + 0.587*g + 0.114*b) < 70 ? '#9aa0b4' : c;
 }
 
 function familyEdgesSvg(L, members, links){
@@ -2646,26 +2849,32 @@ function familyEdgesSvg(L, members, links){
       out += `<path class="fam-edge fam-spouse fam-far" data-ids="${ids}" d="${dd}"/>` + hit(dd, [l.id]);
     }
   });
+  // у каждого родителя — своя линия к ребёнку (от отца отдельно, от матери отдельно);
+  // цвет линии = цвет обрамления родителя. Линии идут снизу вверх: из верха круга родителя
+  // к низу подписи ребёнка.
+  const memberById = {}; members.forEach(m=>{ memberById[m.id] = m; });
   const byChild = {};
   links.filter(l=>valid(l) && l.kind!=='spouse' && l.kind!=='sibling').forEach(l=>{ (byChild[l.toId] = byChild[l.toId] || []).push(l.fromId); });
   Object.keys(byChild).forEach(cid=>{
-    const c = pos[cid], ps = [...new Set(byChild[cid])], used = new Set(), anchors = [];
-    ps.forEach(a=>{
-      if(used.has(a)) return;
-      const b = ps.find(x=>x!==a && !used.has(x) && near.has(a+'|'+x));
-      if(b){ used.add(a); used.add(b); anchors.push({ x:(pos[a].x+pos[b].x)/2, y:pos[a].y, ids:[a,b] }); }
-    });
-    ps.forEach(a=>{ if(!used.has(a)) anchors.push({ x:pos[a].x, y:pos[a].y+R, ids:[a] }); });
-    anchors.forEach(an=>{
-      const ty = c.y - R, ids = an.ids.join(',')+','+cid;
-      if(ty > an.y+24){
-        const busY = Math.max(an.y+12, ty-38);
-        const d = Math.abs(c.x-an.x)<1 ? `M${an.x},${an.y} V${ty}` : `M${an.x},${an.y} V${busY} H${c.x} V${ty}`;
-        out += `<path class="fam-edge fam-parent" data-ids="${ids}" d="${d}"/>` + hit(d, an.ids.map(p=>plainLinkId(p, cid)));
+    const c = pos[cid], cm = memberById[cid];
+    const ps = [...new Set(byChild[cid])].sort((p,q)=>pos[p].x-pos[q].x);
+    const ty = c.y + R + (cm && (cm.birth || cm.death) ? FAM.LBL : FAM.LBL - 16) + 4;
+    ps.forEach((a, i)=>{
+      const pa = pos[a], pm = memberById[a];
+      const ptop = pa.y - R;
+      const cx = c.x + (i - (ps.length-1)/2)*9;          // две линии входят в ребёнка рядом, не сливаясь
+      const busY = ptop - 16 - (L.level[a] || 0)*9;
+      const lc = pm && pm.hexBorder ? familyLineColor(pm.hexBorder) : '';
+      const col = lc ? ` style=\"stroke:${esc(lc)}\"` : '';
+      const ids = a+','+cid;
+      let d, far = false;
+      if(ty + 10 < busY){
+        d = Math.abs(cx-pa.x)<1 ? `M${pa.x},${ptop} V${ty}` : `M${pa.x},${ptop} V${busY} H${cx} V${ty}`;
       } else {
-        const dd = `M${an.x},${an.y} L${c.x},${c.y}`;
-        out += `<path class="fam-edge fam-parent fam-far" data-ids="${ids}" d="${dd}"/>` + hit(dd, an.ids.map(p=>plainLinkId(p, cid)));
+        far = true;
+        d = ty < ptop-20 ? `M${pa.x},${ptop} C${pa.x},${ptop-70} ${cx},${ty+70} ${cx},${ty}` : `M${pa.x},${ptop} L${cx},${ty}`;
       }
+      out += `<path class=\"fam-edge fam-parent${far?' fam-far':''}\" data-ids=\"${ids}\"${col} d=\"${d}\"/>` + hit(d, [plainLinkId(a, cid)]);
     });
   });
   // братья и сёстры без общих родителей в древе — скобка над их кругами
@@ -2681,8 +2890,8 @@ function familyEdgesSvg(L, members, links){
       const ids = comp.join(',');
       const ys = new Set(comp.map(i=>Math.round(pos[i].y)));
       if(ys.size===1){
-        const xs = comp.map(i=>pos[i].x), y = pos[comp[0]].y - R;
-        const bus = y - 26;
+        const xs = comp.map(i=>pos[i].x), y = pos[comp[0]].y + R + FAM.LBL + 4;
+        const bus = y + 22;
         const sl = sibLinks.filter(l=>comp.includes(l.fromId)).map(l=>l.id);
         const dBus = `M${Math.min(...xs)},${bus} H${Math.max(...xs)}`;
         out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="${dBus}"/>` + hit(dBus, sl);
@@ -3023,6 +3232,41 @@ function initFamilyBoard(){
   });
   vp.addEventListener('contextmenu', onFamilyContextMenu);
 }
+
+/* Управление полем древа с клавиатуры: стрелки — двигать поле (можно удерживать), + / − — масштаб, 0 — по центру */
+const familyKeys = new Set();
+let familyKeyRaf = 0, familyKeyLast = 0;
+function familyKeysBlocked(){
+  if(!document.getElementById('familyViewport')) return true;
+  if(document.getElementById('modalOverlay').classList.contains('show')) return true;
+  const a = document.activeElement;
+  return !!(a && (a.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)));
+}
+function familyKeyTick(t){
+  if(!familyKeys.size || !document.getElementById('familyViewport')){ familyKeyRaf = 0; return; }
+  const dt = Math.min(50, t - (familyKeyLast || t)); familyKeyLast = t;
+  const v = 0.7 * dt;                                   // пикселей экрана за кадр (~700 px/с)
+  let dx = 0, dy = 0;
+  if(familyKeys.has('ArrowLeft'))  dx += v;             // стрелка влево — смотрим левее, поле едет вправо
+  if(familyKeys.has('ArrowRight')) dx -= v;
+  if(familyKeys.has('ArrowUp'))    dy += v;
+  if(familyKeys.has('ArrowDown'))  dy -= v;
+  familyView.pan = { x:familyView.pan.x + dx, y:familyView.pan.y + dy };
+  familyApply();
+  familyKeyRaf = requestAnimationFrame(familyKeyTick);
+}
+document.addEventListener('keydown', e=>{
+  if(e.ctrlKey || e.metaKey || e.altKey || familyKeysBlocked()) return;
+  if(e.key.startsWith('Arrow')){
+    e.preventDefault();
+    familyKeys.add(e.key);
+    if(!familyKeyRaf){ familyKeyLast = 0; familyKeyRaf = requestAnimationFrame(familyKeyTick); }
+  } else if(e.key==='+' || e.key==='=' ){ e.preventDefault(); zoomFamily(0.15); }
+  else if(e.key==='-' || e.key==='_'){ e.preventDefault(); zoomFamily(-0.15); }
+  else if(e.key==='0'){ e.preventDefault(); familyFit(); }
+});
+document.addEventListener('keyup', e=>{ familyKeys.delete(e.key); });
+window.addEventListener('blur', ()=>familyKeys.clear());
 
 function treeNodeHtml(m){
   const avatarInner = m.photo ? `<img src="${m.photo}" alt="">` : `<span>${esc(initials(m.name))}</span>`;
