@@ -711,11 +711,6 @@
   /* Линии связей по граням сот */
   .hex-lines{ z-index:6; }
   .hex-line{ fill:none; stroke-width:3.5; stroke-linecap:round; stroke-linejoin:round; opacity:.95; }
-  .hex-ehover{ z-index:7; }
-  .hex-ehover line, .hex-ehover polyline{ fill:none; stroke:var(--gold); stroke-width:5; stroke-linecap:round; stroke-linejoin:round; opacity:.95; filter:drop-shadow(0 0 6px rgba(201,162,76,.8)); }
-  .hex-chain-tip{ position:absolute; z-index:30; display:none; align-items:center; gap:6px; transform:translate(-50%,-50%); padding:6px 11px; font-size:12px; font-weight:600; color:#14151b; background:var(--gold); border-radius:var(--radius); box-shadow:0 4px 16px rgba(0,0,0,.45); cursor:pointer; white-space:nowrap; user-select:none; }
-  .hex-chain-tip.show{ display:inline-flex; }
-  .hex-chain-tip:hover{ filter:brightness(1.1); }
 
   /* Свободный режим: имя скрыто, появляется при наведении (как в сотах) */
   .rel-name, .tree-name, .tree-dates{ position:absolute; left:50%; transform:translateX(-50%); white-space:nowrap; max-width:200px; opacity:0; pointer-events:none; transition:opacity .15s; text-shadow:0 1px 3px rgba(0,0,0,.6); }
@@ -817,3 +812,34 @@
 
 #settingsPanel{ min-width:250px; }
 .settings-label{ font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; }
+
+/* Ряд проектов: прокрутка колесом и режим «показать все» */
+#projectsExpandBtn{ flex-shrink:0; width:38px; height:38px; padding:0; background:none; border:none; color:var(--text-faint); border-radius:8px; display:flex; align-items:center; justify-content:center; align-self:center; cursor:pointer; }
+#projectsExpandBtn[hidden]{ display:none; }
+#projectsExpandBtn:hover{ background:var(--card-hover); color:var(--text); }
+#projectsExpandBtn svg{ transition:transform .2s; }
+#projectsRow.expanded{ align-items:flex-start; }
+#projectsRow.expanded #projectList{ flex-wrap:wrap; overflow:visible; row-gap:8px; flex:1 1 auto; padding-bottom:0; }
+#projectsRow.expanded #newProjectBtn, #projectsRow.expanded #projectsExpandBtn{ align-self:flex-start; }
+#projectsRow.expanded #projectsExpandBtn svg{ transform:rotate(180deg); }
+
+/* Клик по линии родства — изменить его */
+.fam-hit{ fill:none; stroke:transparent; stroke-width:16; stroke-linecap:round; pointer-events:stroke; cursor:pointer; transition:stroke .15s; }
+.fam-hit:hover{ stroke:rgba(201,162,76,.28); }
+
+/* Фото в карточках — часть карточки: не перетаскиваются и не выделяются отдельно */
+#familyViewport img, #treeCanvasViewport img, #relCanvasViewport img, .hex-viewport img{ -webkit-user-drag:none; user-select:none; -webkit-user-select:none; pointer-events:none; }
+
+/* «Выбрать из существующих» в формах */
+.form-picker{ margin-bottom:14px; }
+.form-picker-btn{ display:inline-flex; align-items:center; gap:7px; }
+.form-picker-panel{ margin-top:8px; border:1px solid var(--border); border-radius:var(--radius); background:var(--bg-alt); padding:8px; }
+.form-picker-panel .fp-search{ width:100%; margin-bottom:6px; }
+.form-picker-panel .fp-list{ max-height:230px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+.fp-group{ font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); padding:8px 6px 3px; }
+.fp-item{ display:flex; align-items:center; gap:10px; width:100%; padding:6px 8px; background:transparent; border:0; border-radius:6px; color:var(--text); font-size:13.5px; text-align:left; cursor:pointer; }
+.fp-item:hover{ background:var(--card-hover); }
+.fp-ava{ width:30px; height:30px; border-radius:50%; object-fit:cover; flex-shrink:0; display:inline-flex; align-items:center; justify-content:center; background:var(--card); border:1px solid var(--border); font-size:11px; color:var(--text-dim); }
+.fp-name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.fp-sub{ margin-left:auto; font-size:11px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:42%; }
+.fp-empty{ padding:12px 8px; font-size:12.5px; color:var(--text-faint); }

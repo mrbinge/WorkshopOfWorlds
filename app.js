@@ -1,7 +1,7 @@
 /* ---------------- DATA LAYER ---------------- */
 const STORAGE_KEY = 'masterskaya-mirov-data';
 let data = { projects: [], characters: [], relationships: [], events: [], locations: [], factions: [], scenes: [], sceneLinks: [], creatures: [], myths: [], magicSystems: [], deities: [], maps: [], countries: [], dynasties: [], dynastyMembers: [], dynastyMemberLinks: [], artifacts: [] };
-let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null, viewModeNetworks: 'free', viewModeDynasty: 'free' };
+let state = { activeProjectId: null, activeTab: 'overview', graphSelected: null, viewModeNetworks: 'free', viewModeDynasty: 'family' };
 let canvasView = { pan:{x:120,y:80}, scale:1 };
 let mapCanvasView = { pan:{x:0,y:0}, scale:1 };
 let mapFullscreenNeedsCenter = false;
@@ -111,7 +111,7 @@ function parseData(raw){
   const st = (parsed.settings && typeof parsed.settings==='object' && !Array.isArray(parsed.settings)) ? parsed.settings : {};
   res.settings = Object.assign({}, st, {
     viewModeNetworks: st.viewModeNetworks==='hex' ? 'hex' : 'free',
-    viewModeDynasty: (st.viewModeDynasty==='hex' || st.viewModeDynasty==='family') ? st.viewModeDynasty : 'free'
+    viewModeDynasty: st.viewModeDynasty==='hex' ? 'hex' : 'family'
   });
   state.viewModeNetworks = res.settings.viewModeNetworks;
   state.viewModeDynasty = res.settings.viewModeDynasty;
@@ -300,10 +300,28 @@ function render(){
   renderMain();
 }
 
+let lastScrolledProject = null;
+function updateProjectsExpandBtn(){
+  const row = document.getElementById('projectsRow'), list = document.getElementById('projectList'), btn = document.getElementById('projectsExpandBtn');
+  if(!row || !list || !btn) return;
+  row.classList.toggle('expanded', !!state.projectsExpanded);
+  const overflow = list.scrollWidth > list.clientWidth + 1;
+  btn.hidden = !(state.projectsExpanded || overflow);
+  btn.title = state.projectsExpanded ? 'Свернуть проекты в одну строку' : 'Показать все проекты';
+  btn.setAttribute('aria-expanded', state.projectsExpanded ? 'true' : 'false');
+}
+function toggleProjectsExpanded(){
+  state.projectsExpanded = !state.projectsExpanded;
+  updateProjectsExpandBtn();
+  const list = document.getElementById('projectList');
+  if(!state.projectsExpanded && list){ const act = list.querySelector('.project-item.active'); if(act) act.scrollIntoView({inline:'nearest', block:'nearest'}); }
+}
 function renderSidebarProjects(){
   const list = document.getElementById('projectList');
+  const prevScroll = list.scrollLeft;
   if(!data.projects.length){
     list.innerHTML = `<div style="font-size:12.5px; color:var(--text-faint); padding:6px 2px;">Пока нет проектов</div>`;
+    updateProjectsExpandBtn();
     return;
   }
   list.innerHTML = data.projects.map(p=>{
@@ -318,6 +336,14 @@ function renderSidebarProjects(){
   }).join('');
   attachProjectDragEvents();
   renderActiveProjectChip();
+  // сохраняем положение прокрутки; к активному проекту прокручиваем только когда он сменился
+  list.scrollLeft = prevScroll;
+  if(!state.projectsExpanded && state.activeProjectId!==lastScrolledProject){
+    const act = list.querySelector('.project-item.active');
+    if(act) act.scrollIntoView({inline:'nearest', block:'nearest'});
+  }
+  lastScrolledProject = state.activeProjectId;
+  updateProjectsExpandBtn();
 }
 function reorderProjects(dragId, targetId){
   const fromIdx = data.projects.findIndex(p=>p.id===dragId);
@@ -370,6 +396,7 @@ function toggleSidebar(){
   const sidebar = document.getElementById('sidebar');
   const collapsed = sidebar.classList.toggle('collapsed');
   document.getElementById('sidebarToggle').textContent = collapsed ? '▾' : '▴';
+  if(!collapsed) updateProjectsExpandBtn();
 }
 
 function renderMain(){
@@ -573,7 +600,7 @@ function filterCharacters(){
 }
 
 function openNewCharacterModal(pos){
-  openFormModal('Новый персонаж', characterFields(), {}, (vals)=>{
+  openFormModal('Новый персонаж', characterFieldsNew(), {}, (vals)=>{
     const maxOrder = Math.max(-1, ...itemsOf('characters', state.activeProjectId).map(c=>c.order??0));
     const nc = Object.assign({id:uid(), projectId: state.activeProjectId, order: maxOrder+1}, vals);
     if(pos && Number.isFinite(pos.hexQ)){ nc.hexQ = pos.hexQ; nc.hexR = pos.hexR; }
@@ -1216,7 +1243,8 @@ const hexTreeView = { pan:{x:0,y:0}, scale:1, key:null };
 function ensureSettings(){
   if(!data.settings || typeof data.settings!=='object' || Array.isArray(data.settings)) data.settings = {};
   if(data.settings.viewModeNetworks!=='hex') data.settings.viewModeNetworks = 'free';
-  if(data.settings.viewModeDynasty!=='hex' && data.settings.viewModeDynasty!=='family') data.settings.viewModeDynasty = 'free';
+  // режима «Свободный» у древа больше нет: прежнее значение «free» автоматически превращается в «Древо»
+  if(data.settings.viewModeDynasty!=='hex' && data.settings.viewModeDynasty!=='family') data.settings.viewModeDynasty = 'family';
 }
 function syncViewModes(){
   ensureSettings();
@@ -1269,7 +1297,7 @@ function viewModeIcon(mode){
 function viewSwitchHtml(kind){
   if(kind==='dynasty'){
     const cur = state.viewModeDynasty;
-    const defs = [['family','Древо','Режим «Древо» — круги сами встают по родственным связям'], ['hex','Соты','Режим «Соты»'], ['free','Свободный','Режим «Свободный»']];
+    const defs = [['family','Древо','Режим «Древо» — круги сами встают по родственным связям'], ['hex','Соты','Режим «Соты»']];
     return `<div class="view-mode-seg" role="group" aria-label="Режим отображения">${defs.map(d=>`<button type="button" class="${cur===d[0]?'active':''}" onclick="setViewMode('dynasty','${d[0]}')" title="${d[2]}">${viewModeIcon(d[0])}<span>${d[1]}</span></button>`).join('')}</div>`;
   }
   const cur = (kind==='networks' ? state.viewModeNetworks : state.viewModeDynasty)==='hex' ? 'hex' : 'free';
@@ -1299,7 +1327,7 @@ function toggleViewMode(kind){
 /* --- конфигурация двух досок --- */
 function hexCfg(kind){
   if(kind==='rel') return {
-    kind, view:hexRelView, vp:'hexRelViewport', layer:'hexRelLayer', grid:'hexRelGrid', hint:'hexRelHint', cards:'hexRelCards', label:'relZoomLabel', lines:'hexRelLines', ehover:'hexRelEdgeHover', tip:'hexRelTip',
+    kind, view:hexRelView, vp:'hexRelViewport', layer:'hexRelLayer', grid:'hexRelGrid', hint:'hexRelHint', cards:'hexRelCards', label:'relZoomLabel', lines:'hexRelLines',
     edges:()=>itemsOf('relationships', state.activeProjectId).map(r=>{
       const types = relTypes(r), ev = relEvolves(r);
       return {id:r.id, from:r.charA, to:r.charB, c1:relTypeColor(types[0]), c2: ev.length ? relTypeColor(ev[0]) : relTypeColor(types[types.length-1])};
@@ -1309,7 +1337,7 @@ function hexCfg(kind){
     open:(id)=>openEditCharacterModal(id)
   };
   return {
-    kind, view:hexTreeView, vp:'hexTreeViewport', layer:'hexTreeLayer', grid:'hexTreeGrid', hint:'hexTreeHint', cards:'hexTreeCards', label:'treeZoomLabel', lines:'hexTreeLines', ehover:'hexTreeEdgeHover', tip:'hexTreeTip',
+    kind, view:hexTreeView, vp:'hexTreeViewport', layer:'hexTreeLayer', grid:'hexTreeGrid', hint:'hexTreeHint', cards:'hexTreeCards', label:'treeZoomLabel', lines:'hexTreeLines',
     edges:()=>data.dynastyMemberLinks.filter(l=>l.dynastyId===state.activeTreeId).map(l=>({id:l.id, from:l.fromId, to:l.toId, c1:'#c9a24c', c2:'#c9a24c'})),
     boardKey:()=>'tree:'+state.activeTreeId,
     items:()=>data.dynastyMembers.filter(m=>m.dynastyId===state.activeTreeId),
@@ -1318,7 +1346,7 @@ function hexCfg(kind){
 }
 function hexBoardHtml(kind){
   const c = hexCfg(kind);
-  return `<div id="${c.vp}" class="hex-viewport"><div id="${c.layer}" class="hex-layer"><svg id="${c.grid}" class="hex-grid"></svg><svg id="${c.hint}" class="hex-grid hex-hint"></svg><div id="${c.cards}"></div><svg id="${c.lines}" class="hex-grid hex-lines"></svg><svg id="${c.ehover}" class="hex-grid hex-ehover"></svg></div><div id="${c.tip}" class="hex-chain-tip">${CHAIN_ICON}<span>Добавить связь</span></div></div>`;
+  return `<div id="${c.vp}" class="hex-viewport"><div id="${c.layer}" class="hex-layer"><svg id="${c.grid}" class="hex-grid"></svg><svg id="${c.hint}" class="hex-grid hex-hint"></svg><div id="${c.cards}"></div><svg id="${c.lines}" class="hex-grid hex-lines"></svg></div></div>`;
 }
 
 /* --- автораскладка (один раз, для тех, у кого нет hexQ/hexR) --- */
@@ -1416,7 +1444,7 @@ function applyHexTransform(kind){
   layer.style.transform = `translate(${c.view.pan.x}px, ${c.view.pan.y}px) scale(${c.view.scale})`;
   const lbl = document.getElementById(c.label);
   if(lbl) lbl.textContent = Math.round(c.view.scale*100) + '%';
-  hideHexTip(kind, true); hideEdgeInfo(document.getElementById(c.vp));
+  hideEdgeInfo(document.getElementById(c.vp));
   drawHexGrid(kind);
 }
 function fitHexView(kind){
@@ -1464,13 +1492,7 @@ function initHexBoard(kind){
   vp.addEventListener('mousedown', e=>onHexMouseDown(kind, e));
   vp.addEventListener('contextmenu', e=>onHexContextMenu(kind, e));
   vp.addEventListener('mousemove', e=>onHexHover(kind, e));
-  vp.addEventListener('mouseleave', ()=>{ hideHexTip(kind, true); hideEdgeInfo(vp); });
-  const tip = document.getElementById(c.tip);
-  if(tip){
-    tip.addEventListener('mousedown', e=>{ e.stopPropagation(); });
-    tip.addEventListener('contextmenu', e=>e.stopPropagation());
-    tip.addEventListener('click', ()=>onHexChainClick(kind));
-  }
+  vp.addEventListener('mouseleave', ()=>hideEdgeInfo(vp));
   vp.addEventListener('wheel', e=>{ e.preventDefault(); hexZoomAt(kind, e.deltaY<0 ? 1.1 : 1/1.1, e.clientX, e.clientY); }, {passive:false});
 }
 window.addEventListener('resize', ()=>{ ['rel','tree'].forEach(k=>{ invalidateHexGrid(k); drawHexGrid(k); }); });
@@ -1478,9 +1500,7 @@ window.addEventListener('resize', ()=>{ ['rel','tree'].forEach(k=>{ invalidateHe
 
 
 /* --- линии связей по граням сот --- */
-const HEX_CHAIN_MAX = 3;   // максимум клеток между персонажами: до 2 пустых клеток (расстояние ≤ 3)
 const HEX_DIRS = [[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];
-const CHAIN_ICON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>';
 function hexCorners(q, r){
   const p = axialToPixel(q, r), out = [];
   for(let i=0;i<6;i++){
@@ -1527,40 +1547,68 @@ function hexPathBetween(a, b){
   }
   return null;
 }
+// «Умные» линии: напрямую от угла одной соты к углу другой; если на пути чужая карточка — обходим по сетке,
+// но без лишних изгибов (срезаем объезды, пока отрезок не задевает чужие соты)
+const HEX_LINE_SHRINK = 2.5;   // у карточек, которые соединяем: линия выходит из угла, поэтому касание допустимо
+const HEX_LINE_MARGIN = 5;     // у чужих карточек: линия не должна прижиматься — держим небольшой зазор
+function hexSegClear(p1, p2, centers, own){
+  const dx = p2.x-p1.x, dy = p2.y-p1.y;
+  const apBase = HEX_SIZE*Math.cos(Math.PI/6);
+  for(const c of centers){
+    if(segDist(c.x, c.y, p1.x, p1.y, p2.x, p2.y) > HEX_SIZE+HEX_LINE_MARGIN+1) continue;
+    const isOwn = own && own.some(o=>Math.abs(o.x-c.x)<0.5 && Math.abs(o.y-c.y)<0.5);
+    const ap = isOwn ? apBase - HEX_LINE_SHRINK : apBase + HEX_LINE_MARGIN;
+    let t0 = 0, t1 = 1, inside = true;
+    for(let k=0;k<6;k++){
+      const nx = Math.cos(Math.PI/3*k), ny = Math.sin(Math.PI/3*k);
+      const denom = nx*dx + ny*dy, num = ap - (nx*(p1.x-c.x) + ny*(p1.y-c.y));
+      if(Math.abs(denom) < 1e-9){ if(num < 0){ inside = false; break; } continue; }
+      const t = num/denom;
+      if(denom > 0) t1 = Math.min(t1, t); else t0 = Math.max(t0, t);
+      if(t1 - t0 <= 1e-6){ inside = false; break; }
+    }
+    if(inside && t1 - t0 > 1e-6) return false;
+  }
+  return true;
+}
+function hexSmartPath(a, b, centers){
+  const shared = hexSharedEdge(a, b);
+  if(shared) return shared;                                   // соседние соты — общая грань
+  const ca = hexCorners(a.q, a.r), cb = hexCorners(b.q, b.r), cands = [];
+  const own = [axialToPixel(a.q, a.r), axialToPixel(b.q, b.r)];
+  ca.forEach(p=>cb.forEach(q=>cands.push({p, q, len:Math.hypot(p.x-q.x, p.y-q.y)})));
+  cands.sort((x,y)=>x.len-y.len);
+  for(const c of cands) if(hexSegClear(c.p, c.q, centers, own)) return [c.p, c.q];     // прямая линия
+  const grid = hexPathBetween(a, b);
+  if(!grid) return null;
+  const out = [grid[0]];
+  let i = 0;
+  while(i < grid.length-1){
+    let j = grid.length-1;
+    while(j > i+1 && !hexSegClear(grid[i], grid[j], centers, own)) j--;
+    out.push(grid[j]); i = j;
+  }
+  return out;
+}
 function drawHexLines(kind){
   const c = hexCfg(kind), svg = document.getElementById(c.lines);
   if(!svg) return;
   const byId = {}; c.items().forEach(it=>byId[it.id]=it);
   let defs = '<defs>', out = '';
   c.view.edgeHit = [];
+  const centers = c.items().map(it=>axialToPixel(it.hexQ, it.hexR));
   c.edges().forEach((ed, n)=>{
     const a = byId[ed.from], b = byId[ed.to];
     if(!a || !b || a===b) return;
-    const path = hexPathBetween({q:a.hexQ, r:a.hexR}, {q:b.hexQ, r:b.hexR});
+    const path = hexSmartPath({q:a.hexQ, r:a.hexR}, {q:b.hexQ, r:b.hexR}, centers);
     if(!path || path.length<2) return;
-    c.view.edgeHit.push({a:ed.from, b:ed.to, path});
+    c.view.edgeHit.push({a:ed.from, b:ed.to, id:ed.id, path});
     const p0 = path[0], pe = path[path.length-1];
     const gid = `hxg-${kind}-${n}`;
     defs += `<linearGradient id="${gid}" gradientUnits="userSpaceOnUse" x1="${p0.x}" y1="${p0.y}" x2="${pe.x}" y2="${pe.y}"><stop offset="0" stop-color="${ed.c1}"/><stop offset="1" stop-color="${ed.c2}"/></linearGradient>`;
     out += `<polyline class="hex-line" points="${path.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" stroke="url(#${gid})"/>`;
   });
   svg.innerHTML = defs + '</defs>' + out;
-  // пары ещё не связанных персонажей, стоящих через клетку (или две) — на их линиях сот показываем «Добавить связь»
-  c.view.cand = [];
-  {
-    const linked = new Set();
-    c.edges().forEach(ed=>{ linked.add(ed.from+'|'+ed.to); linked.add(ed.to+'|'+ed.from); });
-    const items = c.items();
-    for(let i=0;i<items.length;i++) for(let j=i+1;j<items.length;j++){
-      const a = items[i], b = items[j];
-      const dq = b.hexQ-a.hexQ, dr = b.hexR-a.hexR, dist = Math.max(Math.abs(dq), Math.abs(dr), Math.abs(dq+dr));
-      if(dist<1 || dist>HEX_CHAIN_MAX) continue;
-      // в «Связях» между двумя персонажами может быть несколько связей; в древе повторная связь не нужна
-      if(kind==='tree' && linked.has(a.id+'|'+b.id)) continue;
-      const path = hexPathBetween({q:a.hexQ, r:a.hexR}, {q:b.hexQ, r:b.hexR});
-      if(path && path.length>1) c.view.cand.push({key:a.id+'|'+b.id, a, b, path});
-    }
-  }
 }
 
 /* --- всплывающая карточка связи при наведении на линию: (фото) Имя  тип ——— во что переросла  Имя (фото) --- */
@@ -1660,26 +1708,14 @@ function attachFreeEdgeHover(kind, vp){
   vp.addEventListener('wheel', ()=>hideEdgeInfo(vp), {passive:true});
 }
 
-/* --- подсказка «Добавить связь» на линии между несвязанными карточками --- */
-function hideHexTip(kind, now){
-  const c = hexCfg(kind), tip = document.getElementById(c.tip);
-  if(!tip) return;
-  clearTimeout(tip._t);
-  const doHide = ()=>{
-    tip.classList.remove('show');
-    const eh = document.getElementById(c.ehover); if(eh) eh.innerHTML = '';
-  };
-  if(now) doHide(); else tip._t = setTimeout(doHide, 350);
-}
+/* --- наведение на линию в сотах: всплывающая карточка «кто — какая связь — с кем» --- */
 function onHexHover(kind, e){
-  const c = hexCfg(kind), vp = document.getElementById(c.vp), tip = document.getElementById(c.tip), v = c.view;
-  if(!vp || !tip) return;
-  if(v.busy){ hideHexTip(kind, true); hideEdgeInfo(vp); return; }
-  if(e.target.closest('.hex-chain-tip')) return;
+  const c = hexCfg(kind), vp = document.getElementById(c.vp), v = c.view;
+  if(!vp) return;
+  if(v.busy){ hideEdgeInfo(vp); return; }
   const rect = vp.getBoundingClientRect();
   const lx = (e.clientX-rect.left-v.pan.x)/v.scale, ly = (e.clientY-rect.top-v.pan.y)/v.scale;
   const thr = 9 / v.scale;
-  // карточка «кто — какая связь — с кем» для существующей линии
   let hit = null;
   (v.edgeHit || []).forEach(eh=>{
     for(let k=0; k<eh.path.length-1; k++){
@@ -1689,39 +1725,6 @@ function onHexHover(kind, e){
   });
   if(hit) showEdgeInfo(vp, edgeInfoHtml(kind, hit.eh.a, hit.eh.b), e.clientX, e.clientY, [hit.eh.a, hit.eh.b].sort().join('|'));
   else hideEdgeInfo(vp);
-  let best = null;
-  (v.cand || []).forEach(pe=>{
-    for(let k=0; k<pe.path.length-1; k++){
-      const p1 = pe.path[k], p2 = pe.path[k+1];
-      const dx = p2.x-p1.x, dy = p2.y-p1.y, L2 = dx*dx+dy*dy || 1;
-      let t = ((lx-p1.x)*dx + (ly-p1.y)*dy)/L2; t = Math.max(0, Math.min(1, t));
-      const dist = Math.hypot(lx-(p1.x+t*dx), ly-(p1.y+t*dy));
-      if(dist<=thr && (!best || dist<best.dist)) best = {dist, pe};
-    }
-  });
-  if(!best){ if(tip.classList.contains('show')) hideHexTip(kind, true); return; }
-  clearTimeout(tip._t);
-  const same = tip.classList.contains('show') && tip.dataset.key===best.pe.key;
-  if(same) return;                              // не двигаем подсказку, чтобы до неё можно было дотянуться
-  const eh = document.getElementById(c.ehover);
-  if(eh) eh.innerHTML = `<polyline points="${best.pe.path.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}"/>`;
-  tip.style.left = (e.clientX - rect.left) + 'px';
-  tip.style.top = (e.clientY - rect.top) + 'px';
-  tip.dataset.a = best.pe.a.id; tip.dataset.b = best.pe.b.id; tip.dataset.key = best.pe.key;
-  tip.classList.add('show');
-}
-function onHexChainClick(kind){
-  const c = hexCfg(kind), tip = document.getElementById(c.tip);
-  if(!tip) return;
-  const items = c.items();
-  const a = items.find(x=>x.id===tip.dataset.a), b = items.find(x=>x.id===tip.dataset.b);
-  hideHexTip(kind, true);
-  if(!a || !b) return;
-  // порядок: сверху вниз, при равенстве — слева направо
-  const [p, ch] = (a.hexR < b.hexR || (a.hexR===b.hexR && a.hexQ <= b.hexQ)) ? [a, b] : [b, a];
-  if(kind==='rel') return openNewRelationshipModal(p.id, ch.id);
-  // древо: родитель — тот, кто выше
-  openNewMemberLinkModal(state.activeTreeId, p.id, ch.id);
 }
 
 /* --- свободная ячейка рядом (по возможности ниже) --- */
@@ -1749,6 +1752,72 @@ function setHexColor(kind, id, field, value, el){
   if(el){ if(value) el.style.setProperty(prop, value); else el.style.removeProperty(prop); }
   queueSave();
 }
+
+/* --- правая кнопка по линии: изменить родство / удалить линию --- */
+function confirmDeleteMemberLinks(ids, text){
+  askConfirm(text, 'Удалить', ()=>{
+    const del = new Set(ids);
+    data.dynastyMemberLinks = data.dynastyMemberLinks.filter(l=>!del.has(l.id));
+    queueSave();
+    refreshTreeEditor();
+  });
+}
+function memberLinkLineMenu(e, linkIds){
+  const ids = [...new Set((linkIds||'').split(',').filter(Boolean))].filter(id=>data.dynastyMemberLinks.some(l=>l.id===id));
+  if(!ids.length) return;
+  const pt = {clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}};
+  if(ids.length===1){
+    const l = data.dynastyMemberLinks.find(x=>x.id===ids[0]);
+    return showCtxMenu(e, [
+      {heading: memberLinkDesc(l)},
+      {label:'Изменить родство…', onClick:()=>memberLinkChangeMenu(pt, ids[0])},
+      {sep:true},
+      {label:'Удалить линию', danger:true, onClick:()=>confirmDeleteMemberLinks(ids, 'Удалить эту линию родства?')}
+    ]);
+  }
+  // общая линия пары родителей ведёт к ребёнку: две связи
+  const items = [{heading:'Эта линия объединяет несколько связей'}];
+  ids.forEach(id=>{
+    const l = data.dynastyMemberLinks.find(x=>x.id===id);
+    items.push({label:'Удалить: '+memberLinkDesc(l), danger:true, onClick:()=>confirmDeleteMemberLinks([id], 'Удалить эту линию родства?')});
+  });
+  items.push({sep:true});
+  items.push({label:'Удалить линию целиком', danger:true, onClick:()=>confirmDeleteMemberLinks(ids, 'Удалить все связи этой линии ('+ids.length+')?')});
+  showCtxMenu(e, items);
+}
+// «Связи» (соты): удалить линию-связь между персонажами
+function relationLineMenu(e, ids){
+  const rels = ids.map(id=>data.relationships.find(r=>r.id===id)).filter(Boolean);
+  if(!rels.length) return;
+  const nm = id=>{ const c = data.characters.find(x=>x.id===id); return '«'+familyShort(c && c.name)+'»'; };
+  const desc = r=>nm(r.charA)+' — '+nm(r.charB)+': '+(relTypes(r).map(relTypeLabel).join(', ') || 'связь');
+  const del = (list, text)=>askConfirm(text, 'Удалить', ()=>{ const s = new Set(list); data.relationships = data.relationships.filter(r=>!s.has(r.id)); queueSave(); renderMain(); });
+  if(rels.length===1) return showCtxMenu(e, [
+    {heading: desc(rels[0])},
+    {label:'Изменить связь…', onClick:()=>openEditRelationshipModal(rels[0].id)},
+    {sep:true},
+    {label:'Удалить линию', danger:true, onClick:()=>del([rels[0].id], 'Удалить эту связь?')}
+  ]);
+  const items = [{heading:'Между этими персонажами несколько связей'}];
+  rels.forEach(r=>items.push({label:'Удалить: '+desc(r), danger:true, onClick:()=>del([r.id], 'Удалить эту связь?')}));
+  items.push({sep:true});
+  items.push({label:'Удалить все линии', danger:true, onClick:()=>del(rels.map(r=>r.id), 'Удалить все связи между этими персонажами ('+rels.length+')?')});
+  showCtxMenu(e, items);
+}
+// соты: ближайшая линия под курсором (все связи этой пары)
+function hexEdgesAt(kind, lx, ly){
+  const v = hexCfg(kind).view, thr = 9 / v.scale;
+  let best = null;
+  (v.edgeHit || []).forEach(eh=>{
+    for(let k=0;k<eh.path.length-1;k++){
+      const d = segDist(lx, ly, eh.path[k].x, eh.path[k].y, eh.path[k+1].x, eh.path[k+1].y);
+      if(d<=thr && (!best || d<best.d)) best = {d, eh};
+    }
+  });
+  if(!best) return [];
+  const a = best.eh.a, b = best.eh.b;
+  return (v.edgeHit || []).filter(x=>(x.a===a && x.b===b) || (x.a===b && x.b===a)).map(x=>x.id).filter(Boolean);
+}
 function onHexContextMenu(kind, e){
   const c = hexCfg(kind), vp = document.getElementById(c.vp), v = c.view;
   if(!vp) return;
@@ -1759,6 +1828,10 @@ function onHexContextMenu(kind, e){
   const cardEl = e.target.closest('.hex-card');
   const it = cardEl ? items.find(x=>x.id===cardEl.dataset.id) : null;
 
+  if(!it){
+    const lineIds = hexEdgesAt(kind, lx, ly);
+    if(lineIds.length) return kind==='tree' ? memberLinkLineMenu(e, lineIds.join(',')) : relationLineMenu(e, lineIds);
+  }
   const colorRows = it ? colorMenuRows(kind, it, cardEl) : [];
 
   if(kind==='rel'){
@@ -2416,7 +2489,7 @@ function renderTreeEditor(el, dynasty){
         <button class="btn btn-primary btn-sm" onclick="openNewMemberModal('${dynasty.id}')">+ Участник</button>
       </div>
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${famMode ? 'Перетащите один круг на другой — и выберите, кем они приходятся друг другу: круги сами встанут на место. Клик по кругу — подсветить родню, двойной клик — изменить, правая кнопка — меню.' : hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — выберите, кем они приходятся друг другу, и карточка вернётся на место. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Бросьте карточку точно в центр другой — выберите, кем они приходятся друг другу. Или тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
+    <div class="eyebrow" style="margin-bottom:10px;">${famMode ? 'Перетащите один круг на другой — и выберите, кем они приходятся друг другу: круги сами встанут на место. Клик по кругу — подсветить родню, клик по линии — изменить родство, двойной клик по кругу — редактировать, правая кнопка — меню.' : hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — выберите, кем они приходятся друг другу, и карточка вернётся на место. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Бросьте карточку точно в центр другой — выберите, кем они приходятся друг другу. Или тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
     ${members.length===0 ? `<div class="empty-tab" style="margin-bottom:14px;">Пусто. Добавьте первого члена рода.</div>` : ''}
     ${famMode ? familyBoardHtml(members, links) : hexMode ? hexBoardHtml('tree') : `<div id="treeCanvasViewport">
       <div id="treeCanvasInner">
@@ -2557,17 +2630,20 @@ function familyEdgesSvg(L, members, links){
   const valid = l => pos[l.fromId] && pos[l.toId] && l.fromId!==l.toId;
   const near = new Set();      // супруги, стоящие рядом в одном ряду
   let out = '';
+  const hit = (d, ids)=> ids.filter(Boolean).length ? `<path class="fam-hit" data-links="${ids.filter(Boolean).join(',')}" d="${d}"/>` : '';
+  const plainLinkId = (f, t)=>{ const l = links.find(x=>x.fromId===f && x.toId===t && x.kind!=='spouse' && x.kind!=='sibling'); return l ? l.id : ''; };
   links.filter(l=>valid(l) && l.kind==='spouse').forEach(l=>{
     const a = pos[l.fromId], b = pos[l.toId];
     const [p1, p2] = a.x<=b.x ? [a, b] : [b, a];
     const ids = l.fromId+','+l.toId;
     if(Math.abs(a.y-b.y)<1 && p2.x-p1.x < SLOT*1.01){
       near.add(l.fromId+'|'+l.toId); near.add(l.toId+'|'+l.fromId);
-      out += `<path class="fam-edge fam-spouse" data-ids="${ids}" d="M${p1.x+R},${p1.y} H${p2.x-R}"/>`;
+      out += `<path class="fam-edge fam-spouse" data-ids="${ids}" d="M${p1.x+R},${p1.y} H${p2.x-R}"/>` + hit(`M${p1.x+R},${p1.y} H${p2.x-R}`, [l.id]);
       out += `<circle class="fam-edge fam-knot" data-ids="${ids}" cx="${(p1.x+p2.x)/2}" cy="${p1.y}" r="4.5"/>`;
     } else {
       const y1 = a.y+R, y2 = b.y+R;
-      out += `<path class="fam-edge fam-spouse fam-far" data-ids="${ids}" d="M${a.x},${y1} C${a.x},${y1+70} ${b.x},${y2+70} ${b.x},${y2}"/>`;
+      const dd = `M${a.x},${y1} C${a.x},${y1+70} ${b.x},${y2+70} ${b.x},${y2}`;
+      out += `<path class="fam-edge fam-spouse fam-far" data-ids="${ids}" d="${dd}"/>` + hit(dd, [l.id]);
     }
   });
   const byChild = {};
@@ -2585,9 +2661,10 @@ function familyEdgesSvg(L, members, links){
       if(ty > an.y+24){
         const busY = Math.max(an.y+12, ty-38);
         const d = Math.abs(c.x-an.x)<1 ? `M${an.x},${an.y} V${ty}` : `M${an.x},${an.y} V${busY} H${c.x} V${ty}`;
-        out += `<path class="fam-edge fam-parent" data-ids="${ids}" d="${d}"/>`;
+        out += `<path class="fam-edge fam-parent" data-ids="${ids}" d="${d}"/>` + hit(d, an.ids.map(p=>plainLinkId(p, cid)));
       } else {
-        out += `<path class="fam-edge fam-parent fam-far" data-ids="${ids}" d="M${an.x},${an.y} L${c.x},${c.y}"/>`;
+        const dd = `M${an.x},${an.y} L${c.x},${c.y}`;
+        out += `<path class="fam-edge fam-parent fam-far" data-ids="${ids}" d="${dd}"/>` + hit(dd, an.ids.map(p=>plainLinkId(p, cid)));
       }
     });
   });
@@ -2606,12 +2683,15 @@ function familyEdgesSvg(L, members, links){
       if(ys.size===1){
         const xs = comp.map(i=>pos[i].x), y = pos[comp[0]].y - R;
         const bus = y - 26;
-        out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="M${Math.min(...xs)},${bus} H${Math.max(...xs)}"/>`;
-        comp.forEach(i=>{ out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="M${pos[i].x},${bus} V${y}"/>`; });
+        const sl = sibLinks.filter(l=>comp.includes(l.fromId)).map(l=>l.id);
+        const dBus = `M${Math.min(...xs)},${bus} H${Math.max(...xs)}`;
+        out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="${dBus}"/>` + hit(dBus, sl);
+        comp.forEach(i=>{ const dt = `M${pos[i].x},${bus} V${y}`; out += `<path class="fam-edge fam-sibling" data-ids="${ids}" d="${dt}"/>` + hit(dt, sl); });
       } else {
         sibLinks.filter(l=>comp.includes(l.fromId)).forEach(l=>{
           const a = pos[l.fromId], b = pos[l.toId];
-          out += `<path class="fam-edge fam-sibling fam-far" data-ids="${l.fromId},${l.toId}" d="M${a.x},${a.y+R} C${a.x},${a.y+R+70} ${b.x},${b.y+R+70} ${b.x},${b.y+R}"/>`;
+          const dd = `M${a.x},${a.y+R} C${a.x},${a.y+R+70} ${b.x},${b.y+R+70} ${b.x},${b.y+R}`;
+          out += `<path class="fam-edge fam-sibling fam-far" data-ids="${l.fromId},${l.toId}" d="${dd}"/>` + hit(dd, [l.id]);
         });
       }
     });
@@ -2701,6 +2781,8 @@ function familyApplySel(){
 function onFamilyContextMenu(e){
   const dynastyId = state.activeTreeId;
   if(!dynastyId) return;
+  const lineEl = e.target.closest('.fam-hit');
+  if(lineEl) return memberLinkLineMenu(e, lineEl.dataset.links);
   const nodeEl = e.target.closest('.fam-node');
   const m = nodeEl ? data.dynastyMembers.find(x=>x.id===nodeEl.dataset.id) : null;
   if(m) return showCtxMenu(e, [
@@ -2759,9 +2841,67 @@ function familyAddRelation(aId, bId, relation){
   familySel = aId;
   refreshTreeEditor();
 }
+
+/* --- изменить уже заданное родство --- */
+function memberLinkDesc(l){
+  const a = data.dynastyMembers.find(m=>m.id===l.fromId), b = data.dynastyMembers.find(m=>m.id===l.toId);
+  const A = '«'+familyShort(a && a.name)+'»', B = '«'+familyShort(b && b.name)+'»';
+  if(l.kind==='spouse') return A+' и '+B+' — супруги';
+  if(l.kind==='sibling') return A+' и '+B+' — братья / сёстры';
+  return A+' — родитель, '+B+' — ребёнок';
+}
+function setMemberLinkRelation(linkId, kind, fromId, toId){
+  const l = data.dynastyMemberLinks.find(x=>x.id===linkId);
+  if(!l) return;
+  if(kind==='parent'){
+    const others = data.dynastyMemberLinks.filter(x=>x.dynastyId===l.dynastyId && x.id!==l.id);
+    if(familyIsAncestor(toId, fromId, others)){ showToast('Так получится замкнутый круг: один и тот же человек был бы и предком, и потомком'); return; }
+  }
+  l.fromId = fromId; l.toId = toId;
+  if(kind==='parent') delete l.kind; else l.kind = kind;
+  queueSave();
+  refreshTreeEditor();
+}
+function memberLinkChangeMenu(e, linkId){
+  const l = data.dynastyMemberLinks.find(x=>x.id===linkId);
+  if(!l) return;
+  const a = data.dynastyMembers.find(m=>m.id===l.fromId), b = data.dynastyMembers.find(m=>m.id===l.toId);
+  if(!a || !b) return;
+  const A = '«'+familyShort(a.name)+'»', B = '«'+familyShort(b.name)+'»';
+  const kind = l.kind || 'parent';
+  const items = [{heading:'Сейчас: '+memberLinkDesc(l)+'. Изменить на:'}];
+  if(kind==='parent'){
+    items.push({label:'Наоборот: '+B+' — родитель, '+A+' — ребёнок', onClick:()=>setMemberLinkRelation(linkId, 'parent', l.toId, l.fromId)});
+  } else {
+    items.push({label:A+' — родитель, '+B+' — ребёнок', onClick:()=>setMemberLinkRelation(linkId, 'parent', l.fromId, l.toId)});
+    items.push({label:B+' — родитель, '+A+' — ребёнок', onClick:()=>setMemberLinkRelation(linkId, 'parent', l.toId, l.fromId)});
+  }
+  if(kind!=='spouse') items.push({label:A+' и '+B+' — супруги', onClick:()=>setMemberLinkRelation(linkId, 'spouse', l.fromId, l.toId)});
+  if(kind!=='sibling') items.push({label:A+' и '+B+' — братья / сёстры', onClick:()=>setMemberLinkRelation(linkId, 'sibling', l.fromId, l.toId)});
+  items.push({sep:true});
+  items.push({label:'Изменить в форме…', onClick:()=>openEditMemberLinkModal(linkId)});
+  items.push({label:'Удалить связь', danger:true, onClick:()=>deleteMemberLinkConfirm(linkId)});
+  showCtxMenu(e, items);
+}
+// клик по линии в режиме «Древо»; у общей линии пары родителей может быть две связи — тогда сначала спрашиваем, какую
+function familyEdgeMenu(e, linkIds){
+  const ids = [...new Set((linkIds||'').split(',').filter(Boolean))];
+  if(!ids.length) return;
+  if(ids.length===1) return memberLinkChangeMenu(e, ids[0]);
+  const pt = {clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}};
+  const items = [{heading:'Какую связь изменить?'}];
+  ids.forEach(id=>{
+    const l = data.dynastyMemberLinks.find(x=>x.id===id);
+    if(l) items.push({label:memberLinkDesc(l), onClick:()=>memberLinkChangeMenu(pt, id)});
+  });
+  showCtxMenu(e, items);
+}
 function familyDropMenu(e, aId, bId){
   const a = data.dynastyMembers.find(m=>m.id===aId), b = data.dynastyMembers.find(m=>m.id===bId);
   if(!a || !b) return;
+  // уже связаны — предлагаем изменить существующее родство, а не создавать новое
+  const existing = data.dynastyMemberLinks.find(l=>l.dynastyId===state.activeTreeId && ((l.fromId===aId && l.toId===bId) || (l.fromId===bId && l.toId===aId)));
+  if(existing) return memberLinkChangeMenu({clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}}, existing.id);
   const A = '«'+familyShort(a.name)+'»', B = '«'+familyShort(b.name)+'»';
   showCtxMenu({clientX:e.clientX, clientY:e.clientY, preventDefault(){}, stopPropagation(){}}, [
     {heading: A+' → '+B+': кто они друг другу?'},
@@ -2866,6 +3006,10 @@ function initFamilyBoard(){
     familyZoomAt(e.clientX-rect.left, e.clientY-rect.top, familyView.scale + (e.deltaY<0 ? 0.1 : -0.1));
   }, {passive:false});
   vp.addEventListener('mousedown', e=>familyStartDrag(e, vp));
+  vp.addEventListener('click', e=>{
+    const h = e.target.closest('.fam-hit');
+    if(h) familyEdgeMenu(e, h.dataset.links);
+  });
   vp.addEventListener('click', e=>{
     if(familyJustDragged) return;
     const n = e.target.closest('.fam-node');
@@ -3131,7 +3275,7 @@ function treeLinkCard(l, members){
 }
 
 function openNewMemberModal(dynastyId, pos, parentId){
-  openFormModal('Новый член рода', memberFields(), {}, (vals)=>{
+  openFormModal('Новый член рода', memberFieldsNew(), {}, (vals)=>{
     const nm = Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals);
     if(pos && typeof pos.tx==='number'){ nm.tx = pos.tx; nm.ty = pos.ty; }
     if(pos && Number.isFinite(pos.hexQ)){ nm.hexQ = pos.hexQ; nm.hexR = pos.hexR; }
@@ -3142,7 +3286,7 @@ function openNewMemberModal(dynastyId, pos, parentId){
 }
 function openNewRelativeModal(dynastyId, anchorId, relation){
   const titles = {child:'Новый ребёнок', parent:'Новый родитель', spouse:'Новый супруг / партнёр', sibling:'Новый брат / сестра'};
-  openFormModal(titles[relation] || 'Новый член рода', memberFields(), {}, (vals)=>{
+  openFormModal(titles[relation] || 'Новый член рода', memberFieldsNew(), {}, (vals)=>{
     const nm = Object.assign({id:uid(), projectId: state.activeProjectId, dynastyId}, vals);
     data.dynastyMembers.push(nm);
     const mk = (fromId, toId, kind)=>{ const l = {id:uid(), projectId: state.activeProjectId, dynastyId, fromId, toId}; if(kind) l.kind = kind; data.dynastyMemberLinks.push(l); };
@@ -4955,6 +5099,79 @@ function projectFields(){
 }
 
 /* ---------------- GENERIC MODAL ---------------- */
+/* ---------- «Выбрать из существующих»: подставляет данные готового персонажа / члена рода в форму ---------- */
+function buildFormPicker(f, fw){
+  const wrap = document.createElement('div');
+  wrap.className = 'field form-picker';
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'btn btn-sm form-picker-btn';
+  btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span>${esc(f.label || 'Выбрать')}</span>`;
+  const panel = document.createElement('div');
+  panel.className = 'form-picker-panel'; panel.hidden = true;
+  panel.innerHTML = `<input type="text" class="fp-search" placeholder="Поиск по имени…"><div class="fp-list"></div>`;
+  const search = panel.querySelector('.fp-search'), list = panel.querySelector('.fp-list');
+  let groups = [];
+  const render = ()=>{
+    const q = search.value.trim().toLowerCase();
+    let html = '', total = 0;
+    groups.forEach((g, gi)=>{
+      const rows = g.items.map((it, ii)=>({it, ii})).filter(({it})=>!q || (it.name||'').toLowerCase().includes(q) || (it.sub||'').toLowerCase().includes(q));
+      if(!rows.length) return;
+      html += `<div class="fp-group">${esc(g.title)}</div>` + rows.map(({it, ii})=>{
+        total++;
+        const ava = it.photo ? `<img class="fp-ava" src="${it.photo}" alt="">` : `<span class="fp-ava">${esc(initials(it.name||''))}</span>`;
+        return `<button type="button" class="fp-item" data-g="${gi}" data-i="${ii}">${ava}<span class="fp-name">${esc(it.name||'Без имени')}</span>${it.sub ? `<span class="fp-sub">${esc(it.sub)}</span>` : ''}</button>`;
+      }).join('');
+    });
+    list.innerHTML = total ? html : '<div class="fp-empty">Никого не нашлось</div>';
+  };
+  const apply = values=>{
+    Object.keys(values).forEach(key=>{
+      const el = fw.querySelector(`[data-key="${key}"]`);
+      if(!el) return;
+      const val = values[key] || '';
+      if(el._applyImage){ el._applyImage(val); return; }
+      el.value = val;
+      el.dispatchEvent(new Event('input', {bubbles:true}));
+    });
+  };
+  btn.onclick = ()=>{
+    panel.hidden = !panel.hidden;
+    if(!panel.hidden){ groups = (f.sources ? f.sources() : []).filter(g=>g.items.length); search.value = ''; render(); search.focus(); }
+  };
+  search.addEventListener('input', render);
+  list.addEventListener('click', e=>{
+    const b = e.target.closest('.fp-item');
+    if(!b) return;
+    const it = groups[+b.dataset.g].items[+b.dataset.i];
+    apply(it.values || {});
+    panel.hidden = true;
+    showToast('Данные подставлены — их можно изменить перед сохранением');
+  });
+  wrap.appendChild(btn); wrap.appendChild(panel);
+  return wrap;
+}
+// кандидаты для нового члена рода: персонажи проекта и участники других родов
+function memberPickerSources(dynastyId){
+  const pid = state.activeProjectId;
+  const groups = [{ title:'Персонажи проекта', items: itemsOf('characters', pid).map(c=>({ name:c.name, photo:c.photo, sub:c.role||'', values:{ name:c.name, photo:c.photo||'', note:c.desc||'' } })) }];
+  itemsOf('dynasties', pid).filter(d=>d.id!==dynastyId).forEach(d=>{
+    groups.push({ title:'Род: '+(d.name||'без названия'), items: data.dynastyMembers.filter(m=>m.dynastyId===d.id).map(m=>({ name:m.name, photo:m.photo, sub:[m.birth, m.death].filter(Boolean).join(' — '), values:{ name:m.name, photo:m.photo||'', birth:m.birth||'', death:m.death||'', note:m.note||'' } })) });
+  });
+  return groups;
+}
+// кандидаты для нового персонажа: члены всех родов проекта
+function characterPickerSources(){
+  const pid = state.activeProjectId;
+  return itemsOf('dynasties', pid).map(d=>({ title:'Род: '+(d.name||'без названия'), items: data.dynastyMembers.filter(m=>m.dynastyId===d.id).map(m=>({ name:m.name, photo:m.photo, sub:[m.birth, m.death].filter(Boolean).join(' — '), values:{ name:m.name, photo:m.photo||'', desc:[m.birth ? 'Рождение: '+m.birth : '', m.death ? 'Смерть: '+m.death : '', m.note||''].filter(Boolean).join('\n') } })) }));
+}
+function memberFieldsNew(){
+  return [{type:'picker', label:'Выбрать из персонажей и других родов', sources:()=>memberPickerSources(state.activeTreeId)}, ...memberFields()];
+}
+function characterFieldsNew(){
+  return [{type:'picker', label:'Выбрать из членов родов', sources:characterPickerSources}, ...characterFields()];
+}
+
 function openFormModal(title, fields, initial, onSave, dangerAction){
   const box = document.getElementById('modalBox');
   box.style.maxWidth = '';
@@ -4967,6 +5184,7 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
     </div>`;
   const fw = document.getElementById('modalFields');
   fields.forEach(f=>{
+    if(f.type==='picker'){ fw.appendChild(buildFormPicker(f, fw)); return; }
     const wrap = document.createElement('div'); wrap.className='field';
     const label = document.createElement('label'); label.textContent = f.label; wrap.appendChild(label);
     let input;
@@ -5006,6 +5224,12 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
         fileInput.value='';
       };
       const hint=document.createElement('div'); hint.textContent='Выбери нужный фрагмент: двигай изображение и меняй масштаб. Аватар сохранится квадратным 512 × 512. Нажми на фото в карточке, чтобы увеличить.'; hint.style.cssText='font-size:11px; line-height:1.45; color:var(--text-faint); max-width:290px;';
+      // позволяет подставить фото программно (например, при выборе готового персонажа)
+      input._applyImage = (dataUrl)=>{
+        input.value = dataUrl || '';
+        if(dataUrl){ img.src = dataUrl; img.style.display='block'; placeholder.style.display='none'; removeBtn.style.display='inline-block'; addBtn.textContent='Изменить фото'; }
+        else { img.src=''; img.style.display='none'; placeholder.style.display='flex'; removeBtn.style.display='none'; addBtn.textContent='Добавить фото'; }
+      };
       controls.appendChild(fileInput); controls.appendChild(addBtn); controls.appendChild(removeBtn); controls.appendChild(hint);
       previewWrap.appendChild(img); previewWrap.appendChild(placeholder); previewWrap.appendChild(controls);
       wrap.appendChild(previewWrap);
@@ -5560,6 +5784,11 @@ document.addEventListener('keydown', e=>{
   if(e.key==='Escape' && state.boardFs && !document.getElementById('modalOverlay').classList.contains('show')) toggleBoardFs(state.boardFs);
 });
 
+/* Фото на карточках не должно «отрываться» от неё как обычная картинка при перетаскивании */
+document.addEventListener('dragstart', e=>{
+  const t = e.target;
+  if(t && t.tagName==='IMG' && t.closest && t.closest('#familyViewport, #treeCanvasViewport, #relCanvasViewport, .hex-viewport')) e.preventDefault();
+});
 let modalMouseDownOnBackdrop = false;
 document.getElementById('modalOverlay').addEventListener('mousedown', (e)=>{
   modalMouseDownOnBackdrop = (e.target.id === 'modalOverlay');
@@ -5568,6 +5797,17 @@ document.getElementById('modalOverlay').addEventListener('click', (e)=>{
   if(e.target.id==='modalOverlay' && modalMouseDownOnBackdrop) closeModal();
 });
 document.getElementById('newProjectBtn').addEventListener('click', openNewProjectModal);
+document.getElementById('projectsExpandBtn').addEventListener('click', toggleProjectsExpanded);
+// колесо мыши прокручивает ряд проектов по горизонтали
+document.getElementById('projectList').addEventListener('wheel', e=>{
+  if(state.projectsExpanded) return;
+  const l = e.currentTarget;
+  if(l.scrollWidth <= l.clientWidth) return;
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  e.preventDefault();
+  l.scrollLeft += d;
+}, {passive:false});
+window.addEventListener('resize', updateProjectsExpandBtn);
 
 /* ---------------- GLOBAL SEARCH ---------------- */
 const searchInput = document.getElementById('globalSearch');
