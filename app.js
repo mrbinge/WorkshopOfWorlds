@@ -1488,6 +1488,7 @@ function hexZoomBy(kind, delta){
 function initHexBoard(kind){
   const c = hexCfg(kind), vp = document.getElementById(c.vp);
   if(!vp) return;
+  hexEdit = null;
   if(c.view.routeEdit){ c.view.routeEdit = null; if(c.view.routeKey){ document.removeEventListener('keydown', c.view.routeKey); c.view.routeKey = null; } }
   ensureHexPositions(c.items());
   buildHexCards(kind);
@@ -1664,6 +1665,7 @@ function startHexRouteEdit(kind, edgeId){
   const c = hexCfg(kind), v = c.view;
   const ed = c.findEdge(edgeId); if(!ed) return;
   if(v.routeEdit) finishHexRoute(kind, false);
+  stopHexLineEdit();
   v.routeEdit = {id:edgeId, pts:[], hover:null};
   const vp = document.getElementById(c.vp);
   vp.classList.add('route-editing');
@@ -1703,12 +1705,121 @@ function resetHexRoute(kind, edgeId){
   const ed = hexCfg(kind).findEdge(edgeId); if(!ed) return;
   delete ed.route; queueSave(); drawHexLines(kind); showToast('Маршрут сброшен — линия снова автоматическая');
 }
+/* --- правка маршрута линии: на линии есть кружки — тяните их, и линия изгибается (точки встают на углы сот) --- */
+let hexEdit = null;   // {kind, id} — линия, маршрут которой сейчас правится
+function startHexLineEdit(kind, id){
+  const v = hexCfg(kind).view;
+  if(v.routeEdit) finishHexRoute(kind, false);
+  hexEdit = {kind, id};
+  drawHexLines(kind);
+}
+function stopHexLineEdit(){
+  if(!hexEdit) return;
+  const kind = hexEdit.kind;
+  hexEdit = null;
+  const old = document.getElementById('hexEditLayer'); if(old) old.remove();
+  const vp = document.getElementById(hexCfg(kind).vp);
+  const bar = vp && vp.querySelector(':scope > .hex-edit-bar'); if(bar) bar.remove();
+}
+function renderHexEdit(kind){
+  const c = hexCfg(kind), layer = document.getElementById(c.layer), vp = document.getElementById(c.vp);
+  const old = document.getElementById('hexEditLayer'); if(old) old.remove();
+  const oldBar = vp && vp.querySelector(':scope > .hex-edit-bar');
+  const eh = hexEdit && (c.view.edgeHit || []).find(x=>x.id===hexEdit.id);
+  const rec = hexEdit && c.findEdge(hexEdit.id);
+  if(!layer || !vp || !hexEdit || hexEdit.kind!==kind || !eh || !rec){ if(oldBar) oldBar.remove(); if(hexEdit && hexEdit.kind===kind) hexEdit = null; return; }
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.id = 'hexEditLayer'; svg.setAttribute('class', 'hex-grid hex-edit');
+  const p = eh.path, route = Array.isArray(rec.route) ? rec.route : [];
+  let html = `<polyline class="hex-edit-hl" points="${p.map(q=>q.x.toFixed(1)+','+q.y.toFixed(1)).join(' ')}"/>`;
+  for(let k=0;k<p.length-1;k++){
+    const mx = (p[k].x+p[k+1].x)/2, my = (p[k].y+p[k+1].y)/2;
+    html += `<circle class="hex-edit-ghost" data-seg="${k}" cx="${mx.toFixed(1)}" cy="${my.toFixed(1)}" r="6"><title>Потяните, чтобы изогнуть линию</title></circle>`;
+  }
+  route.forEach((pt, i)=>{ html += `<circle class="hex-edit-pt" data-i="${i}" cx="${pt.x.toFixed(1)}" cy="${pt.y.toFixed(1)}" r="8"><title>Тяните, чтобы переместить. Двойной клик — убрать точку</title></circle>`; });
+  svg.innerHTML = html;
+  layer.appendChild(svg);
+  svg.addEventListener('mousedown', e=>{
+    const pt = e.target.closest('.hex-edit-pt'), gh = e.target.closest('.hex-edit-ghost');
+    if(pt) startRouteDrag(kind, e, +pt.dataset.i, false, 0);
+    else if(gh) startRouteDrag(kind, e, 0, true, +gh.dataset.seg);
+  });
+  svg.addEventListener('dblclick', e=>{
+    const pt = e.target.closest('.hex-edit-pt');
+    if(!pt) return;
+    e.stopPropagation();
+    removeRoutePoint(kind, +pt.dataset.i);
+  });
+  svg.addEventListener('contextmenu', e=>{
+    const pt = e.target.closest('.hex-edit-pt');
+    if(!pt) return;
+    e.preventDefault(); e.stopPropagation();
+    removeRoutePoint(kind, +pt.dataset.i);
+  });
+  if(!oldBar){
+    const bar = document.createElement('div');
+    bar.className = 'hex-edit-bar';
+    bar.innerHTML = '<span>Маршрут линии: потяните кружок на линии, чтобы изогнуть её. Двойной клик по точке — убрать.</span><button type="button" class="btn btn-sm" data-act="reset">Сбросить</button><button type="button" class="btn btn-sm btn-primary" data-act="done">Готово</button>';
+    ['mousedown','mouseup','contextmenu','dblclick','wheel'].forEach(t=>bar.addEventListener(t, ev=>ev.stopPropagation()));
+    bar.addEventListener('click', ev=>{
+      const b = ev.target.closest('button'); if(!b || !hexEdit) return;
+      if(b.dataset.act==='reset') resetHexRoute(hexEdit.kind, hexEdit.id); else stopHexLineEdit();
+    });
+    vp.appendChild(bar);
+  }
+}
+function removeRoutePoint(kind, i){
+  const rec = hexEdit && hexCfg(kind).findEdge(hexEdit.id);
+  if(!rec || !Array.isArray(rec.route)) return;
+  rec.route.splice(i, 1);
+  if(!rec.route.length) delete rec.route;
+  queueSave();
+  drawHexLines(kind);
+}
+function startRouteDrag(kind, e, idx, isGhost, seg){
+  e.stopPropagation(); e.preventDefault();
+  const c = hexCfg(kind), vp = document.getElementById(c.vp), v = c.view;
+  const rec = hexEdit && c.findEdge(hexEdit.id);
+  if(!vp || !rec) return;
+  let i = idx, moved = false;
+  if(isGhost){
+    const eh = (v.edgeHit || []).find(x=>x.id===hexEdit.id);
+    const a = eh.path[seg], b = eh.path[seg+1];
+    const start = snapToHexVertex((a.x+b.x)/2, (a.y+b.y)/2);
+    if(!Array.isArray(rec.route)) rec.route = [];
+    i = rec.route.length ? seg : 0;               // первая своя точка заменяет автоматический маршрут
+    rec.route.splice(i, 0, start);
+  }
+  v.busy = true;
+  hideEdgeInfo(vp);
+  const mv = ev=>{
+    moved = true;
+    const rect = vp.getBoundingClientRect();
+    rec.route[i] = snapToHexVertex((ev.clientX-rect.left-v.pan.x)/v.scale, (ev.clientY-rect.top-v.pan.y)/v.scale);
+    drawHexLines(kind);
+  };
+  const up = ()=>{
+    document.removeEventListener('mousemove', mv);
+    document.removeEventListener('mouseup', up);
+    v.busy = false;
+    if(isGhost && !moved){ rec.route.splice(i, 1); if(!rec.route.length) delete rec.route; drawHexLines(kind); return; }   // просто клик — ничего не меняем
+    if(Array.isArray(rec.route)) rec.route = rec.route.filter((pt, k, arr)=>k===0 || Math.hypot(pt.x-arr[k-1].x, pt.y-arr[k-1].y) > 0.5);
+    queueSave();
+    drawHexLines(kind);
+  };
+  document.addEventListener('mousemove', mv);
+  document.addEventListener('mouseup', up);
+}
+window.addEventListener('keydown', e=>{
+  if(e.key==='Escape' && hexEdit){ e.stopPropagation(); stopHexLineEdit(); }
+}, true);
 function hexRouteMenuItems(kind, ids){
   const c = hexCfg(kind), items = [];
   ids.forEach(id=>{
     const ed = c.findEdge(id); if(!ed) return;
     const suffix = ids.length>1 ? ' ('+(kind==='tree' ? memberLinkDesc(ed) : 'связь')+')' : '';
-    items.push({label:'Нарисовать линию вручную…'+suffix, onClick:()=>startHexRouteEdit(kind, id)});
+    items.push({label:'Изменить маршрут линии'+suffix, onClick:()=>startHexLineEdit(kind, id)});
+    items.push({label:'Нарисовать линию заново…'+suffix, onClick:()=>startHexRouteEdit(kind, id)});
     if(Array.isArray(ed.route) && ed.route.length) items.push({label:'Вернуть автоматический маршрут'+suffix, onClick:()=>resetHexRoute(kind, id)});
   });
   return items;
@@ -1734,6 +1845,7 @@ function drawHexLines(kind){
     out += `<polyline class="hex-line" points="${path.map(p=>p.x.toFixed(1)+','+p.y.toFixed(1)).join(' ')}" stroke="url(#${gid})"/>`;
   });
   svg.innerHTML = defs + '</defs>' + out;
+  if(hexEdit && hexEdit.kind===kind) renderHexEdit(kind);
 }
 
 /* --- всплывающая карточка связи при наведении на линию: (фото) Имя  тип ——— во что переросла  Имя (фото) --- */
