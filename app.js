@@ -2257,18 +2257,63 @@ const CTX_COLORS = [
   {v:'#5a8fd8', n:'Синий'}, {v:'#9a6fd1', n:'Фиолетовый'}, {v:'#d86fa8', n:'Розовый'}
 ];
 const CTX_PLUS_ICON = '<svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M12 4v16M4 12h16"/></svg>';
-// выбор своего цвета через системную палитру
-function pickCustomColor(current, rect, onPick){
-  const inp = document.createElement('input');
-  inp.type = 'color';
-  inp.value = /^#[0-9a-f]{6}$/i.test(current||'') ? current : '#c9a24c';
-  inp.style.cssText = `position:fixed; left:${Math.round(rect.left)}px; top:${Math.round(rect.bottom)}px; width:1px; height:1px; opacity:0; pointer-events:none;`;
-  document.body.appendChild(inp);
-  inp.addEventListener('change', ()=>{ onPick(inp.value); setTimeout(()=>inp.remove(), 300); });
-  inp.addEventListener('cancel', ()=>setTimeout(()=>inp.remove(), 300));
-  if(typeof inp.showPicker==='function'){ try{ inp.showPicker(); return; }catch(e){} }
-  inp.click();
+/* ---------------- ЕДИНЫЙ ВЫБОР ЦВЕТА (тот же, что в Столе картографа) ---------------- */
+const cpHsv2rgb=(h,s,v)=>{const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};return[f(5),f(3),f(1)].map(x=>Math.round(x*255))};
+const cpRgb2hsv=(r,g,b)=>{r/=255;g/=255;b/=255;const m=Math.max(r,g,b),d=m-Math.min(r,g,b);let h=0;if(d){h=m===r?((g-b)/d)%6:m===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return[h,m?d/m:0,m]};
+const cpToHex=c=>'#'+c.map(x=>x.toString(16).padStart(2,'0')).join('');
+const cpParseHex=c=>{const m=/^#?([0-9a-f]{6})$/i.exec(String(c||'').trim());if(!m)return null;const n=parseInt(m[1],16);return[n>>16&255,n>>8&255,n&255]};
+let colorPk = null;
+function colorSwatchInner(color){ return `<span class="dot" style="background:${color}"></span><span class="hv">${color}</span>`; }
+function colorSwatchBtn(id, color){ return `<button type="button" class="btn swb" id="${id}">${colorSwatchInner(color)}</button>`; }
+function setSwatch(btn, color){ if(btn) btn.innerHTML = colorSwatchInner(color); }
+function closeColorPicker(){
+  if(!colorPk) return;
+  const { el, opts, start, last } = colorPk;
+  colorPk = null; el.remove();
+  document.removeEventListener('pointerdown', cpOutside, true);
+  window.removeEventListener('keydown', cpEsc, true);
+  if(opts && opts.onCommit && last && last !== start) opts.onCommit(last);
 }
+function cpOutside(e){ if(colorPk && !colorPk.el.contains(e.target) && !(colorPk.anchorEl && colorPk.anchorEl.contains(e.target))) closeColorPicker(); }
+function cpEsc(e){ if(e.key==='Escape' && colorPk){ e.stopPropagation(); closeColorPicker(); } }
+// anchor — кнопка (или DOMRect), value — стартовый цвет, opts.onInput — на каждое движение, opts.onCommit — один раз при закрытии
+function openColorPicker(anchor, value, opts){
+  if(colorPk && colorPk.anchorEl && colorPk.anchorEl===anchor){ closeColorPicker(); return; }
+  closeColorPicker();
+  opts = opts || {};
+  const start = cpToHex(cpParseHex(value) || [201,162,76]);
+  let [h,s,v] = cpRgb2hsv(...cpParseHex(start)), dragging = 0;
+  const el = document.createElement('div'); el.className = 'pk';
+  el.innerHTML = `<div class="sv"><i></i></div><div class="pr"><button type="button" class="eye" title="Пипетка" ${window.EyeDropper?'':'hidden'}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg></button><span class="cur"></span><input type="range" class="hue" min="0" max="360" step="1"></div><div class="nums"><label><input data-c="0">R</label><label><input data-c="1">G</label><label><input data-c="2">B</label><label><input class="hx" maxlength="7">HEX</label></div>`;
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect ? anchor.getBoundingClientRect() : anchor;
+  el.style.left = Math.max(8, Math.min(r.left, innerWidth - el.offsetWidth - 8)) + 'px';
+  el.style.top = Math.max(8, Math.min(r.bottom + 6, innerHeight - el.offsetHeight - 8)) + 'px';
+  colorPk = { el, opts, start, last: start, anchorEl: anchor.getBoundingClientRect ? anchor : null };
+  const sv = el.querySelector('.sv'), th = sv.firstChild, cur = el.querySelector('.cur'), hue = el.querySelector('.hue'),
+        ins = [...el.querySelectorAll('[data-c]')], hx = el.querySelector('.hx');
+  function paint(skip, emit){
+    const c = cpHsv2rgb(h,s,v), x = cpToHex(c);
+    sv.style.background = `linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),hsl(${h},100%,50%)`;
+    th.style.left = s*100+'%'; th.style.top = (1-v)*100+'%'; cur.style.background = x; hue.value = h;
+    ins.forEach((i,j)=>{ if(i!==skip) i.value = c[j]; }); if(hx!==skip) hx.value = x;
+    if(emit){ if(colorPk) colorPk.last = x; if(opts.onInput) opts.onInput(x); }
+  }
+  const setRGB = (c, skip)=>{ const n = cpRgb2hsv(...c); if(n[1]>0 && n[2]>0) h = n[0]; s = n[1]; v = n[2]; paint(skip, true); };
+  const setSV = e=>{ const b = sv.getBoundingClientRect(); s = Math.min(1,Math.max(0,(e.clientX-b.left)/b.width)); v = 1-Math.min(1,Math.max(0,(e.clientY-b.top)/b.height)); paint(null, true); };
+  sv.onpointerdown = e=>{ sv.setPointerCapture(e.pointerId); dragging = 1; setSV(e); };
+  sv.onpointermove = e=>{ if(dragging) setSV(e); };
+  sv.onpointerup = ()=>{ dragging = 0; };
+  hue.oninput = ()=>{ h = +hue.value; paint(hue, true); };
+  ins.forEach(i=>{ i.oninput = ()=>{ setRGB(ins.map(x=>Math.min(255,Math.max(0,parseInt(x.value)||0))), i); }; });
+  hx.oninput = ()=>{ const c = cpParseHex(hx.value); if(c) setRGB(c, hx); };
+  el.querySelector('.eye').onclick = ()=>new EyeDropper().open().then(x=>{ const c = cpParseHex(x.sRGBHex); if(c) setRGB(c, null); }).catch(()=>{});
+  paint(null, false);
+  document.addEventListener('pointerdown', cpOutside, true);
+  window.addEventListener('keydown', cpEsc, true);
+}
+// выбор своего цвета из контекстного меню: применяем один раз, когда пикер закрыт
+function pickCustomColor(current, rect, onPick){ openColorPicker(rect, current, { onCommit: onPick }); }
 function closeCtxMenu(){ const m=document.getElementById('ctxMenu'); if(m) m.remove(); }
 function showCtxMenu(e, items){
   e.preventDefault(); e.stopPropagation();
@@ -3917,18 +3962,41 @@ function deleteMap(id){
      Мастерская → Стол  {type:'stol:init', mapId, map:{…}}        полный объект карты (проценты 0–100)
      Стол → Мастерская  {type:'stol:save', patch:{markers,labels,paths,geo,layers}}
      Мастерская → Стол  {type:'stol:saved'}                       изменения приняты и поставлены на сохранение
-   Территории Стола лежат в m.geo = {nodes, terrs, imgs}; остальные поля карты Стол не трогает. */
+   Территории Стола лежат в m.geo = {nodes, terrs, imgs}; остальные поля карты Стол не трогает.
+   Эпохи: m.epochs = [{id,name,years,markers,labels,paths,geo:{nodes,terrs}}], m.epoch — id открытой эпохи.
+   Верхние markers/labels/paths/geo зеркалят первую эпоху (для совместимости); картинки территорий — общие, в m.geo.imgs. */
 const STOL_URL = 'stol-kartografa.html';
 const stolWins = {};   // mapId -> окно Стола
 function stolOrigin(){ try{ return new URL(STOL_URL, location.href).origin; }catch(_){ return location.origin; } }
 function stolTarget(origin){ return origin==='null' ? '*' : origin; }
+let stolFrame = null;   // {id, el} — Стол, открытый поверх Мастерской в этой же вкладке
 function openInStol(id, mode){
   const m = data.maps.find(x=>x.id===id);
   if(!m) return;
-  const w = window.open(STOL_URL + '?mode=' + (mode==='edit' ? 'edit' : 'view'), 'stol_' + id);
-  if(!w){ showToast('Браузер заблокировал окно — разрешите всплывающие окна для этого сайта'); return; }
-  stolWins[id] = w;
+  if(stolFrame) closeStol(true);
+  const fr = document.createElement('iframe');
+  fr.id = 'stolFrame';
+  fr.title = 'Стол картографа';
+  fr.setAttribute('allow', 'fullscreen');
+  fr.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9000;background:#14151b;';
+  fr.src = STOL_URL + '?mode=' + (mode==='edit' ? 'edit' : 'view');
+  document.body.appendChild(fr);
+  stolWins[id] = fr.contentWindow;
+  stolFrame = { id, el: fr };
+  try{ history.pushState({ stol:true }, ''); }catch(_){}   // кнопка «Назад» браузера/телефона тоже закрывает Стол
 }
+function closeStol(silent){
+  if(!stolFrame) return;
+  const { id, el } = stolFrame;
+  stolFrame = null;
+  delete stolWins[id];
+  el.remove();
+  if(!silent){
+    try{ if(history.state && history.state.stol) history.back(); }catch(_){}
+    renderMain();
+  }
+}
+window.addEventListener('popstate', ()=>{ if(stolFrame) closeStol(true), renderMain(); });
 function openMapEditor(id){ openInStol(id, 'view'); }
 window.addEventListener('message', (e)=>{
   if(e.origin !== stolOrigin()) return;
@@ -3938,10 +4006,11 @@ window.addEventListener('message', (e)=>{
   if(!id) return;
   const m = data.maps.find(x=>x.id===id);
   if(!m) return;
+  if(msg.type==='stol:close'){ closeStol(); return; }
   if(msg.type==='stol:ready'){
     e.source.postMessage({ type:'stol:init', mapId:id, map:JSON.parse(JSON.stringify(m)) }, stolTarget(e.origin));
   } else if(msg.type==='stol:save' && msg.patch){
-    ['markers','labels','paths','geo','layers'].forEach(k=>{ if(msg.patch[k]!==undefined) m[k] = msg.patch[k]; });
+    ['markers','labels','paths','geo','layers','epochs','epoch'].forEach(k=>{ if(msg.patch[k]!==undefined) m[k] = msg.patch[k]; });
     queueSave();
     e.source.postMessage({ type:'stol:saved', mapId:id }, stolTarget(e.origin));
   }
@@ -4096,7 +4165,7 @@ function renderPathPanel(m, p, isNew){
   panel.innerHTML = `<div class="panel-inner">
     <h3 style="margin:0 0 14px; font-size:15px;">${isNew ? 'Новый путь' : 'Путь на карте'}</h3>
     <div class="field"><label>Название пути</label><input type="text" id="ppName" value="${esc(p.name||'')}" placeholder="Путь героя от деревни до крепости…"></div>
-    <div class="field"><label>Цвет линии</label><input type="color" id="ppColor" value="${p.color||'#c9a24c'}" style="width:44px; height:32px; padding:2px; border-radius:6px; cursor:pointer;"></div>
+    <div class="field"><label>Цвет линии</label>${colorSwatchBtn('ppColor', p.color||'#c9a24c')}</div>
     <div class="field"><label>Толщина линии (<span id="ppWidthVal">${w0.toFixed(2)}</span>)</label>
       <input type="range" id="ppWidth" min="0.1" max="1.5" step="0.05" value="${w0}">
       <div style="display:flex; justify-content:space-between; font-size:10.5px; color:var(--text-faint); font-family:'IBM Plex Mono',monospace;"><span>тонкая тропа</span><span>широкий тракт</span></div>
@@ -4115,7 +4184,8 @@ function renderPathPanel(m, p, isNew){
   </div>`;
   panel.classList.add('open');
   const upd = ()=> drawMapPaths(m);
-  document.getElementById('ppColor').addEventListener('input', (e)=>{ p.color = e.target.value; upd(); });
+  const ppC = document.getElementById('ppColor');
+  ppC.addEventListener('click', ()=>openColorPicker(ppC, p.color||'#c9a24c', { onInput:c=>{ p.color = c; setSwatch(ppC, c); upd(); } }));
   const widthI = document.getElementById('ppWidth');
   widthI.addEventListener('input', ()=>{ p.width = Number(widthI.value); document.getElementById('ppWidthVal').textContent = Number(widthI.value).toFixed(2); upd(); });
   document.querySelectorAll('#ppStyleToggle button').forEach(btn=>{
@@ -5364,7 +5434,7 @@ function renderLabelPanel(m, lb, isNew){
     </div>
     <div class="field"><label>Цвет</label>
       <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-        <input type="color" id="lpColor" value="${lb.color}" style="width:40px; height:30px; padding:2px; border-radius:6px; cursor:pointer;">
+        ${colorSwatchBtn('lpColor', lb.color||'#c9a24c')}
         ${swatches.map(c=>`<button type="button" class="lbl-swatch" data-c="${c}" style="width:18px; height:18px; border-radius:50%; background:${c}; border:1px solid var(--border); cursor:pointer;"></button>`).join('')}
       </div>
     </div>
@@ -5391,11 +5461,12 @@ function renderLabelPanel(m, lb, isNew){
   spacingI.addEventListener('input', ()=>{ lb.spacing = Number(spacingI.value); document.getElementById('lpSpacingVal').textContent = spacingI.value; upd(); });
   const curveI = document.getElementById('lpCurve');
   curveI.addEventListener('input', ()=>{ lb.curve = Number(curveI.value); document.getElementById('lpCurveVal').textContent = curveI.value; upd(); });
-  document.getElementById('lpColor').addEventListener('input', (e)=>{ lb.color = e.target.value; upd(); });
+  const lpC = document.getElementById('lpColor');
+  lpC.addEventListener('click', ()=>openColorPicker(lpC, lb.color||'#c9a24c', { onInput:c=>{ lb.color = c; setSwatch(lpC, c); upd(); } }));
   panel.querySelectorAll('.lbl-swatch').forEach(btn=>{
     btn.addEventListener('click', ()=>{
       lb.color = btn.dataset.c;
-      document.getElementById('lpColor').value = btn.dataset.c;
+      setSwatch(document.getElementById('lpColor'), btn.dataset.c);
       upd();
     });
   });
@@ -5633,17 +5704,19 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
       const row = document.createElement('div'); row.style.cssText = 'display:flex; align-items:center; gap:10px; margin-top:2px;';
       const checkbox = document.createElement('input'); checkbox.type='checkbox'; checkbox.checked = !!currentVal;
       checkbox.style.cssText = 'width:16px; height:16px; accent-color:var(--gold); cursor:pointer;';
-      const colorInput = document.createElement('input'); colorInput.type='color';
-      colorInput.value = currentVal || '#c9a24c';
+      let curColor = currentVal || '#c9a24c';
+      const colorInput = document.createElement('button'); colorInput.type = 'button'; colorInput.className = 'btn swb';
+      colorInput.innerHTML = colorSwatchInner(curColor);
       colorInput.disabled = !currentVal;
-      colorInput.style.cssText = 'width:48px; height:34px; padding:2px; border-radius:6px; cursor:pointer; opacity:'+(currentVal?'1':'.4')+';';
+      colorInput.style.cssText = 'width:auto; min-width:150px; flex:none; opacity:'+(currentVal?'1':'.4')+';';
       const label = document.createElement('span'); label.textContent = 'Свой цвет (иначе — по типу проекта)'; label.style.cssText = 'font-size:12.5px; color:var(--text-dim);';
       checkbox.onchange = ()=>{
         colorInput.disabled = !checkbox.checked;
         colorInput.style.opacity = checkbox.checked ? '1' : '.4';
-        input.value = checkbox.checked ? colorInput.value : '';
+        if(!checkbox.checked) closeColorPicker();
+        input.value = checkbox.checked ? curColor : '';
       };
-      colorInput.oninput = ()=>{ if(checkbox.checked) input.value = colorInput.value; };
+      colorInput.onclick = ()=>openColorPicker(colorInput, curColor, { onInput:c=>{ curColor = c; colorInput.innerHTML = colorSwatchInner(c); if(checkbox.checked) input.value = c; } });
       row.appendChild(checkbox); row.appendChild(colorInput); row.appendChild(label);
       wrap.appendChild(row);
     }
