@@ -3833,7 +3833,7 @@ function mapCard(m){
     <div class="d-alias">${(m.markers||[]).length} меток · ${(m.paths||[]).length} путей</div>
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openMapEditor('${m.id}')">Открыть</button>
-      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openEditMapModal('${m.id}')">Изменить</button>
+      <button class="btn btn-ghost btn-sm" onclick="event.stopPropagation(); openInStol('${m.id}','edit')" title="Редактировать на Столе картографа">Редактировать</button>
       <button class="btn btn-ghost btn-sm btn-danger" onclick="event.stopPropagation(); deleteMap('${m.id}')">Удалить</button>
     </div>
   </div>`;
@@ -3910,7 +3910,44 @@ function deleteMap(id){
   });
 }
 
-function openMapEditor(id){
+/* STOL-BRIDGE-START
+   Связь «Мастерской» со «Столом картографа» — отдельным инструментом (stol-kartografa.html).
+   Контракт сообщений (window.postMessage):
+     Стол → Мастерская  {type:'stol:ready'}                      Стол загрузился и ждёт карту
+     Мастерская → Стол  {type:'stol:init', mapId, map:{…}}        полный объект карты (проценты 0–100)
+     Стол → Мастерская  {type:'stol:save', patch:{markers,labels,paths,geo,layers}}
+     Мастерская → Стол  {type:'stol:saved'}                       изменения приняты и поставлены на сохранение
+   Территории Стола лежат в m.geo = {nodes, terrs, imgs}; остальные поля карты Стол не трогает. */
+const STOL_URL = 'stol-kartografa.html';
+const stolWins = {};   // mapId -> окно Стола
+function stolOrigin(){ try{ return new URL(STOL_URL, location.href).origin; }catch(_){ return location.origin; } }
+function stolTarget(origin){ return origin==='null' ? '*' : origin; }
+function openInStol(id, mode){
+  const m = data.maps.find(x=>x.id===id);
+  if(!m) return;
+  const w = window.open(STOL_URL + '?mode=' + (mode==='edit' ? 'edit' : 'view'), 'stol_' + id);
+  if(!w){ showToast('Браузер заблокировал окно — разрешите всплывающие окна для этого сайта'); return; }
+  stolWins[id] = w;
+}
+function openMapEditor(id){ openInStol(id, 'view'); }
+window.addEventListener('message', (e)=>{
+  if(e.origin !== stolOrigin()) return;
+  const msg = e.data;
+  if(!msg || typeof msg !== 'object') return;
+  const id = Object.keys(stolWins).find(k=>stolWins[k]===e.source);
+  if(!id) return;
+  const m = data.maps.find(x=>x.id===id);
+  if(!m) return;
+  if(msg.type==='stol:ready'){
+    e.source.postMessage({ type:'stol:init', mapId:id, map:JSON.parse(JSON.stringify(m)) }, stolTarget(e.origin));
+  } else if(msg.type==='stol:save' && msg.patch){
+    ['markers','labels','paths','geo','layers'].forEach(k=>{ if(msg.patch[k]!==undefined) m[k] = msg.patch[k]; });
+    queueSave();
+    e.source.postMessage({ type:'stol:saved', mapId:id }, stolTarget(e.origin));
+  }
+});
+/* STOL-BRIDGE-END */
+function openMapEditorLegacy(id){
   state.activeMapId = id;
   if(!state.mapMode) state.mapMode = 'marker';
   if(!state.mapListTab) state.mapListTab = state.mapMode;
