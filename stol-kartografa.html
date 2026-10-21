@@ -108,6 +108,11 @@ body.fs #vlist{display:none}
 .empty-tab{padding:50px 20px;text-align:center;color:var(--text-faint);font-size:13.5px}
 .pdot{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0}
 #offer{position:absolute;z-index:20;width:250px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px}
+#walk{position:absolute;z-index:19;max-width:270px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:12px}
+#walk .wt{font:10px 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 6px}
+#walk .wr{display:flex;gap:4px;margin-bottom:4px}#walk .wr button{font-size:12px;padding:6px 8px;text-align:left}#walk .wr button:first-child{flex:1}
+#walk kbd{font:10px 'IBM Plex Mono',monospace;color:var(--text-faint);margin-left:6px}
+#walk .wx{margin-top:4px;text-align:right}#walk .wx a{font-size:11px;color:var(--text-faint);cursor:pointer;text-decoration:underline}#walk .wx a:hover{color:var(--text)}
 #offer p{margin:0 0 8px;line-height:1.4}#offer .row{gap:6px}#offer button{font-size:12px;padding:6px 8px}
 .mi{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#14151b;border:1.5px solid rgba(20,21,27,.8);flex-shrink:0}
 .mi svg{width:12px;height:12px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -127,6 +132,7 @@ select{width:100%}
     <button data-t="add">Точка +</button><button data-t="del">Точка −</button>
     <button data-t="marker">Значок</button><button data-t="label">Подпись</button><button data-t="path">Путь героя</button>
   </div>
+  <label class="lay" title="После клика по точке готовой границы показывать, куда можно идти вдоль неё"><input type="checkbox" id="walkOn" checked>Подсказывать путь вдоль границы</label>
   <div class="eyebrow">Сглаживание границ</div>
   <input type="range" id="smooth" min="0" max="1.5" step="0.05" value="0.6" style="width:100%">
   <div class="eyebrow">Слои</div>
@@ -146,7 +152,7 @@ select{width:100%}
     <g id="vp"></g>
   </svg>
   <div id="epBadge" hidden></div><div id="hint"></div>
-  <div id="offer" hidden></div>
+  <div id="offer" hidden></div><div id="walk" hidden></div>
   <div id="info" hidden></div>
 </main>
 <div id="vlist" hidden></div></div>
@@ -478,6 +484,7 @@ const MAP_LABEL_FONTS = {
 };
 /* ===== конец ===== */
 let S={name:'Карта',img:null,w:1600,h:1000,nodes:{},terrs:[],vis:{pol:1,nat:1,dis:1,markers:1,labels:1,paths:1},smooth:.6,markers:[],labels:[],paths:[],lt:{country:1,river:1,lake:1,ocean:1,land:1},imgs:{}};
+let walk=null,walkHi=0,walkLast=null,walkOn=(()=>{try{return localStorage.getItem('stol.walk')!=='0'}catch(_){return true}})();
 let V={x:20,y:20,k:.6},tool='move',draft=[],sel=null,selN=null,editId=null,drag=null,uid=1,selI=null,pd=[],off=null;
 let H=[],F=[],lastK='',lastT=0;
 const snap=()=>JSON.stringify({nodes:S.nodes,terrs:S.terrs,draft,markers:S.markers,labels:S.labels,paths:S.paths});
@@ -487,7 +494,7 @@ function undo(){if(!H.length)return;F.push(snap());restore(H.pop());lastK=''}
 function redo(){if(!F.length)return;H.push(snap());restore(F.pop());lastK=''}
 const $=id=>document.getElementById(id),svg=$('svg'),vp=$('vp');
 const HINTS={view:'Клик по области — выбрать · двойной клик или «Редактировать точки» — показать точки · колесо — масштаб · стрелки или правая кнопка — сдвиг карты',move:'Редактирование: тяни точки · стрелки — сдвиг точки (Shift — крупнее) · Del — удалить · двойной клик по точке — острый угол · Esc или «Готово» — скрыть точки',
-draw:'Ставь точки; поставленную точку можно перетащить. Курсор цепляется к точкам и линиям готовых границ (Alt — отключить магнит). Поставил точку на границе, затем кликнул другую точку границы — редактор предложит пройти по ней сам (путь виден пунктиром ещё до клика). Клик по первой точке или Enter — замкнуть, Esc — отмена',
+draw:'Ставь точки; поставленную точку можно перетащить. Курсор цепляется к точкам и линиям готовых границ (Alt — отключить магнит). Дошёл до точки границы — редактор покажет, куда можно идти вдоль неё: пробел или клик по подсказке. Либо кликни другую точку границы — предложит пройти по ней сам. Клик по первой точке или Enter — замкнуть, Esc — отмена',
 add:'Выбери область и нажми «Редактировать точки», затем клик по её границе — добавить точку (обновится у обоих соседей)',del:'Выбери область и нажми «Редактировать точки», затем клик по точке — удалить её из всех областей'};
 const pt=e=>{const r=svg.getBoundingClientRect();return{x:(e.clientX-r.left-V.x)/V.k,y:(e.clientY-r.top-V.y)/V.k}};
 const nid=()=>'n'+(uid++);
@@ -579,6 +586,7 @@ addEventListener('keydown',e=>{
   const key=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&(key==='z'||key==='я')){e.preventDefault();e.shiftKey?redo():undo();return}
   if((e.ctrlKey||e.metaKey)&&(key==='y'||key==='н')){e.preventDefault();redo();return}
+  if(e.key===' '&&walk&&tool==='draw'){e.preventDefault();walkTake(0,false);return}
   if(e.key.startsWith('Arrow')){e.preventDefault();const dx=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0,dy=e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0;
     if(selN&&S.nodes[selN]){push('nudge');const st=(e.shiftKey?10:2)/V.k;S.nodes[selN].x+=dx*st;S.nodes[selN].y+=dy*st}
     else{const st=e.shiftKey?160:50;V.x-=dx*st;V.y-=dy*st}
@@ -652,7 +660,10 @@ function norm(){(S.terrs||[]).forEach(t=>{if(t.border==='#14151b')delete t.borde
 function chip(k){const c=MARKER_COLORS[k]||MARKER_COLORS.other;return`<span class="mi" style="background:${c};--marker-color:${c}">${MARKER_SVG[k]||MARKER_SVG.other}</span>`}
 function finishPath(){if(pd.length<2){pd=[];render();return}push();const p={id:'p'+(uid++),name:'Путь',color:'#c9a24c',width:.35,dashed:false,desc:'',points:pd};pd=[];S.paths.push(p);selI={k:'p',id:p.id};sel=null;editId=null;setTool('move');render()}
 function extra(k){
-  let h='';const f=S.w/1200;
+  let h='';const f=S.w/1200;walkCalc();
+  if(walk)walk.dirs.forEach((d,i)=>{const hi=i===walkHi,E=S.nodes[d.run[d.run.length-1]];
+    h+=`<polyline points="${[walk.last,...d.run].map(n=>S.nodes[n].x+','+S.nodes[n].y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${(hi?5:3)/k}" stroke-opacity="${hi?.9:.4}" stroke-dasharray="${8/k} ${5/k}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/><circle cx="${E.x}" cy="${E.y}" r="${(hi?7:5)/k}" fill="none" stroke="#c9a24c" stroke-width="${2/k}" stroke-opacity=".9" pointer-events="none"/>`});
+  setTimeout(walkPanel,0);
   if(S.vis.paths)S.paths.forEach(p=>{const w=(p.width||.35)*S.w/100,pts=p.points.map(q=>q.x+','+q.y).join(' '),c=p.color||'#c9a24c',on=mode==='edit'&&selI&&selI.k==='p'&&selI.id===p.id;
     h+=`<polyline data-p="${p.id}" points="${pts}" fill="none" stroke="transparent" stroke-width="${Math.max(w*3,10/k)}" stroke-linecap="round" stroke-linejoin="round" style="cursor:pointer"/><polyline points="${pts}" fill="none" stroke="${c}" stroke-width="${w}" ${p.dashed?`stroke-dasharray="${w*3.2} ${w*2.2}"`:''} stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>`;
     p.points.forEach((q,i)=>{const end=i===0||i===p.points.length-1;h+=on?`<circle data-pp="${i}" cx="${q.x}" cy="${q.y}" r="${6/k}" fill="#14151b" stroke="#c9a24c" stroke-width="${2/k}" style="cursor:move"/>`:`<circle cx="${q.x}" cy="${q.y}" r="${w*(end?1.8:1.15)}" fill="${c}" pointer-events="none"/>`})});
@@ -713,6 +724,46 @@ function route(a,b,ban){const m=nb(),D={[a]:0},prev={},done=new Set();
 function findPaths(a,b){const ban=new Set(draft);ban.delete(a);ban.delete(b);const p1=route(a,b,ban);if(!p1||p1.length<3)return[];
   const p2=route(a,b,new Set([...ban,...p1.slice(1,-1)]));return p2&&p2.length>=3?[p1,p2]:[p1]}
 function tryAdd(n,e){const last=draft[draft.length-1];if(last&&last!==n){const P=findPaths(last,n);if(P.length){showOffer(e,P,n);return}}straight(n)}
+/* ===== подсказка «вдоль границы»: после клика по точке готовой границы предлагаем идти дальше по ней ===== */
+function walkCalc(){walk=null;
+  if(mode!=='edit'||tool!=='draw'||!walkOn||off||!draft.length)return;
+  const m=nb(),last=draft[draft.length-1];if(!m[last]||!S.nodes[last])return;
+  const inD=new Set(draft),cl=draft.length>=3?draft[0]:null,dirs=[];
+  for(const via of m[last]){
+    if(inD.has(via)&&via!==cl)continue;
+    const run=[via];let cur=via,prev=last,kind='end';
+    for(let g=0;g<400;g++){
+      if(cur===cl){kind='close';break}
+      if(m[cur].size>2){kind='junction';break}
+      const nx=[...m[cur]].filter(n=>n!==prev&&(n===cl||!inD.has(n))&&!run.includes(n));
+      if(nx.length!==1)break;prev=cur;cur=nx[0];run.push(cur)}
+    dirs.push({run,kind})}
+  if(!dirs.length)return;
+  const L=S.nodes[last],P=draft.length>1?S.nodes[draft[draft.length-2]]:null;let ar=0;
+  for(let i=0;i<draft.length;i++){const a=S.nodes[draft[i]],b=S.nodes[draft[(i+1)%draft.length]];ar+=a.x*b.y-b.x*a.y}
+  const sc=d=>{if(d.kind==='close')return 9;if(!P||draft.length<3)return 0;const v=S.nodes[d.run[0]];return Math.sign(((L.x-P.x)*(v.y-L.y)-(L.y-P.y)*(v.x-L.x))*ar)};
+  dirs.sort((a,b)=>sc(b)-sc(a));
+  if(walkLast!==last||walkHi>=dirs.length){walkHi=0;walkLast=last}
+  walk={last,dirs}}
+function walkPanel(){const w=$('walk');
+  if(!walk){w.hidden=true;w.dataset.sig='';return}
+  const sig=walk.last+'|'+draft.length+'|'+walk.dirs.map(d=>d.run.length+d.kind+d.run[0]).join(',');
+  if(w.dataset.sig!==sig){w.dataset.sig=sig;
+    w.innerHTML='<div class="wt">Вдоль границы</div>'+walk.dirs.map((d,i)=>{const n=d.run.length,
+      lab=d.kind==='close'?'замкнуть область':n===1?'следующая точка':d.kind==='junction'?'до развилки':'до конца участка';
+      return`<div class="wr" data-wi="${i}"><button class="${i?'':'on'}" data-w="${i}">→ ${lab}${n>1&&d.kind!=='close'?' · '+n:''}${i?'':'<kbd>пробел</kbd>'}</button>${n>1&&d.kind!=='close'?`<button data-w1="${i}" title="Добавить только одну точку">+1</button>`:''}</div>`}).join('')+'<div class="wx"><a data-wx>не подсказывать</a></div>'}
+  w.hidden=false;const r=$('stage').getBoundingClientRect(),q=S.nodes[walk.last];
+  w.style.left=Math.max(8,Math.min(V.x+q.x*V.k+18,r.width-w.offsetWidth-8))+'px';
+  w.style.top=Math.max(8,Math.min(V.y+q.y*V.k+18,r.height-w.offsetHeight-8))+'px'}
+function walkTake(i,one){const d=walk&&walk.dirs[i];if(!d)return;push();let closed=false;
+  (one?[d.run[0]]:d.run).forEach(n=>{if(draft.length>=3&&n===draft[0])closed=true;else if(!draft.includes(n))draft.push(n)});
+  if(closed)closeDraft();else render()}
+$('walk').addEventListener('click',e=>{const a=e.target.closest('[data-w]'),b=e.target.closest('[data-w1]');
+  if(a)walkTake(+a.dataset.w,false);else if(b)walkTake(+b.dataset.w1,true);
+  else if(e.target.closest('[data-wx]')){walkOn=false;$('walkOn').checked=false;try{localStorage.setItem('stol.walk','0')}catch(_){}render()}});
+$('walk').addEventListener('mouseover',e=>{const r=e.target.closest('[data-wi]');if(r&&walkHi!==+r.dataset.wi){walkHi=+r.dataset.wi;render(1)}});
+$('walkOn').checked=walkOn;
+$('walkOn').onchange=e=>{walkOn=e.target.checked;try{localStorage.setItem('stol.walk',walkOn?'1':'0')}catch(_){}render()};
 function showOffer(e,P,b){off={b,paths:P,i:0};const o=$('offer'),r=$('stage').getBoundingClientRect();
   o.style.left=Math.max(8,Math.min(e.clientX-r.left+14,r.width-262))+'px';o.style.top=Math.max(8,Math.min(e.clientY-r.top+14,r.height-150))+'px';drawOffer();o.hidden=false;render()}
 function drawOffer(){const P=off.paths[off.i];$('offer').innerHTML=`<p>Между этими точками уже есть граница (точек между ними: <b>${P.length-2}</b>). Пройти по ней?</p><div class="row"><button data-o="yes" class="on">Соединить ↵</button>${off.paths.length>1?'<button data-o="alt">Другой путь</button>':''}<button data-o="no">Прямой линией</button></div>`}
