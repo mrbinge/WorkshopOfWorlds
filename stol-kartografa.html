@@ -143,6 +143,7 @@ body[data-focus=markers] #walkLbl,body[data-focus=labels] #walkLbl,body[data-foc
 body[data-focus=markers] #smooth,body[data-focus=labels] #smooth,body[data-focus=paths] #smooth,body[data-focus=markers] #shared,body[data-focus=labels] #shared,body[data-focus=paths] #shared,
 body[data-focus=markers] .eyebrow:has(+#smooth),body[data-focus=labels] .eyebrow:has(+#smooth),body[data-focus=paths] .eyebrow:has(+#smooth),
 body[data-focus=markers] .eyebrow:has(+#shared),body[data-focus=labels] .eyebrow:has(+#shared),body[data-focus=paths] .eyebrow:has(+#shared){display:none}
+.qsw{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.qs{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);padding:0;cursor:pointer}.qs:hover{border-color:var(--gold)}
 </style>
 </head>
 <body data-mode="edit">
@@ -172,6 +173,7 @@ body[data-focus=markers] .eyebrow:has(+#shared),body[data-focus=labels] .eyebrow
   <div id="props"><span style="font-size:12px;color:var(--text-faint)">Ничего не выбрано</span></div>
   <div class="eyebrow">Все области</div>
   <div id="list"></div>
+  <button id="terrToLabels" style="width:100%;margin-top:8px;font-size:12px" title="Для каждой области создаст обычную надпись с её названием. Уже существующие надписи с таким текстом не дублируются">Создать надписи из названий областей</button>
   
 </aside>
 <div id="col"><div id="vtop" hidden></div>
@@ -514,7 +516,10 @@ const MAP_LABEL_FONTS = {
 /* ===== конец ===== */
 let S={name:'Карта',img:null,w:1600,h:1000,nodes:{},terrs:[],vis:{pol:1,nat:1,dis:1,markers:1,labels:1,paths:1},smooth:.6,shared:.4,pk:{hero:1,trade:1,river:1},markers:[],labels:[],paths:[],lt:{country:1,river:1,lake:1,ocean:1,land:1},imgs:{}};
 let attachTo=null;
-let focus=null,focusHide=false,pathKind='hero';
+let focus=null,focusHide=false,pathKind='hero',lastLabelType='country';
+const LABEL_GROUPS=[['Государственные',['country']],['Природные',['river','lake','ocean','land']]];
+const QCOL=['#e9e4d8','#c9a24c','#c1443b','#5fa8a0','#b5698f','#8c7ec9','#ffffff','#14151b'];
+const qsw=()=>`<div class="qsw">${QCOL.map(c=>`<button type="button" class="qs" data-qc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>`;
 const PKIND={hero:{n:'Путь героя',s:'Герои',c:'#c9a24c',w:.35,d:false},trade:{n:'Торговый путь',s:'Торговые',c:'#d98e4a',w:.3,d:true},river:{n:'Течение реки',s:'Реки',c:'#5aa9d6',w:.3,d:false}};
 const kindOf=p=>PKIND[p.kind]?p.kind:'hero';
 const FOCUS={borders:{tools:['move','draw','add','del']},markers:{tools:['move','marker']},labels:{tools:['move','label']},paths:{tools:['move','path'],hide:true}};
@@ -594,7 +599,6 @@ function render(ns){fixParents();
   const et=S.terrs.find(t=>t.id===editId),ek=new Set();if(et)et.ring.forEach((a,i)=>{const b=et.ring[(i+1)%et.ring.length];ek.add(a<b?a+b:b+a)});
   const seen=new Set();vis.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length],key=a<b?a+b:b+a;if(seen.has(key))return;seen.add(key);const act=tool==='add'&&ek.has(key),dr=tool==='draw';
     const A=S.nodes[a];h+=`<path data-e="${a}|${b}" d="M${A.x} ${A.y}${bez(a,b,m)}" fill="none" stroke="${act?'#c9a24c':dr?'transparent':'none'}" stroke-opacity=".35" stroke-width="${(dr?14:10)/k}" stroke-linecap="round" style="${act||dr?'cursor:crosshair':''}" ${act||dr?'':'pointer-events="none"'}/>`}));
-  h+='<g class="gT">';vis.forEach(t=>{const c=cen(t);h+=`<text x="${c.x}" y="${c.y}" text-anchor="middle" font-family="Spectral,serif" font-weight="600" font-size="${16/k}" fill="#fff" stroke="#14151b" stroke-width="${3/k}" paint-order="stroke" pointer-events="none">${esc(t.name)}</text>`});h+='</g>';
   h+=extra(k);const used=new Set();if(tool==='draw')vis.forEach(t=>t.ring.forEach(n=>used.add(n)));else if(et&&S.vis[et.layer])et.ring.forEach(n=>used.add(n));draft.forEach(n=>used.add(n));
   used.forEach(n=>{const q=S.nodes[n],on=n===selN,r=on?R*1.5:R,sk=on?'#c1443b':'#14151b',sw=(on?2:1)/k;h+=q.sharp?`<rect data-n="${n}" x="${q.x-r}" y="${q.y-r}" width="${2*r}" height="${2*r}" fill="#c9a24c" stroke="${sk}" stroke-width="${sw}" style="cursor:move"/>`:`<circle data-n="${n}" cx="${q.x}" cy="${q.y}" r="${r}" fill="${m[n]&&m[n].size>2?'#5fa8a0':'#e9e4d8'}" stroke="${sk}" stroke-width="${sw}" style="cursor:move"/>`});
   if(draft.length>1)h+=`<polyline points="${draft.map(n=>S.nodes[n].x+','+S.nodes[n].y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${2/k}" stroke-dasharray="${6/k}" pointer-events="none"/>`;
@@ -638,10 +642,14 @@ svg.addEventListener('pointerdown',e=>{
     S.terrs.forEach(t=>{const r=t.ring,l=r.length;for(let i=0;i<l;i++){const x=r[i],y=r[(i+1)%l];if((x===a&&y===b)||(x===b&&y===a)){r.splice(i+1,0,id);break}}});render();return}
   if(tool==='del'&&n){push();removeNode(n);selN=null;render();return}
   if(tool==='marker'){push();const mk={id:'m'+(uid++),x:p.x,y:p.y,name:'Метка',type:'poi',icon:'landmark',desc:''};S.markers.push(mk);selI={k:'m',id:mk.id};sel=null;editId=null;setTool('move');render();return}
-  if(tool==='label'){push();const lb={id:'l'+(uid++),x:p.x,y:p.y,text:'Название',type:'land',font:'ebGaramond',size:46,spacing:6,curve:0,color:'#c9a24c',rotation:0};Object.assign(lb,MAP_LABEL_TYPES.land.defaults);S.labels.push(lb);selI={k:'l',id:lb.id};sel=null;editId=null;setTool('move');render();return}
+  if(tool==='label'){push();const ty=MAP_LABEL_TYPES[lastLabelType]?lastLabelType:'country',pr=MAP_LABEL_TYPES[ty].defaults,lb={id:'l'+(uid++),x:p.x,y:p.y,text:'Название',type:ty,font:pr.font,size:pr.size,spacing:pr.spacing,curve:pr.curve,color:pr.color,rotation:0};S.labels.push(lb);selI={k:'l',id:lb.id};sel=null;editId=null;setTool('move');render();return}
   if(tool==='path'){if(dbl('p',e)&&pd.length>=2){finishPath();return}pd.push({x:p.x,y:p.y});render();return}
   const te=e.target.closest('[data-ti]');
   if(tool==='move'&&te){sel=te.dataset.ti;selI=null;selN=null;drag={em:sel,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
+  const rh=e.target.closest('[data-rot]');
+  if(tool==='move'&&rh){const lb=S.labels.find(x=>x.id===rh.dataset.rot);
+    if(lb){if(dbl('rot'+lb.id,e)){push();lb.rotation=0;render();return}
+      const r=svg.getBoundingClientRect();drag={rot:lb.id,cx:r.left+V.x+lb.x*V.k,cy:r.top+V.y+lb.y*V.k};svg.setPointerCapture(e.pointerId);return}}
   const hit=e.target.closest('[data-m],[data-l],[data-p]'),pp=e.target.dataset.pp;
   if(tool==='move'&&(pp!==undefined||hit)){
     if(pp!==undefined)drag={pi:+pp,sx:e.clientX,sy:e.clientY};
@@ -654,6 +662,8 @@ svg.addEventListener('pointerdown',e=>{
     drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y,click:!tid};svg.setPointerCapture(e.pointerId);if(!tid)render()}});
 svg.addEventListener('pointermove',e=>{if(!drag)return;
   if(drag.pan){V.x=drag.vx+e.clientX-drag.sx;V.y=drag.vy+e.clientY-drag.sy;render()}
+  else if(drag.rot){const lb=S.labels.find(x=>x.id===drag.rot);if(!lb)return;if(!drag.moved){drag.moved=1;push();lastK=''}
+    let deg=Math.atan2(e.clientY-drag.cy,e.clientX-drag.cx)*180/Math.PI+90;deg=((deg+180)%360+360)%360-180;if(e.shiftKey)deg=Math.round(deg/15)*15;lb.rotation=Math.round(deg*10)/10;render()}
   else if(drag.em){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),T=S.terrs.find(x=>x.id===drag.em);if(T){T.ix=q.x;T.iy=q.y}render(1)}
   else if(drag.it||drag.pi!==undefined){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),o=drag.it?item():(item()||{points:[]}).points[drag.pi];if(o){o.x=q.x;o.y=q.y}render()}
   else if(drag.n){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const p=pt(e);S.nodes[drag.n].x=p.x;S.nodes[drag.n].y=p.y;render()}});
@@ -707,9 +717,10 @@ $('tools').onclick=e=>{const t=e.target.dataset.t;if(!t)return;if(tool==='path'&
 $('smooth').oninput=e=>{S.smooth=+e.target.value;render()};
 $('shared').oninput=e=>{S.shared=+e.target.value;render()};
 $('side').addEventListener('input',e=>{const t=S.terrs.find(x=>x.id===sel),i=e.target;
+  if(i.dataset.lg){LABEL_GROUPS.find(x=>x[0]===i.dataset.lg)[1].forEach(t=>S.lt[t]=i.checked?1:0);return render()}
   if(i.dataset.lt){S.lt[i.dataset.lt]=i.checked?1:0;return render()}
   if(i.dataset.pk){S.pk[i.dataset.pk]=i.checked?1:0;return render()}
-  if(i.dataset.f&&selI){const o=item(),f=i.dataset.f;if(!o)return;push('i'+f);o[f]=i.dataset.n?+i.value:i.value;
+  if(i.dataset.f&&selI){const o=item(),f=i.dataset.f;if(!o)return;push('i'+f);o[f]=i.dataset.n?+i.value:i.value;if(f==='type'&&selI.k==='l'){lastLabelType=o.type;try{localStorage.setItem('stol.lt',o.type)}catch(_){}}
     if(f==='type'&&selI.k==='l')Object.assign(o,MAP_LABEL_TYPES[o.type].defaults);
     const vb=$('v_'+f);if(vb)vb.textContent=i.value;
     if(i.tagName==='SELECT')render();else render(1);return}
@@ -720,6 +731,7 @@ $('side').addEventListener('click',e=>{const t=e.target,ud=t.closest('[data-ud]'
   if(ud){e.stopPropagation();const c=tById(ud.dataset.ud);if(c){push();delete c.parent;render()}return}
   if(up){e.stopPropagation();sel=up.dataset.up;editId=null;selN=null;render();return}
   if(fb){e.stopPropagation();const q=tById(fb.dataset.fold);if(q){push();q.fold=!q.fold;if(!q.fold)delete q.fold;render()}return}
+  const qc=t.closest('[data-qc]');if(qc){e.stopPropagation();const o=item();if(o){push();o.color=qc.dataset.qc;render()}return}
   if(t.id==='pAttach'){e.stopPropagation();attachTo=attachTo===sel?null:sel;render()}},true);
 $('side').addEventListener('input',e=>{const i=e.target,t=tById(sel);
   if(i.id==='pParent'&&t){e.stopPropagation();push();if(i.value)t.parent=i.value;else delete t.parent;render();return}
@@ -743,7 +755,7 @@ function fit(){document.body.style.setProperty('--ar',S.w+'/'+S.h);const b=svg.g
 /* ===== значки, подписи, пути героев ===== */
 let dk='',dt=0,dx=0,dy=0;
 function dbl(key,e){const now=Date.now(),r=key===dk&&now-dt<400&&Math.hypot(e.clientX-dx,e.clientY-dy)<8;dk=key;dt=now;dx=e.clientX;dy=e.clientY;return r}
-Object.assign(HINTS,{marker:'Клик по карте — поставить значок (потом выбери иконку и название справа)',label:'Клик по карте — поставить подпись; размер, шрифт, изгиб и поворот — справа',path:'Ставь точки пути героя. Enter, двойной клик или кнопка «Закончить путь» — завершить, Esc — отмена. Если сменить инструмент или режим, начатый путь сохранится сам.'});
+Object.assign(HINTS,{marker:'Клик по карте — поставить значок (потом выбери иконку и название справа)',label:'Клик по карте — поставить подпись; размер, шрифт и изгиб — справа, поворот — золотым кружком над надписью',path:'Ставь точки пути героя. Enter, двойной клик или кнопка «Закончить путь» — завершить, Esc — отмена. Если сменить инструмент или режим, начатый путь сохранится сам.'});
 const cv=document.createElement('canvas').getContext('2d');
 const tw=(t,sz,fam,sp)=>{cv.font=`${sz}px "${fam}"`;t=t||' ';return cv.measureText(t).width+Math.max(0,t.length-1)*sp};
 function item(){if(!selI)return null;return(selI.k==='m'?S.markers:selI.k==='l'?S.labels:S.paths).find(x=>x.id===selI.id)||null}
@@ -767,6 +779,10 @@ function pkRowUpd(){const r=$('pkRow');r.hidden=tool!=='path'||mode!=='edit';r.q
 $('fchips').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b)return setFocus(b.dataset.f===focus?null:b.dataset.f);
   if(e.target.closest('#fHide')){focusHide=!focusHide;applyFocus()}});
 $('pkRow').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(b){pathKind=b.dataset.kind;pkRowUpd()}});
+$('terrToLabels').onclick=()=>{const have=new Set(S.labels.map(l=>(l.text||'').trim())),pr=MAP_LABEL_TYPES.country.defaults;let n=0;push();
+  S.terrs.forEach(t=>{const nm=(t.name||'').trim();if(!nm||have.has(nm))return;const c=cen(t);
+    S.labels.push({id:'l'+(uid++),x:c.x,y:c.y,text:nm,type:'country',font:pr.font,size:pr.size,spacing:pr.spacing,curve:pr.curve,color:pr.color,rotation:0});have.add(nm);n++});
+  setStatus(n?'Создано надписей: '+n:'Названия всех областей уже есть среди надписей');setTimeout(()=>setStatus(''),2600);render()};
 function pathBar(){const b=$('pathBar');if(tool!=='path'||mode!=='edit'||!pd.length){b.hidden=true;return}
   b.innerHTML=`<button id="pDone" class="on" ${pd.length<2?'disabled':''}>✓ Закончить путь · ${pd.length} т. (Enter)</button><button id="pCancel" title="Esc">Отмена</button>`;b.hidden=false}
 $('pathBar').addEventListener('click',e=>{if(e.target.closest('#pDone'))finishPath();else if(e.target.closest('#pCancel')){pd=[];render()}});
@@ -780,22 +796,22 @@ function extra(k){
     p.points.forEach((q,i)=>{const end=i===0||i===p.points.length-1;h+=on?`<circle data-pp="${i}" cx="${q.x}" cy="${q.y}" r="${6/k}" fill="#14151b" stroke="#c9a24c" stroke-width="${2/k}" style="cursor:move"/>`:`<circle cx="${q.x}" cy="${q.y}" r="${w*(end?1.8:1.15)}" fill="${c}" pointer-events="none"/>`});h+='</g>'});
   if(off){const P=off.paths[off.i];h+=`<polyline points="${P.map(n=>S.nodes[n].x+','+S.nodes[n].y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${5/k}" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85" pointer-events="none"/>`+P.slice(1,-1).map(n=>`<circle cx="${S.nodes[n].x}" cy="${S.nodes[n].y}" r="${4/k}" fill="#c9a24c" pointer-events="none"/>`).join('')}
   if(pd.length)h+=`<polyline points="${pd.map(q=>q.x+','+q.y).join(' ')}" fill="none" stroke="#c1443b" stroke-width="${2/k}" stroke-dasharray="${6/k} ${4/k}" pointer-events="none"/>`+pd.map(q=>`<circle cx="${q.x}" cy="${q.y}" r="${4/k}" fill="#c1443b" pointer-events="none"/>`).join('');
-  if(S.vis.labels)S.labels.forEach(lb=>{if(S.lt[lb.type||'land']===0)return;
+  if(S.vis.labels)S.labels.slice().sort((a,b)=>(MAP_LABEL_TYPES[a.type||'country']||MAP_LABEL_TYPES.country).zLayer-(MAP_LABEL_TYPES[b.type||'country']||MAP_LABEL_TYPES.country).zLayer).forEach(lb=>{if(S.lt[lb.type||'country']===0)return;
     const fd=MAP_LABEL_FONTS[lb.font]||MAP_LABEL_FONTS.caveat,sz=Math.max(10,Math.min(72,+lb.size||26))*f,sp=(+lb.spacing||0)*f,L=tw(lb.text,sz,fd.family,sp),bend=Math.max(-100,Math.min(100,+lb.curve||0))/100*sz*1.35,on=selI&&selI.k==='l'&&selI.id===lb.id,id='lp'+lb.id;
-    h+=`<g data-l="${lb.id}" transform="translate(${lb.x} ${lb.y}) rotate(${+lb.rotation||0})" style="cursor:pointer"><path id="${id}" d="M${-L/2} 0Q0 ${-bend} ${L/2} 0" fill="none"/><rect x="${-L/2-6/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${L+12/k}" height="${sz*1.5+Math.abs(bend)}" fill="transparent" stroke="${on?'#c9a24c':'none'}" stroke-width="${1.5/k}" stroke-dasharray="${4/k}"/><text font-family="${esc(fd.family)}" font-size="${sz}" letter-spacing="${sp}" fill="${lb.color||'#e9e4d8'}" style="paint-order:stroke;stroke:rgba(20,21,27,.6);stroke-width:${Math.max(1,sz*.05)}px;stroke-linejoin:round" pointer-events="none"><textPath href="#${id}" startOffset="50%" text-anchor="middle" dominant-baseline="middle">${esc(lb.text||'')}</textPath></text></g>`});
+    h+=`<g data-l="${lb.id}" transform="translate(${lb.x} ${lb.y}) rotate(${+lb.rotation||0})" style="cursor:pointer"><path id="${id}" d="M${-L/2} 0Q0 ${-bend} ${L/2} 0" fill="none"/><rect x="${-L/2-6/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${L+12/k}" height="${sz*1.5+Math.abs(bend)}" fill="transparent" stroke="${on?'#c9a24c':'none'}" stroke-width="${1.5/k}" stroke-dasharray="${4/k}"/><text font-family="${esc(fd.family)}" font-size="${sz}" letter-spacing="${sp}" fill="${lb.color||'#e9e4d8'}" style="paint-order:stroke;stroke:rgba(20,21,27,.6);stroke-width:${Math.max(1,sz*.05)}px;stroke-linejoin:round" pointer-events="none"><textPath href="#${id}" startOffset="50%" text-anchor="middle" dominant-baseline="middle">${esc(lb.text||'')}</textPath></text>${on&&mode==='edit'?`<line x1="0" y1="${-sz*.75-Math.abs(bend)/2}" x2="0" y2="${-sz*.75-Math.abs(bend)/2-22/k}" stroke="#c9a24c" stroke-width="${1.5/k}" pointer-events="none"/><circle data-rot="${lb.id}" cx="0" cy="${-sz*.75-Math.abs(bend)/2-22/k}" r="${7/k}" fill="#c9a24c" stroke="#14151b" stroke-width="${1.5/k}" style="cursor:grab"><title>Тяни, чтобы повернуть (Shift — шаг 15°, двойной клик — сбросить)</title></circle>`:''}</g>`});
   if(S.vis.markers)S.markers.forEach(mk=>{const key=MARKER_SVG[mk.icon]?mk.icon:'landmark',col=MARKER_COLORS[key]||MARKER_COLORS.other,on=selI&&selI.k==='m'&&selI.id===mk.id,
     ic=MARKER_SVG[key].replace(/^<svg\s+viewBox="([^"]*)"[^>]*>/,`<svg x="-6" y="-6" width="12" height="12" viewBox="$1" overflow="hidden" style="color:#14151b;--marker-color:${col};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">`);
     h+=`<g data-m="${mk.id}" transform="translate(${mk.x} ${mk.y}) scale(${1/k})" style="cursor:pointer"><circle r="${on?11:9}" style="fill:${col}" stroke="${on?'#c9a24c':'rgba(20,21,27,.85)'}" stroke-width="${on?2.5:1.5}"/>${ic}<text y="24" text-anchor="middle" font-size="12" font-family="Inter,sans-serif" font-weight="600" fill="#e9e4d8" stroke="#14151b" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none">${esc(mk.name||'')}</text></g>`});
   return h}
 function objLayers(){const L=(k,n)=>`<label class="lay"><input type="checkbox" data-l="${k}" ${S.vis[k]!==0?'checked':''}>${n}</label>`,sub=(a,v,n)=>`<label class="lay" style="margin-left:22px;font-size:12px;color:var(--text-dim)"><input type="checkbox" data-${a}="${v}" ${(a==='pk'?S.pk[v]:S.lt[v])!==0?'checked':''}>${n}</label>`;
-  return'<div class="eyebrow" style="margin:10px 0 4px">Объекты карты</div>'+L('markers','Значки')+L('labels','Подписи')+MAP_LABEL_TYPE_ORDER.map(t=>sub('lt',t,MAP_LABEL_TYPES[t].short)).join('')+L('paths','Пути')+Object.keys(PKIND).map(t=>sub('pk',t,PKIND[t].s)).join('')}
+  return'<div class="eyebrow" style="margin:10px 0 4px">Объекты карты</div>'+L('markers','Значки')+L('labels','Подписи')+LABEL_GROUPS.map(([g,ts])=>`<label class="lay" style="margin-left:22px;font-size:12px"><input type="checkbox" data-lg="${g}" ${ts.some(t=>S.lt[t]!==0)?'checked':''}>${g}</label>`+ts.map(t=>`<label class="lay" style="margin-left:44px;font-size:12px;color:var(--text-dim)"><input type="checkbox" data-lt="${t}" ${S.lt[t]!==0?'checked':''}>${MAP_LABEL_TYPES[t].short}</label>`).join('')).join('')+L('paths','Пути')+Object.keys(PKIND).map(t=>sub('pk',t,PKIND[t].s)).join('')}
 function itemProps(){const o=item();if(!o)return'';
   const F=(l,x)=>`<div class="fld">${l}${x}</div>`,del='<button id="iDel" class="danger" style="width:100%">Удалить</button>',
   rng=(f,l,a,b,st,v)=>`<div class="fld"><span style="display:flex;justify-content:space-between">${l}<b id="v_${f}" style="color:var(--text)">${v}</b></span><input type="range" data-f="${f}" data-n="1" min="${a}" max="${b}" step="${st}" value="${v}"></div>`,
   sw=c=>`<button class="swb" data-pk="ic"><span class="dot" style="background:${c}"></span><span class="hv">${c}</span></button>`,
   opts=(O,cur)=>O.map(([v,n])=>`<option value="${v}" ${v===cur?'selected':''}>${esc(n)}</option>`).join('');
   if(selI.k==='m'){const key=MARKER_SVG[o.icon]?o.icon:'landmark';return F('Название',`<input data-f="name" value="${esc(o.name||'')}">`)+F('Значок',`<button class="swb" id="iIcon">${chip(key)}<span class="hv">${esc(MARKER_ICON_LABELS[key]||key)}</span></button>`)+F('Описание',`<input data-f="desc" value="${esc(o.desc||'')}">`)+del}
-  if(selI.k==='l')return F('Текст',`<input data-f="text" value="${esc(o.text||'')}">`)+F('Тип',`<select data-f="type">${opts(MAP_LABEL_TYPE_ORDER.map(t=>[t,MAP_LABEL_TYPES[t].label]),o.type||'land')}</select>`)+F('Шрифт',`<select data-f="font">${opts(Object.entries(MAP_LABEL_FONTS).map(([v,x])=>[v,x.label]),o.font)}</select>`)+rng('size','Размер',10,72,1,o.size||26)+rng('spacing','Интервал между буквами',0,20,.5,o.spacing||0)+rng('curve','Изгиб',-100,100,1,o.curve||0)+rng('rotation','Поворот',-180,180,1,o.rotation||0)+F('Цвет',sw(o.color||'#e9e4d8'))+del;
+  if(selI.k==='l')return F('Тип',`<select data-f="type">${LABEL_GROUPS.map(([g,ts])=>`<optgroup label="${g}">${ts.map(t=>`<option value="${t}" ${(o.type||'country')===t?'selected':''}>${MAP_LABEL_TYPES[t].label}</option>`).join('')}</optgroup>`).join('')}</select>`)+F('Текст',`<input data-f="text" value="${esc(o.text||'')}">`)+F('Шрифт',`<select data-f="font">${Object.entries(MAP_LABEL_FONTS).map(([v,x])=>`<option value="${v}" style="font-family:'${x.family}'" ${o.font===v?'selected':''}>${esc(x.label)}</option>`).join('')}</select>`)+rng('size','Размер',10,72,1,o.size||26)+rng('spacing','Интервал между буквами',0,20,.5,o.spacing||0)+rng('curve','Изгиб',-100,100,1,o.curve||0)+rng('rotation','Поворот',-180,180,1,o.rotation||0)+F('Цвет',sw(o.color||'#e9e4d8')+qsw())+del;
   return F('Тип пути',`<select data-f="kind">${Object.entries(PKIND).map(([k,v])=>`<option value="${k}" ${kindOf(o)===k?'selected':''}>${v.n}</option>`).join('')}</select>`)+F('Название пути',`<input data-f="name" value="${esc(o.name||'')}">`)+F('Цвет линии',sw(o.color||'#c9a24c'))+rng('width','Толщина линии',.1,2,.05,o.width||.35)+`<div class="row" style="margin-bottom:8px"><button id="iDash" class="${o.dashed?'on':''}">${o.dashed?'┄ Пунктир':'— Сплошная'}</button></div>`+F('Заметка',`<input data-f="desc" value="${esc(o.desc||'')}">`)+'<div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Точки пути можно тянуть мышью</div>'+del}
 function openIcons(btn,mk){closePk();const el=document.createElement('div');el.className='pk';el.style.width='310px';
   let cat=MARKER_ICON_CATEGORIES.find(c=>c.icons.includes(mk.icon))||MARKER_ICON_CATEGORIES[0];
@@ -907,7 +923,7 @@ let mode='edit',FK=1,vtab='m';
 const ico=(d,z=15)=>`<svg viewBox="0 0 24 24" width="${z}" height="${z}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
 const IC={eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',flow:'<path d="M2 12h3M8 12h3M14 12h4M16 8l4 4-4 4"/>',fs:'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',ctr:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',stack:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',chev:'<path d="m6 9 6 6 6-6"/>'};
 function layersPanel(){const row=(n,on,a)=>`<div class="layer-row ${on?'':'off'}" ${a}><span>${n}</span>${ico(IC.eye)}</div>`;
-  return Object.entries(LAYERS).map(([k,l])=>row(l.n,S.vis[k],`data-vl="${k}"`)).join('')+'<div class="layer-div"></div>'+row('Значки',S.vis.markers!==0,'data-vl="markers"')+row('Подписи',S.vis.labels!==0,'data-vl="labels"')+`<div class="layer-sub-list">${MAP_LABEL_TYPE_ORDER.map(t=>row(MAP_LABEL_TYPES[t].short,S.lt[t]!==0,`data-vlt="${t}"`)).join('')}</div>`+row('Пути',S.vis.paths!==0,'data-vl="paths"')+`<div class="layer-sub-list">${Object.keys(PKIND).map(t=>row(PKIND[t].s,S.pk[t]!==0,`data-vpk="${t}"`)).join('')}</div>`+'<div class="layer-div"></div><div class="layer-acts"><button data-vall="1">Все названия</button><button data-vall="0">Скрыть все</button></div>'}
+  return Object.entries(LAYERS).map(([k,l])=>row(l.n,S.vis[k],`data-vl="${k}"`)).join('')+'<div class="layer-div"></div>'+row('Значки',S.vis.markers!==0,'data-vl="markers"')+row('Подписи',S.vis.labels!==0,'data-vl="labels"')+`<div class="layer-sub-list">${LABEL_GROUPS.map(([g,ts])=>row(g,ts.some(t=>S.lt[t]!==0),`data-vlg="${g}"`)+ts.map(t=>row(MAP_LABEL_TYPES[t].short,S.lt[t]!==0,`data-vlt="${t}"`)).join('')).join('')}</div>`+row('Пути',S.vis.paths!==0,'data-vl="paths"')+`<div class="layer-sub-list">${Object.keys(PKIND).map(t=>row(PKIND[t].s,S.pk[t]!==0,`data-vpk="${t}"`)).join('')}</div>`+'<div class="layer-div"></div><div class="layer-acts"><button data-vall="1">Все названия</button><button data-vall="0">Скрыть все</button></div>'}
 function buildView(){
   $('vtop').innerHTML=`<div class="canvas-toolbar"><h3>${esc(S.name||'Карта')}</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${epCtl()}<div class="zc"><button id="vzm">−</button><span class="mono" id="vzl" style="font-size:12px;color:var(--text-faint);min-width:44px;text-align:center">100%</span><button id="vzp">+</button></div><button class="map-icon-btn" id="vctr" title="Центрировать">${ico(IC.ctr)}</button><button class="map-icon-btn ${flowOn?'on':''}" id="vflow" title="Анимация путей: пунктиры бегут от начала пути к концу">${ico(IC.flow)}</button><button class="map-icon-btn" id="vfs" title="Во весь экран">${ico(IC.fs)}</button><div class="map-layers-wrap"><button class="map-layers-btn" id="vlay">${ico(IC.stack,14)} Слои ${ico(IC.chev,11)}</button><div class="map-layers-panel" id="vlp" hidden></div></div></div></div><div class="eyebrow" style="margin:0 0 10px">Колесо мыши — масштаб · перетаскивание фона — панорама · клик по значку, подписи, пути или области — подробности</div>`;
   viewList()}
@@ -955,8 +971,8 @@ $('vtop').addEventListener('click',e=>{const t=e.target,pn=$('vlp');const st=t.c
   if(t.closest('#vzm'))return zoomBy(1/1.25);if(t.closest('#vzp'))return zoomBy(1.25);
   if(t.closest('#vctr')){fit();return render(1)}if(t.closest('#vfs'))return toggleFs();
   if(t.closest('#vlay')){pn.hidden=!pn.hidden;if(!pn.hidden)pn.innerHTML=layersPanel();$('vlay').classList.toggle('open',!pn.hidden);return}
-  const vl=t.closest('[data-vl]'),vt=t.closest('[data-vlt]'),va=t.closest('[data-vall]'),vk=t.closest('[data-vpk]');
-  if(vl)S.vis[vl.dataset.vl]=S.vis[vl.dataset.vl]?0:1;else if(vk)S.pk[vk.dataset.vpk]=S.pk[vk.dataset.vpk]===0?1:0;else if(vt)S.lt[vt.dataset.vlt]=S.lt[vt.dataset.vlt]===0?1:0;else if(va)MAP_LABEL_TYPE_ORDER.forEach(x=>S.lt[x]=+va.dataset.vall);else return;
+  const vl=t.closest('[data-vl]'),vt=t.closest('[data-vlt]'),va=t.closest('[data-vall]'),vk=t.closest('[data-vpk]'),vg=t.closest('[data-vlg]');
+  if(vl)S.vis[vl.dataset.vl]=S.vis[vl.dataset.vl]?0:1;else if(vk)S.pk[vk.dataset.vpk]=S.pk[vk.dataset.vpk]===0?1:0;else if(vg){const ts=LABEL_GROUPS.find(x=>x[0]===vg.dataset.vlg)[1],on=ts.some(x=>S.lt[x]!==0);ts.forEach(x=>S.lt[x]=on?0:1)}else if(vt)S.lt[vt.dataset.vlt]=S.lt[vt.dataset.vlt]===0?1:0;else if(va)MAP_LABEL_TYPE_ORDER.forEach(x=>S.lt[x]=+va.dataset.vall);else return;
   pn.innerHTML=layersPanel();render(1)});
 addEventListener('pointerdown',e=>{const pn=$('vlp');if(pn&&!pn.hidden&&!e.target.closest('.map-layers-wrap')){pn.hidden=true;$('vlay').classList.remove('open')}},true);
 $('vtop').addEventListener('change',e=>{if(e.target.id==='vesel')epSwitch(e.target.value)});
@@ -1063,6 +1079,8 @@ $('pnl').innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" 
 $('efs').onclick=()=>setEditFs(!document.body.classList.contains('fs-edit'));
 $('pnl').onclick=()=>{document.body.classList.toggle('nopanel');requestAnimationFrame(()=>{fit();render(1)})};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('fs-edit'))setEditFs(false)});
+try{const v=localStorage.getItem('stol.lt');if(MAP_LABEL_TYPES[v])lastLabelType=v}catch(_){}
+Object.values(MAP_LABEL_FONTS).forEach(f=>{try{document.fonts.load(`24px "${f.family}"`,'Абвгд').then(()=>render(1))}catch(_){}});
 /* ===== возврат в Мастерскую: сначала дожидаемся сохранения ===== */
 function leave(){
   if(embedded){host.postMessage({type:'stol:close'},refOrigin)}
