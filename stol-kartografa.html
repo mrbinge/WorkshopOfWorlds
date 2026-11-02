@@ -6,129 +6,148 @@
 <title>Стол картографа</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYzlhMjRjIiBzdHJva2Utd2lkdGg9IjMuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyNiIvPjxlbGxpcHNlIGN4PSIzMiIgY3k9IjMyIiByeD0iMTIiIHJ5PSIyNiIvPjxwYXRoIGQ9Ik0zMiA2djUyTTYgMzJoNTJNMTAuMSAxOGg0My44TTEwLjEgNDZoNDMuOCIvPjwvc3ZnPg==">
 <link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Caveat:wght@400;500;600;700&family=Pacifico&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lora:ital,wght@0,400;0,600;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Kelly+Slab&family=Marck+Script&family=Pattaya&family=Bad+Script&family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="base.css">
 <style>
-:root{--bg:#14151b;--bg-alt:#1a1c24;--card:#1f222c;--card-hover:#262a36;--border:#33384a;--border-soft:#2a2e3a;--text:#e9e4d8;--text-dim:#9a9fb0;--text-faint:#5f6478;--thread:#c1443b;--gold:#c9a24c;--teal:#5fa8a0;--rose:#b5698f;--violet:#8c7ec9;--gray:#7a7f92;--radius:3px}
-*{box-sizing:border-box}
-*{scrollbar-width:thin;scrollbar-color:var(--border) var(--bg-alt)}
-::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:var(--bg-alt)}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px;border:2px solid var(--bg-alt);background-clip:padding-box}
-::-webkit-scrollbar-thumb:hover{background:var(--gold)}::-webkit-scrollbar-corner{background:var(--bg-alt)}::-webkit-scrollbar-button{display:none;width:0;height:0}
-input[type=checkbox],input[type=radio]{accent-color:var(--gold)}
 html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
-h1,h3{font-family:'Spectral',serif;font-weight:600;margin:0}
-button,input,select{font-family:inherit;color:var(--text);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--radius);padding:7px 10px;font-size:13px;outline:none}
-button{cursor:pointer}button:hover{background:var(--card-hover)}
-button:disabled{opacity:.35;cursor:default}
-#hist{margin-left:10px;display:flex;gap:6px}#hist button{font-size:17px;padding:4px 12px}#hist button svg{display:block}
-body.fs-edit header{position:fixed;top:10px;right:10px;z-index:30;padding:4px 6px;gap:6px;border:1px solid var(--border);border-radius:var(--radius);background:rgba(26,28,36,.94)}
+body{background:var(--bg);color:var(--text);font-family:var(--font-ui);display:flex;flex-direction:column;-webkit-font-smoothing:antialiased}
+button,input,select{font-family:inherit;color:var(--text);background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:var(--fs-md);outline:none}
+button{cursor:pointer;background:var(--card);font-weight:500;transition:background .15s,border-color .15s,color .15s}button:where(:not(:disabled)):hover{background:var(--card-hover);border-color:var(--text-faint)}
+button:where(:not(:disabled)):active{transform:translateY(1px);filter:brightness(.92)}
+button:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+button:disabled{opacity:.35;cursor:not-allowed}
+header button,#etop button,#vtop button{min-height:var(--ctl-h);font-size:var(--fs-sm)}
+.btn-tool{width:var(--ctl-h);height:var(--ctl-h);min-height:0;padding:0;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0}.btn-tool svg{display:block}
+#hist{margin-left:10px;display:flex;gap:8px}
+body.fs-edit header{position:fixed;top:8px;right:14px;z-index:30;padding:0;gap:8px;border:0;background:none}
+body.fs-edit .fchips{margin-left:0;gap:8px}
+body.fs-edit .fchips button{font:500 var(--fs-sm) var(--font-ui);letter-spacing:0;text-transform:none;padding:6px 10px;color:var(--text);background:var(--card);border:1px solid var(--border)}
+body.fs-edit .fchips button:hover{background:var(--card-hover);border-color:var(--text-faint)}
+body.fs-edit .fchips button.on{color:var(--gold);border-color:var(--gold);background:var(--gold-soft)}
+body.fs-edit #epChip,body.fs-edit #ctChip,body.fs-edit #ctCfg{margin-left:0}
 body.fs-edit header>:not(#hist){display:none}body.fs-edit #hist{margin-left:0}body.nopanel #side{display:none}
 button.on{border-color:var(--gold);color:var(--gold)}
 input:focus,select:focus{border-color:var(--thread)}
-header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--bg-alt);border-bottom:1px solid var(--border)}
-#backBtn{white-space:nowrap}
-.fb{padding:0 6px;font-size:12px;line-height:20px;border:none;background:none;color:var(--text-dim)}.fb:hover{color:var(--text);background:none}
-.tl.sub{border-style:dashed;border-color:var(--gold)}.tl .kc{font:10px 'IBM Plex Mono',monospace;color:var(--text-faint)}
+header{display:flex;align-items:center;gap:14px;padding:10px 20px;background:var(--bg-alt);border-bottom:1px solid var(--border-soft)}
+#backBtn{white-space:nowrap;display:inline-flex;align-items:center;gap:8px;padding:7px 14px 7px 10px;border-color:rgba(201,162,76,.45);color:var(--gold);background:rgba(201,162,76,.06);transition:background .15s,border-color .15s,color .15s}
+#backBtn svg{display:block;transition:transform .15s}
+#backBtn:hover{background:var(--gold-soft);border-color:var(--gold);color:var(--gold-hover)}
+#backBtn:hover svg{transform:translateX(-3px)}
+#backBtn:active{background:rgba(201,162,76,.22)}
+#backBtn:focus-visible{box-shadow:0 0 0 2px rgba(201,162,76,.35)}
+#backBtn:disabled{opacity:.6}
+.fb{padding:0 6px;font-size:var(--fs-sm);line-height:20px;border:none;background:none;color:var(--text-dim)}.fb:hover{color:var(--text);background:none}
+.tl.sub{border-style:dashed;border-color:var(--gold)}.tl .kc{font:var(--fs-2xs) var(--font-mono);color:var(--text-faint)}
 a.lk{color:var(--gold);cursor:pointer;text-decoration:underline}
 .ep-list{display:flex;flex-direction:column;gap:4px;margin-bottom:10px}
-.ep-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);cursor:pointer;font-size:13px}
+.ep-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);cursor:pointer;font-size:var(--fs-md)}
 .ep-row:hover{background:var(--card-hover)}.ep-row.on{border-color:var(--gold)}
-.ep-row .i{font:10px 'IBM Plex Mono',monospace;color:var(--text-faint);width:14px;text-align:center}
+.ep-row .i{font:var(--fs-2xs) var(--font-mono);color:var(--text-faint);width:14px;text-align:center}
 .ep-row .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ep-row .y{font:11px 'IBM Plex Mono',monospace;color:var(--text-faint);white-space:nowrap}
-.ep-acts{display:flex;gap:4px;margin:2px 0 6px}.ep-acts button{flex:1;padding:5px 4px;font-size:12px}
-.ec select{max-width:240px;padding:5px 8px;font-size:13px}.ec button:disabled,.ec select:disabled{opacity:.4;cursor:default}
-#epBadge{position:absolute;left:12px;top:10px;z-index:5;pointer-events:none;font-size:12px;color:var(--gold);background:rgba(20,21,27,.85);padding:5px 10px;border-radius:var(--radius);border:1px solid var(--border)}
-#epBadge i{font-style:normal;color:var(--text-faint);margin-left:8px;font-family:'IBM Plex Mono',monospace;font-size:11px}
-body[data-mode=view] #epBadge{display:none}header h1{font-size:19px}header .mark{color:var(--gold);margin-right:9px;display:inline-flex;vertical-align:middle;position:relative;top:-1px}
-.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin:14px 0 6px}
-#wrap{flex:1;display:flex;min-height:0}
-#side{width:290px;flex-shrink:0;background:var(--bg-alt);border-right:1px solid var(--border);padding:4px 16px 16px;overflow:auto}
+.ep-row .y{font:var(--fs-xs) var(--font-mono);color:var(--text-faint);white-space:nowrap}
+.ep-acts{display:flex;gap:4px;margin:2px 0 6px}.ep-acts button{flex:1;padding:5px 4px;font-size:var(--fs-sm)}
+.ec select{max-width:240px;padding:5px 8px;font-size:var(--fs-md)}.ec button:disabled,.ec select:disabled{opacity:.4;cursor:default}
+#epBadge{display:inline-flex;align-items:center;min-height:var(--ctl-h);flex-shrink:0;margin-right:auto;font-size:var(--fs-sm);color:var(--gold);background:var(--bg-alt);padding:0 10px;border-radius:var(--radius);border:1px solid var(--border-soft);white-space:nowrap}#epBadge[hidden]{display:none}
+#epBadge i{font-style:normal;color:var(--text-faint);margin-left:8px;font-family:var(--font-mono);font-size:var(--fs-xs)}
+body[data-mode=view] #epBadge{display:none}header h1{font-size:var(--fs-h3)}header .mark{color:var(--gold);margin-right:9px;display:inline-flex;vertical-align:middle;position:relative;top:-1px}
+.eyebrow{margin:14px 0 6px}
+#wrap{flex:1;display:flex;min-height:0;position:relative}
+/* ручка изменения ширины левой панели: на краю панели, при наведении — значок ⇔ */
+#sideGrip{position:relative;width:0;flex-shrink:0;z-index:25}
+#sideGrip::before{content:"";position:absolute;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize}
+#sideGrip::after{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:var(--gold);opacity:0;transition:opacity .15s;pointer-events:none}
+#sideGrip:hover::after,#sideGrip.drag::after{opacity:1}
+body.sg-drag{cursor:col-resize;user-select:none}
+body.nopanel #sideGrip,body[data-mode=view] #sideGrip{display:none}
+#side{width:var(--side-w,290px);flex-shrink:0;background:var(--bg-alt);border-right:1px solid var(--border-soft);padding:4px 16px 16px;overflow:auto}
 .row{display:flex;gap:6px;flex-wrap:wrap}.row>*{flex:1}
-label.lay{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;cursor:pointer}
+label.lay{display:flex;align-items:center;gap:8px;font-size:var(--fs-md);padding:4px 0;cursor:pointer}
 .sw{width:12px;height:12px;border-radius:2px;display:inline-block}
-#stage{flex:1;position:relative;overflow:hidden;background:radial-gradient(circle,var(--border-soft) 1px,transparent 1px) 0 0/22px 22px,var(--bg-alt)}
+#stage{flex:1;position:relative;overflow:hidden;background:var(--bg-alt)}
 #svg{width:100%;height:100%;display:block;touch-action:none}
-#hint{position:absolute;left:12px;bottom:10px;font-size:12px;color:var(--text-dim);background:rgba(20,21,27,.85);padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border)}
-.tl{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--card)}
+#vtop .canvas-toolbar{margin-bottom:10px}
+#hint{flex-shrink:0;margin:8px 0 0;font-family:var(--font-mono);font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;line-height:1.6;color:var(--text-faint)}
+#hint:empty{display:none}
+#epChip,#ctChip{margin-left:6px}#ctCfg{margin-left:2px;padding:5px 8px}
+#nodeMenu{position:fixed;z-index:70;min-width:150px;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow-pop)}#nodeMenu button{text-align:left;justify-content:flex-start;border-color:transparent;background:none}#nodeMenu button:hover{background:var(--card-hover)}#nodeMenu .dng{color:var(--danger)}
+#epPop,#ctPop{position:fixed;z-index:60;width:300px;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-pop)}
+#etitle{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-h3)}
+/* редактор: то же поле, что в просмотре — рамка, отступы, заголовок и панель над картой, подсказка под ней; поле занимает всю высоту окна */
+body[data-mode=edit]:not(.fs-edit) #col{padding:12px 14px 8px;overflow:hidden}
+body[data-mode=edit]:not(.fs-edit) #etop{padding:0;margin-bottom:10px;border-bottom:0;background:none;flex-wrap:wrap;gap:8px 12px}
+body[data-mode=edit]:not(.fs-edit) #stage{min-height:300px;border:1px solid var(--border-soft);border-radius:var(--radius)}
+/* редактор во весь экран: как раньше — поле от края до края, подсказка поверх карты */
+body.fs-edit #col{position:relative}
+body.fs-edit #hint{display:none;position:absolute;left:12px;bottom:10px;z-index:5;margin:0;font-family:inherit;font-size:var(--fs-sm);letter-spacing:0;text-transform:none;color:var(--text-dim);background:rgba(20,21,27,.85);padding:6px 10px;border-radius:var(--radius);border:1px solid var(--border)}
+.tl{padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:4px;font-size:var(--fs-md);cursor:pointer;display:flex;align-items:center;gap:8px;background:var(--card)}
 .tl.sel{border-color:var(--gold)}
-.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;font-size:12px;color:var(--text-dim)}
+.fld{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;font-size:var(--fs-sm);color:var(--text-dim)}
 input[type=range]{padding:0;accent-color:var(--gold)}
-.swb{display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px}
-.swb .dot{width:20px;height:20px;border-radius:2px;border:1px solid var(--border);flex-shrink:0}
-.swb .hv{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim)}
-.pk{position:fixed;z-index:50;width:238px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.45)}
-.pk .sv{position:relative;height:132px;border-radius:2px;cursor:crosshair;touch-action:none}
-.pk .sv i{position:absolute;width:13px;height:13px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 0 1px rgba(0,0,0,.6);transform:translate(-50%,-50%);pointer-events:none}
-.pk .pr{display:flex;align-items:center;gap:8px;margin:10px 0}
-.pk .cur{width:28px;height:28px;border-radius:50%;border:1px solid var(--border);flex-shrink:0}
-.pk .eye{padding:5px 6px;line-height:0}
-.pk .hue{flex:1;-webkit-appearance:none;appearance:none;height:10px;border-radius:5px;border:0;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00)}
-.pk .hue::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;border:2px solid var(--gold);cursor:pointer}
-.pk .hue::-moz-range-thumb{width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid var(--gold)}
-.pk .nums{display:grid;grid-template-columns:1fr 1fr 1fr 1.9fr;gap:6px}
-.pk .nums label{display:flex;flex-direction:column;align-items:center;gap:3px;font:10px 'IBM Plex Mono',monospace;color:var(--text-faint)}
-.pk .nums input{width:100%;padding:6px 2px;text-align:center;font-size:12px}
 .danger{color:var(--thread)}
+#etop{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid var(--border-soft);background:var(--bg-alt)}
+body[data-mode=view] #etop{display:none}
+body.fs-edit #etop{padding-right:var(--hdr-w,180px)}
+@media(max-width:1400px){body.fs-edit #etop{flex-wrap:wrap;justify-content:flex-start;align-content:flex-start}body.fs-edit #etop .zc{margin-left:auto}}
+body:not(.fs-edit) #efs{display:none}
+body.fs-edit #efsT{display:none}
+#toast{position:absolute;left:50%;bottom:54px;transform:translateX(-50%);z-index:9;display:flex;align-items:center;gap:12px;max-width:80%;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:8px 10px 8px 14px;font-size:var(--fs-md);box-shadow:var(--shadow-pop)}
+#toast button{padding:4px 12px;white-space:nowrap;color:var(--gold);border-color:var(--gold)}
+.pk .rc{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border-soft)}
+.pk .rc .rcs{width:20px;height:20px;padding:0;border-radius:var(--radius);border:1px solid var(--border)}
 [hidden]{display:none!important}
 body.loading #wrap{visibility:hidden}
-.map-mode-seg{display:inline-flex;border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-left:auto}
-.map-mode-seg button{border:none;border-radius:0;background:transparent;padding:6px 14px;color:var(--text-dim);border-right:1px solid var(--border)}
-.map-mode-seg button:last-child{border-right:none}.map-mode-seg button.on{background:var(--card-hover);color:var(--gold)}
+.map-mode-seg{margin-left:auto}
 #col{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
-body[data-mode=view] #side,body[data-mode=view] #hist,body[data-mode=view] #hint{display:none}
-body[data-mode=view] #col{overflow:auto;padding:20px 28px 40px}
-body[data-mode=view] #stage{flex:none;height:auto;aspect-ratio:var(--ar,1.6);max-height:80vh;min-height:300px;border:1px solid var(--border);border-radius:var(--radius)}
+body[data-mode=view] #side,body[data-mode=view] #hist,body[data-mode=view] #hint,body[data-mode=view] #toast{display:none}
+body[data-mode=view] #col{overflow:auto;padding:12px 14px 20px}
+body[data-mode=view] #stage{flex:none;height:auto;aspect-ratio:var(--ar,1.6);max-height:80vh;min-height:300px;border:1px solid var(--border-soft);border-radius:var(--radius)}
 body.fs #col{position:fixed;inset:0;z-index:40;background:var(--bg);padding:12px 18px;overflow:hidden}
 body.fs #stage{flex:1;height:auto;aspect-ratio:auto;max-height:none}
 body.fs #vlist{display:none}
-.canvas-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;flex-wrap:wrap}
-.canvas-toolbar h3{margin:0;font-size:17px}
-.zc{display:flex;gap:4px;align-items:center}.zc button{padding:5px 10px}
-.mono{font-family:'IBM Plex Mono',monospace}
-.map-icon-btn{width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:transparent;color:var(--text-dim)}
-.map-icon-btn.on{color:var(--gold);border-color:var(--gold)}
-.map-icon-btn:hover,.map-layers-btn:hover,.map-layers-btn.open{background:rgba(255,255,255,.05);color:var(--text)}
+.canvas-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:12px;flex-wrap:wrap}
+.canvas-toolbar h3{margin:0;font-size:var(--fs-h3)}
+.zc{display:flex;gap:4px;align-items:center}
+.map-layers-btn.open{background:var(--card-hover);border-color:var(--text-faint)}
 .map-layers-wrap{position:relative}
-.map-layers-btn{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 10px;background:transparent;color:var(--text-dim)}
-.map-layers-panel{position:absolute;top:calc(100% + 6px);right:0;width:230px;z-index:60;background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--radius);box-shadow:0 10px 28px rgba(0,0,0,.45);padding:8px}
-.layer-row{display:flex;align-items:center;justify-content:space-between;padding:5px 6px;font-size:12.5px;cursor:pointer;border-radius:6px}
-.layer-row:hover{background:rgba(255,255,255,.05)}.layer-row.off{color:var(--text-faint)}.layer-row.off svg{opacity:.35}
-.layer-sub-list{margin-left:16px;padding-left:8px;border-left:1px solid var(--border);margin-bottom:2px}
-.layer-div{height:1px;background:var(--border);margin:6px 2px}
-.layer-acts{display:flex;gap:6px;padding:4px 6px 2px}.layer-acts button{flex:1;font-size:11.5px;padding:4px 0;background:transparent;color:var(--text-dim)}
+.map-layers-btn{display:inline-flex;align-items:center;gap:6px}
+.map-layers-panel{position:absolute;top:calc(100% + 6px);right:0;width:230px;z-index:60;background:var(--bg-alt);border:1px solid var(--border-soft);border-radius:var(--radius);box-shadow:var(--shadow-pop);padding:8px}
+.layer-row{display:flex;align-items:center;justify-content:space-between;padding:5px 6px;font-size:var(--fs-md);cursor:pointer;border-radius:var(--radius-md)}
+.layer-row:hover{background:var(--hover-tint)}.layer-row.off{color:var(--text-faint)}.layer-row.off svg{opacity:.35}
+.layer-sub-list{margin-left:16px;padding-left:8px;border-left:1px solid var(--border-soft);margin-bottom:2px}
+.layer-div{height:1px;background:var(--border-soft);margin:6px 2px}
+.layer-acts{display:flex;gap:6px;padding:4px 6px 2px}.layer-acts button{flex:1;font-size:var(--fs-sm);padding:4px 0;background:transparent;color:var(--text-dim)}
 #info{position:absolute;right:12px;top:12px;width:280px;max-height:calc(100% - 24px);overflow:auto;background:var(--bg-alt);border:1px solid var(--border);border-radius:var(--radius);padding:16px;z-index:15}
-#info h3{font-size:16px;margin:0 28px 4px 0}
-.map-list-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin:22px 0 16px}
-.map-list-tab{padding:9px 16px;font-size:13px;cursor:pointer;color:var(--text-dim);border-bottom:2px solid transparent;margin-bottom:-1px}
-.map-list-tab:hover{color:var(--text)}.map-list-tab.on{color:var(--text);border-bottom-color:var(--gold)}
-.map-list-tab .cnt{margin-left:6px;font-size:11px;color:var(--text-faint)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.dossier{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
-.dossier h3{font-size:15px;margin:0;display:flex;align-items:center;gap:9px}
-.d-role{font:11px 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);margin:5px 0 6px}
-.d-desc{color:var(--text-dim);font-size:13px;margin-top:6px;line-height:1.45}
-.d-actions{margin-top:10px;display:flex;gap:6px}.d-actions button{font-size:12px;padding:5px 9px;background:transparent}
-.empty-tab{padding:50px 20px;text-align:center;color:var(--text-faint);font-size:13.5px}
+#info h3{font-size:var(--fs-h3);margin:0 28px 4px 0}
+.map-list-tabs{display:flex;gap:2px;border-bottom:1px solid var(--border-soft);margin:22px 0 16px}
+.map-list-tab{padding:9px 16px;font-size:var(--fs-md);cursor:pointer;color:var(--text-faint);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .12s,border-color .12s}
+.map-list-tab:hover{color:var(--text-dim)}.map-list-tab.on{color:var(--text);border-bottom-color:var(--thread)}
+.map-list-tab .cnt{margin-left:6px;font-size:var(--fs-xs);color:var(--text-faint)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+.dossier{background:var(--card);border:1px solid var(--border-soft);border-radius:var(--radius);padding:16px;transition:border-color .15s}
+.dossier:hover{border-color:var(--border)}
+.dossier h3{font-size:var(--fs-h3);margin:0;display:flex;align-items:center;gap:9px}
+.d-role{font:var(--fs-xs) var(--font-mono);letter-spacing:.05em;text-transform:uppercase;color:var(--gold);margin:6px 0 0}
+.d-desc{color:var(--text-dim);font-size:var(--fs-md);margin-top:10px;line-height:1.55}
+.d-actions{margin-top:12px;padding-top:10px;border-top:1px solid var(--border-soft);display:flex;gap:4px;flex-wrap:wrap}.d-actions button{font-size:var(--fs-sm);padding:6px 10px;background:transparent;border-color:transparent;color:var(--text-dim)}.d-actions button:hover{color:var(--text);background:var(--card-hover);border-color:transparent}
+.empty-tab{padding:50px 20px;text-align:center;color:var(--text-faint);font-size:var(--fs-lg)}
 .pdot{width:14px;height:14px;border-radius:50%;display:inline-block;flex-shrink:0}
-#offer{position:absolute;z-index:20;width:250px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:13px}
-#pathBar{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:19;display:flex;gap:6px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:6px;box-shadow:0 8px 24px rgba(0,0,0,.5)}#pathBar button{font-size:12px;padding:6px 10px}
-#walk{position:absolute;z-index:19;max-width:270px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);font-size:12px}
-#walk .wt{font:10px 'IBM Plex Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 6px}
-#walk .wr{display:flex;gap:4px;margin-bottom:4px}#walk .wr button{font-size:12px;padding:6px 8px;text-align:left}#walk .wr button:first-child{flex:1}
-#walk kbd{font:10px 'IBM Plex Mono',monospace;color:var(--text-faint);margin-left:6px}
-#walk .wx{margin-top:4px;text-align:right}#walk .wx a{font-size:11px;color:var(--text-faint);cursor:pointer;text-decoration:underline}#walk .wx a:hover{color:var(--text)}
-#offer p{margin:0 0 8px;line-height:1.4}#offer .row{gap:6px}#offer button{font-size:12px;padding:6px 8px}
-.mi{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#14151b;border:1.5px solid rgba(20,21,27,.8);flex-shrink:0}
+#offer{position:absolute;z-index:20;width:250px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:10px;box-shadow:var(--shadow-pop);font-size:var(--fs-md)}
+#pathBar{position:absolute;left:50%;top:10px;transform:translateX(-50%);z-index:19;display:flex;gap:6px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:6px;box-shadow:var(--shadow-pop)}#pathBar button{font-size:var(--fs-sm);padding:6px 10px}
+#walk{position:absolute;z-index:19;max-width:270px;background:var(--card);border:1px solid var(--gold);border-radius:var(--radius);padding:8px;box-shadow:var(--shadow-pop);font-size:var(--fs-sm)}
+#walk .wt{font:var(--fs-2xs) var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--text-faint);margin:0 0 6px}
+#walk .wr{display:flex;gap:4px;margin-bottom:4px}#walk .wr button{font-size:var(--fs-sm);padding:6px 8px;text-align:left}#walk .wr button:first-child{flex:1}
+#walk kbd{font:var(--fs-2xs) var(--font-mono);color:var(--text-faint);margin-left:6px}
+#walk .wx{margin-top:4px;text-align:right}#walk .wx a{font-size:var(--fs-xs);color:var(--text-faint);cursor:pointer;text-decoration:underline}#walk .wx a:hover{color:var(--text)}
+#offer p{margin:0 0 8px;line-height:1.4}#offer .row{gap:6px}#offer button{font-size:var(--fs-sm);padding:6px 8px}
+.mi{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--on-accent);border:1.5px solid rgba(20,21,27,.8);flex-shrink:0}
 .mi svg{width:12px;height:12px;display:block;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 select{width:100%}
 
 .fchips{display:flex;gap:4px;align-items:center;margin-left:6px}
-.fchips button{font:10px 'IBM Plex Mono',monospace;letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;color:var(--text-faint);background:transparent;border:1px solid var(--border)}
+.fchips button{font:var(--fs-2xs) var(--font-mono);letter-spacing:.1em;text-transform:uppercase;padding:5px 9px;color:var(--text-faint);background:transparent;border:1px solid var(--border)}
 .fchips button:hover{color:var(--text)}.fchips button.on{color:var(--gold);border-color:var(--gold);background:rgba(201,162,76,.1)}
 .fchips .fh{padding:4px 7px}.fchips .fh svg{display:block}
-body[data-mode=view] .fchips{display:none}body.fs-edit header>#fchips{display:flex}
-#pkRow{display:flex;gap:4px;margin:-4px 0 10px}#pkRow button{flex:1;padding:5px 4px;font-size:12px}
+body.fs-edit header>#fchips{display:flex}
+#pkRow{display:flex;gap:4px;margin:-4px 0 10px}#pkRow button{flex:1;padding:5px 4px;font-size:var(--fs-sm)}
 /* фокус: то, что не относится к выбранному инструменту, приглушено и не кликается */
 #vp .gT,#vp .pg,#vp [data-m],#vp [data-l]{transition:opacity .15s}
 body[data-focus=borders] #vp .pg,body[data-focus=borders] #vp [data-m],body[data-focus=borders] #vp [data-l],
@@ -144,19 +163,23 @@ body[data-focus=markers] #smooth,body[data-focus=labels] #smooth,body[data-focus
 body[data-focus=markers] .eyebrow:has(+#smooth),body[data-focus=labels] .eyebrow:has(+#smooth),body[data-focus=paths] .eyebrow:has(+#smooth),
 body[data-focus=markers] .eyebrow:has(+#shared),body[data-focus=labels] .eyebrow:has(+#shared),body[data-focus=paths] .eyebrow:has(+#shared){display:none}
 .qsw{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}.qs{width:18px;height:18px;border-radius:50%;border:1px solid var(--border);padding:0;cursor:pointer}.qs:hover{border-color:var(--gold)}
+body.me #side>:not(#mapPanel):not(#mapBtn){display:none}
+body.me #vp .gT,body.me #vp .pg,body.me #vp [data-m],body.me #vp [data-l]{pointer-events:none!important;opacity:.35}
+#mapBtn.on{border-color:var(--gold);color:var(--gold)}
 </style>
 </head>
 <body data-mode="edit">
-<header><button id="backBtn" type="button" title="Сохранить и вернуться в Мастерскую" hidden>← В мастерскую</button><h1><span class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="26" height="26" fill="none" stroke="currentColor" style="display:block" stroke-width="3.6" stroke-linecap="round"><circle cx="32" cy="32" r="26"/><ellipse cx="32" cy="32" rx="12" ry="26"/><path d="M32 6v52M6 32h52M10.1 18h43.8M10.1 46h43.8"/></svg></span>Стол картографа</h1><div class="fchips" id="fchips"><button data-f="borders" title="Только границы: правка областей">Границы</button><button data-f="markers" title="Только значки">Значки</button><button data-f="labels" title="Только подписи">Подписи</button><button data-f="paths" title="Только пути: герои, торговые пути, реки">Пути</button><button class="fh" id="fHide" hidden></button></div><span id="bstat" class="eyebrow" style="margin:0 0 0 14px" hidden></span><div class="map-mode-seg" id="modeSeg"><button data-md="view">Просмотр</button><button data-md="edit" class="on">Редактирование</button></div><div id="hist"><button id="pnl" title="Показать/скрыть панель" hidden></button><button id="efs" title="Во весь экран"></button><button id="undo" title="Отменить (Ctrl+Z)">↶</button><button id="redo" title="Вернуть (Ctrl+Y)">↷</button></div></header>
+<header><button id="backBtn" type="button" title="Сохранить и вернуться в Мастерскую" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>В мастерскую</button><h1><span class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="26" height="26" fill="none" stroke="currentColor" style="display:block" stroke-width="3.6" stroke-linecap="round"><circle cx="32" cy="32" r="26"/><ellipse cx="32" cy="32" rx="12" ry="26"/><path d="M32 6v52M6 32h52M10.1 18h43.8M10.1 46h43.8"/></svg></span>Стол картографа</h1><div class="fchips" id="fchips"><button data-f="borders" title="Только границы: правка областей">Границы</button><button data-f="markers" title="Только значки">Значки</button><button data-f="labels" title="Только подписи">Подписи</button><button data-f="paths" title="Только пути: герои, торговые пути, реки">Пути</button><button id="ctChip" type="button" title="Контурный режим: границы линиями, без заливки и картинки">Контур</button><button id="ctCfg" type="button" hidden title="Цвета контурного режима" aria-label="Цвета контурного режима">Цвета</button><button id="epChip" type="button" aria-haspopup="true" aria-expanded="false" title="Эпохи карты и все их настройки">Эпохи</button><button class="fh" id="fHide" hidden></button></div><span id="bstat" class="eyebrow" style="margin:0 0 0 14px" hidden></span><div class="map-mode-seg" id="modeSeg"><button data-md="view">Просмотр</button><button data-md="edit" class="on">Редактирование</button></div><div id="hist"><button id="pnl" class="btn-tool" title="Показать/скрыть панель" aria-label="Показать/скрыть панель" hidden></button><button id="efs" class="btn-tool" title="Во весь экран" aria-label="Во весь экран"></button><button id="undo" class="btn-tool" title="Отменить (Ctrl+Z)" aria-label="Отменить"></button><button id="redo" class="btn-tool" title="Вернуть (Ctrl+Y)" aria-label="Вернуть"></button></div></header>
+<div id="nodeMenu" hidden role="menu"><button type="button" class="btn-sm" data-nm="dup">Дублировать</button><button type="button" class="btn-sm dng" data-nm="del">Удалить</button></div>
+<div id="ctPop" hidden role="dialog" aria-label="Цвета контура"><div class="eyebrow" style="margin:0 0 10px">Контур</div><div id="ctBox"></div></div>
+<div id="epPop" hidden role="dialog" aria-label="Настройки эпох"><div class="eyebrow" style="margin:0 0 10px">Эпохи</div><div id="epBox"></div></div>
 <div id="wrap">
 <aside id="side">
-  <input type="file" id="tiFile" accept="image/*" hidden>
-  <div class="eyebrow">Эпохи</div>
-  <div id="epBox"></div>
+  <input type="file" id="tiFile" accept="image/*" hidden><input type="file" id="picFile" accept="image/*" multiple hidden>
   <div class="eyebrow">Инструмент</div>
   <div class="row" id="tools">
-    <button data-t="move" class="on">Двигать</button><button data-t="draw">Рисовать</button>
-    <button data-t="add">Точка +</button><button data-t="del">Точка −</button>
+    <button data-t="move" class="on">Двигать</button><button data-t="free">Рисовать</button>
+    <button data-t="draw">Точка</button>
     <button data-t="marker">Значок</button><button data-t="label">Подпись</button><button data-t="path">Путь</button>
   </div>
   <div class="row" id="pkRow" hidden><button data-kind="hero" title="Путь героя">Герои</button><button data-kind="trade" title="Торговый путь">Торговые</button><button data-kind="river" title="Течение реки: пунктиры бегут по течению">Реки</button></div>
@@ -165,27 +188,29 @@ body[data-focus=markers] .eyebrow:has(+#shared),body[data-focus=labels] .eyebrow
   <input type="range" id="smooth" min="0" max="1.5" step="0.05" value="0.6" style="width:100%">
   <div class="eyebrow" title="Толщина границы между областями одной страны (провинции и т. п.). Граница между разными странами и внешний контур остаются обычной толщины. 100% — без утончения">Границы внутри страны</div>
   <input type="range" id="shared" min="0.15" max="1" step="0.05" value="0.4" style="width:100%">
-  <div class="eyebrow">Слои</div>
-  <div id="layers"></div>
-  <div class="eyebrow">Новая область рисуется в слое</div>
-  <select id="actLayer" style="width:100%"></select>
-  <div class="eyebrow">Выбранная область</div>
+  <div data-for="-"><div class="eyebrow">Слои</div><div id="layers"></div></div>
+  <div data-for="borders"><div class="eyebrow">Новая область рисуется в слое</div><select id="actLayer" style="width:100%"></select></div>
+  <div class="eyebrow">Выбранный объект</div>
   <div id="props"><span style="font-size:12px;color:var(--text-faint)">Ничего не выбрано</span></div>
-  <div class="eyebrow">Все области</div>
-  <div id="list"></div>
-  <button id="terrToLabels" style="width:100%;margin-top:8px;font-size:12px" title="Для каждой области создаст обычную надпись с её названием. Уже существующие надписи с таким текстом не дублируются">Создать надписи из названий областей</button>
+  <div id="olist" data-ff="markers labels paths"></div>
+  <div data-for="borders"><div class="eyebrow">Все области</div><div id="list"></div></div>
+  <button id="terrToLabels" data-for="labels" style="width:100%;margin-top:8px;font-size:12px" title="Для каждой области создаст обычную надпись с её названием. Уже существующие надписи с таким текстом не дублируются">Создать надписи из названий областей</button>
   
+<div id="mapPanel" hidden></div>
+  <button id="mapBtn" style="width:100%;margin-top:14px">Изменить карту</button>
 </aside>
-<div id="col"><div id="vtop" hidden></div>
+<div id="sideGrip" role="separator" aria-orientation="vertical" aria-label="Ширина панели"></div>
+<div id="col"><div id="etop"><h3 id="etitle">Карта</h3><div id="epBadge" hidden></div><div class="zc"><button id="ezm" class="btn-tool" type="button" title="Уменьшить (−)" aria-label="Уменьшить">−</button><span class="mono" id="ezl" style="font-size:12px;color:var(--text-faint);min-width:44px;text-align:center">100%</span><button id="ezp" class="btn-tool" type="button" title="Увеличить (+)" aria-label="Увеличить">+</button></div><button id="ezf" type="button" title="Вписать карту в экран (0)">Центрировать</button><button class="btn-tool" id="efsT" type="button" title="Во весь экран" aria-label="Во весь экран"></button></div><div id="vtop" hidden></div>
 <main id="stage">
   <svg id="svg">
     <defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="8" stroke="#c1443b" stroke-width="3" opacity=".7"/></pattern></defs>
     <g id="vp"></g>
   </svg>
-  <div id="epBadge" hidden></div><div id="hint"></div>
+    <div id="toast" hidden></div>
   <div id="offer" hidden></div><div id="walk" hidden></div><div id="pathBar" hidden></div>
   <div id="info" hidden></div>
 </main>
+<div id="hint"></div>
 <div id="vlist" hidden></div></div>
 </div>
 <script>
@@ -514,7 +539,7 @@ const MAP_LABEL_FONTS = {
   ebGaramond:    { label:'EB Garamond — старостильный (кириллица)', family:'EB Garamond' },
 };
 /* ===== конец ===== */
-let S={name:'Карта',img:null,w:1600,h:1000,nodes:{},terrs:[],vis:{pol:1,nat:1,dis:1,markers:1,labels:1,paths:1},smooth:.6,shared:.4,pk:{hero:1,trade:1,river:1},markers:[],labels:[],paths:[],lt:{country:1,river:1,lake:1,ocean:1,land:1},imgs:{}};
+let S={name:'Карта',img:null,w:1600,h:1000,contour:{on:false,bg:'#f4efe3',land:'#fbf8f0',ink:'#1b1b1b'},nodes:{},terrs:[],vis:{pol:1,nat:1,dis:1,markers:1,labels:1,paths:1},smooth:.6,shared:.4,pk:{hero:1,trade:1,river:1},markers:[],labels:[],paths:[],lt:{country:1,river:1,lake:1,ocean:1,land:1},imgs:{},pics:[],base:{id:'base',x:0,y:0,w:1600,ar:.625,rot:0,op:1}};
 let attachTo=null;
 let focus=null,focusHide=false,pathKind='hero',lastLabelType='country';
 const LABEL_GROUPS=[['Государственные',['country']],['Природные',['river','lake','ocean','land']]];
@@ -522,7 +547,7 @@ const QCOL=['#e9e4d8','#c9a24c','#c1443b','#5fa8a0','#b5698f','#8c7ec9','#ffffff
 const qsw=()=>`<div class="qsw">${QCOL.map(c=>`<button type="button" class="qs" data-qc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>`;
 const PKIND={hero:{n:'Путь героя',s:'Герои',c:'#c9a24c',w:.35,d:false},trade:{n:'Торговый путь',s:'Торговые',c:'#d98e4a',w:.3,d:true},river:{n:'Течение реки',s:'Реки',c:'#5aa9d6',w:.3,d:false}};
 const kindOf=p=>PKIND[p.kind]?p.kind:'hero';
-const FOCUS={borders:{tools:['move','draw','add','del']},markers:{tools:['move','marker']},labels:{tools:['move','label']},paths:{tools:['move','path'],hide:true}};
+const FOCUS={borders:{tools:['move','free','draw'],hide:true},markers:{tools:['move','marker'],hide:true},labels:{tools:['move','label'],hide:true},paths:{tools:['move','path'],hide:true}};
 let flowOn=(()=>{try{return localStorage.getItem('stol.flow')==='1'}catch(_){return false}})(),flowRaf=0;
 /* ===== анимация путей: пунктиры бегут от начала пути к концу, скорость не зависит от масштаба ===== */
 const flowOff=(per,t,k)=>-(((t/1000)*70/k)%per);
@@ -531,17 +556,20 @@ function flowTick(t){flowRaf=0;if(!flowOn||mode!=='view')return;const k=V.k;
   flowRaf=requestAnimationFrame(flowTick)}
 function flowStart(){if(flowOn&&mode==='view'&&!flowRaf)flowRaf=requestAnimationFrame(flowTick)}
 let walk=null,walkHi=0,walkLast=null,walkOn=(()=>{try{return localStorage.getItem('stol.walk')!=='0'}catch(_){return true}})();
+let mapEdit=false,selPic=null;
 let V={x:20,y:20,k:.6},tool='move',draft=[],sel=null,selN=null,editId=null,drag=null,uid=1,selI=null,pd=[],off=null;
 let H=[],F=[],lastK='',lastT=0;
-const snap=()=>JSON.stringify({nodes:S.nodes,terrs:S.terrs,draft,markers:S.markers,labels:S.labels,paths:S.paths});
-function push(k){const t=Date.now();if(k&&k===lastK&&t-lastT<700){lastT=t;return}lastK=k||'';lastT=t;H.push(snap());if(H.length>100)H.shift();F=[]}
-function restore(x){const o=JSON.parse(x);S.nodes=o.nodes;S.terrs=o.terrs;draft=o.draft;S.markers=o.markers||[];S.labels=o.labels||[];S.paths=o.paths||[];if(selI&&!item())selI=null;if(sel&&!S.terrs.find(t=>t.id===sel))sel=null;if(editId&&!S.terrs.find(t=>t.id===editId))editId=null;if(selN&&!S.nodes[selN])selN=null;render()}
+let spaceDown=false,styleClip=null,toastT=0,lastIcon=(()=>{try{return localStorage.getItem('stol.icon')||'landmark'}catch(_){return'landmark'}})();
+const snap=()=>JSON.stringify({nodes:S.nodes,terrs:S.terrs,draft,markers:S.markers,labels:S.labels,paths:S.paths,pics:S.pics,base:S.base});
+function push(k){const tt=document.getElementById('toast');if(tt)tt.hidden=true;const t=Date.now();if(k&&k===lastK&&t-lastT<700){lastT=t;return}lastK=k||'';lastT=t;H.push(snap());if(H.length>100)H.shift();F=[]}
+function restore(x){const tt=document.getElementById('toast');if(tt)tt.hidden=true;const o=JSON.parse(x);S.nodes=o.nodes;S.terrs=o.terrs;draft=o.draft;S.markers=o.markers||[];S.labels=o.labels||[];S.paths=o.paths||[];if(o.pics)S.pics=o.pics;if(o.base)S.base=o.base;if(selI&&!item())selI=null;if(sel&&!S.terrs.find(t=>t.id===sel))sel=null;if(editId&&!S.terrs.find(t=>t.id===editId))editId=null;if(selN&&!S.nodes[selN])selN=null;render()}
 function undo(){if(!H.length)return;F.push(snap());restore(H.pop());lastK=''}
 function redo(){if(!F.length)return;H.push(snap());restore(F.pop());lastK=''}
 const $=id=>document.getElementById(id),svg=$('svg'),vp=$('vp');
-const HINTS={view:'Клик по области — выбрать · двойной клик или «Редактировать точки» — показать точки · колесо — масштаб · стрелки или правая кнопка — сдвиг карты',move:'Редактирование: тяни точки · стрелки — сдвиг точки (Shift — крупнее) · Del — удалить · двойной клик по точке — острый угол · Esc или «Готово» — скрыть точки',
+const HINTS={view:'Клик по области — выбрать · двойной клик или «Редактировать точки» — показать точки · колесо или +/− — масштаб · 0 — вписать · F — к выбранному · пробел+мышь, стрелки или правая кнопка — сдвиг карты',move:'Редактирование: тяни точки · стрелки — сдвиг точки (Shift — крупнее) · правая кнопка по точке — дублировать или удалить · Del — удалить · двойной клик по точке — острый угол · Esc или «Готово» — скрыть точки',
+free:'Рисуй от руки: зажми кнопку мыши и веди линию — при отпускании она превратится в точки. Можно рисовать несколько штрихов подряд. Линия, закончившаяся у первой точки, замыкает область (или Enter). Esc — отмена',
 draw:'Ставь точки; поставленную точку можно перетащить. Курсор цепляется к точкам и линиям готовых границ (Alt — отключить магнит). Дошёл до точки границы — редактор покажет, куда можно идти вдоль неё: пробел или клик по подсказке. Либо кликни другую точку границы — предложит пройти по ней сам. Клик по первой точке или Enter — замкнуть, Esc — отмена',
-add:'Выбери область и нажми «Редактировать точки», затем клик по её границе — добавить точку (обновится у обоих соседей)',del:'Выбери область и нажми «Редактировать точки», затем клик по точке — удалить её из всех областей'};
+add:'Выбери область и нажми «Редактировать точки», затем клик по её границе — добавить точку (обновится у обоих соседей)',del:'Клик по точке — удалить её из всех областей'};
 const pt=e=>{const r=svg.getBoundingClientRect();return{x:(e.clientX-r.left-V.x)/V.k,y:(e.clientY-r.top-V.y)/V.k}};
 const nid=()=>'n'+(uid++);
 function nb(){const m={};S.terrs.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length];(m[a]=m[a]||new Set).add(b);(m[b]=m[b]||new Set).add(a)}));return m}
@@ -586,27 +614,39 @@ function bord(t,d,m,EO,TI,k){const bw=t.bw||3,F=S.shared,r=t.ring,l=r.length,rel
   if(fl.every(x=>x===fl[0]))runs=[{thin:fl[0],d}];
   else{let st=0;while(fl[st]===fl[(st+l-1)%l])st++;runs=[];let cur=null;
     for(let q=0;q<l;q++){const i=(st+q)%l,a=r[i],b=r[(i+1)%l];if(!cur||cur.thin!==fl[i]){cur={thin:fl[i],d:`M${S.nodes[a].x} ${S.nodes[a].y}`};runs.push(cur)}cur.d+=bez(a,b,m)}}
+  if(S.contour&&S.contour.on)return'';
+  const CT=null;
   return`<g clip-path="url(#c${t.id})" fill="none" stroke-linejoin="round" stroke-linecap="round" pointer-events="none">`+runs.map(u=>{const w=bw*(u.thin?F:1)/k;
+    if(CT)return`<path d="${u.d}" stroke="${CT.ink}" stroke-width="${Math.max(1.1*w,1.4/k)}"/>`;
     return`<path d="${u.d}" stroke="${b2col(t)}" stroke-opacity=".22" stroke-width="${8*w}"/><path d="${u.d}" stroke="${b2col(t)}" stroke-width="${4*w}"/><path d="${u.d}" stroke="${bcol(t)}" stroke-width="${2*w}"/>`}).join('')+'</g>'}
+/* контурный режим: каждая общая граница рисуется один раз одной линией (а не по линии от каждого соседа) */
+function ctLines(vis,EO,m,TI,k){const rel=(x,y)=>TI.anc[x].has(y)||TI.anc[y].has(x),F=S.shared,full=[],thin=[];let bw=3;vis.forEach(t=>{if(t.bw)bw=Math.max(bw,t.bw)});
+  for(const key in EO){const L=EO[key],[a,b]=key.split('|');if(!S.nodes[a]||!S.nodes[b])continue;
+    const isThin=F<1&&L.some(x=>L.some(y=>x!==y&&TI.root[x]===TI.root[y]&&!rel(x,y)));
+    (isThin?thin:full).push(`M${S.nodes[a].x} ${S.nodes[a].y}`+bez(a,b,m))}
+  const w=Math.max(.7*bw/k,1.3/k),c=S.contour.ink;
+  return`<g fill="none" stroke="${c}" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">`+(thin.length?`<path d="${thin.join('')}" stroke-width="${Math.max(w*F,1/k)}"/>`:'')+(full.length?`<path d="${full.join('')}" stroke-width="${w}"/>`:'')+'</g>'}
 function render(ns){fixParents();
   const m=nb(),k=V.k,R=5/k;vp.setAttribute('transform',`translate(${V.x} ${V.y}) scale(${k})`);
-  let h=S.img?`<image href="${S.img}" width="${S.w}" height="${S.h}"/>`:`<rect width="${S.w}" height="${S.h}" fill="#1a1c24" stroke="#33384a"/>`;
+  const CT=S.contour&&S.contour.on?S.contour:null;
+  let h=CT?`<rect x="-100000" y="-100000" width="200000" height="200000" fill="${CT.bg}" pointer-events="none"/>`:gridSvg(k)+wulff()+(S.img?picSvg(S.base,S.img):'')+picsSvg(0);
   const TI=terrInfo(),selD=sel?descIds(sel,TI):new Set(),vis=S.terrs.filter(t=>S.vis[t.layer]&&!TI.hidden.has(t.id)).sort((a,b)=>TI.depth[a.id]-TI.depth[b.id]);
   const EO={};vis.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length],key=a<b?a+'|'+b:b+'|'+a;(EO[key]=EO[key]||[]).push(t.id)}));
-  h+='<g class="gT">';vis.forEach(t=>{const d=ringD(t.ring,m),ti=terrImg(t);h+=`<path data-t="${t.id}" d="${d}" fill="${t.color}" fill-opacity="${t.alpha}" style="cursor:pointer"/>${ti.fill}<clipPath id="c${t.id}"><path d="${d}"/></clipPath>${bord(t,d,m,EO,TI,k)}${ti.emb}`;
-    if(t.layer==='dis')h+=`<path d="${d}" fill="url(#hatch)" pointer-events="none"/>`;
+  h+='<g class="gT">';vis.forEach(t=>{const d=ringD(t.ring,m),ti=CT?{fill:'',emb:''}:terrImg(t),ctl=CT&&t.layer!=='nat';h+=`<path data-t="${t.id}" d="${d}" fill="${ctl?CT.land:t.color}" fill-opacity="${ctl?1:t.alpha}" style="cursor:pointer"/>${ti.fill}<clipPath id="c${t.id}"><path d="${d}"/></clipPath>${bord(t,d,m,EO,TI,k)}${ti.emb}`;
+    if(t.layer==='dis'&&!CT)h+=`<path d="${d}" fill="url(#hatch)" pointer-events="none"/>`;
     if(t.id===sel)h+=`<path d="${d}" fill="none" stroke="#c9a24c" stroke-width="${3/k}" pointer-events="none"/>`;else if(selD.has(t.id))h+=`<path d="${d}" fill="#c9a24c" fill-opacity=".14" stroke="#c9a24c" stroke-width="${3/k}" pointer-events="none"/>`});h+='</g>';
+  if(CT)h+=ctLines(vis,EO,m,TI,k);
   const et=S.terrs.find(t=>t.id===editId),ek=new Set();if(et)et.ring.forEach((a,i)=>{const b=et.ring[(i+1)%et.ring.length];ek.add(a<b?a+b:b+a)});
   const seen=new Set();vis.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length],key=a<b?a+b:b+a;if(seen.has(key))return;seen.add(key);const act=tool==='add'&&ek.has(key),dr=tool==='draw';
     const A=S.nodes[a];h+=`<path data-e="${a}|${b}" d="M${A.x} ${A.y}${bez(a,b,m)}" fill="none" stroke="${act?'#c9a24c':dr?'transparent':'none'}" stroke-opacity=".35" stroke-width="${(dr?14:10)/k}" stroke-linecap="round" style="${act||dr?'cursor:crosshair':''}" ${act||dr?'':'pointer-events="none"'}/>`}));
-  h+=extra(k);const used=new Set();if(tool==='draw')vis.forEach(t=>t.ring.forEach(n=>used.add(n)));else if(et&&S.vis[et.layer])et.ring.forEach(n=>used.add(n));draft.forEach(n=>used.add(n));
+  h+=picsSvg(1)+extra(k)+meFrame(k);const used=new Set();if(tool==='draw')vis.forEach(t=>t.ring.forEach(n=>used.add(n)));else if(et&&S.vis[et.layer])et.ring.forEach(n=>used.add(n));draft.forEach(n=>used.add(n));
   used.forEach(n=>{const q=S.nodes[n],on=n===selN,r=on?R*1.5:R,sk=on?'#c1443b':'#14151b',sw=(on?2:1)/k;h+=q.sharp?`<rect data-n="${n}" x="${q.x-r}" y="${q.y-r}" width="${2*r}" height="${2*r}" fill="#c9a24c" stroke="${sk}" stroke-width="${sw}" style="cursor:move"/>`:`<circle data-n="${n}" cx="${q.x}" cy="${q.y}" r="${r}" fill="${m[n]&&m[n].size>2?'#5fa8a0':'#e9e4d8'}" stroke="${sk}" stroke-width="${sw}" style="cursor:move"/>`});
   if(draft.length>1)h+=`<polyline points="${draft.map(n=>S.nodes[n].x+','+S.nodes[n].y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${2/k}" stroke-dasharray="${6/k}" pointer-events="none"/>`;
-  vp.innerHTML=h;if(mode==='view'&&$('vzl'))$('vzl').textContent=Math.round(V.k/FK*100)+'%';if(ns){$('undo').disabled=!H.length;$('redo').disabled=!F.length}else side()}
+  vp.innerHTML=h;if(mode==='view'&&$('vzl'))$('vzl').textContent=Math.round(V.k/FK*100)+'%';else if(mode==='edit'&&$('ezl'))$('ezl').textContent=Math.round(V.k/FK*100)+'%';if(ns){$('undo').disabled=!H.length;$('redo').disabled=!F.length}else side()}
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cen=t=>{let x=0,y=0;t.ring.forEach(n=>{x+=S.nodes[n].x;y+=S.nodes[n].y});return{x:x/t.ring.length,y:y/t.ring.length}};
 function side(){
-  pathBar();pkRowUpd();
+  pathBar();pkRowUpd();olist();mapPanelUpd();
   $('layers').innerHTML=Object.entries(LAYERS).map(([k,l])=>`<label class="lay"><input type="checkbox" data-l="${k}" ${S.vis[k]?'checked':''}><span class="sw" style="background:${l.c}"></span>${l.n}</label>`).join('')+objLayers();
   const a=$('actLayer');if(!a.options.length)a.innerHTML=Object.entries(LAYERS).map(([k,l])=>`<option value="${k}">${l.n}</option>`).join('');
   if(attachTo&&attachTo!==sel)attachTo=null;
@@ -622,32 +662,65 @@ function side(){
   <div class="fld">Граница: внешняя линия<button class="swb" data-pk="border"><span class="dot" style="background:${bcol(t)}"></span><span class="hv">${bcol(t)}</span></button></div>
   <div class="fld">Граница: внутренняя линия<button class="swb" data-pk="border2"><span class="dot" style="background:${b2col(t)}"></span><span class="hv">${b2col(t)}</span></button></div>
   <div class="fld"><span style="display:flex;justify-content:space-between">Толщина линий<b id="bVal" style="color:var(--text)">${t.bw||3}</b></span><input type="range" id="pBw" min="1" max="12" step="0.5" value="${t.bw||3}"></div>
-  ${imgProps(t)}<button id="pDel" class="danger" style="width:100%">Удалить область</button>`:'<span style="font-size:12px;color:var(--text-faint)">Ничего не выбрано</span>';
-  $('hint').textContent=attachTo?'Кликай по областям, которые входят в состав «'+((tById(attachTo)||{}).name||'')+'»: клик добавляет, повторный клик убирает. Esc или «Готово» — закончить.':HINTS[tool==='move'&&!editId?'view':tool];$('undo').disabled=!H.length;$('redo').disabled=!F.length}
-function closeDraft(){if(draft.length>=3){push();const t={id:'t'+(uid++),name:'Область '+(S.terrs.length+1),layer:$('actLayer').value||'pol',color:LAYERS[$('actLayer').value||'pol'].c,alpha:.4,ring:draft.slice()};S.terrs.push(t);sel=t.id;editId=null;selN=null}draft=[];render()}
-function removeNode(n){S.terrs.forEach(t=>t.ring=t.ring.filter(x=>x!==n));S.terrs=S.terrs.filter(t=>t.ring.length>=3);draft=draft.filter(x=>x!==n);delete S.nodes[n]}
-svg.addEventListener('contextmenu',e=>e.preventDefault());
+  <div class="row" style="margin:2px 0 10px"><button id="pStyCopy" style="font-size:12px;padding:6px 4px" title="Запомнить цвет, прозрачность и линии этой области">Копировать стиль</button><button id="pStyPaste" style="font-size:12px;padding:6px 4px" ${styleClip?'':'disabled'} title="Применить запомненный стиль к этой области">Вставить стиль</button></div>${imgProps(t)}<button id="pDel" class="danger" style="width:100%">Удалить область</button>`:'<span style="font-size:12px;color:var(--text-faint)">Ничего не выбрано</span>';
+  $('hint').textContent=attachTo?'Кликай по областям, которые входят в состав «'+((tById(attachTo)||{}).name||'')+'»: клик добавляет, повторный клик убирает. Esc или «Готово» — закончить.':mapEdit?HINTS.map:HINTS[tool==='move'&&!editId?'view':tool];$('undo').disabled=!H.length;$('redo').disabled=!F.length}
+function closeDraft(){if(draft.length>=3){push();const t={id:'t'+(uid++),name:'Область '+(S.terrs.length+1),layer:$('actLayer').value||'pol',color:pickColor(draft,$('actLayer').value||'pol'),alpha:.4,ring:draft.slice()};S.terrs.push(t);sel=t.id;editId=null;selN=null;setTimeout(()=>{const n=$('pName');if(n&&sel===t.id){n.focus();n.select()}},40)}draft=[];render()}
+function removeNode(n){S.terrs.forEach(t=>t.ring=t.ring.filter(x=>x!==n));
+  const gone=S.terrs.filter(t=>t.ring.length<3);S.terrs=S.terrs.filter(t=>t.ring.length>=3);draft=draft.filter(x=>x!==n);delete S.nodes[n];
+  if(gone.length)toast(gone.length===1?'Область «'+gone[0].name+'» удалена: в ней осталось меньше трёх точек':'Удалено областей: '+gone.length+' ('+gone.slice(0,3).map(t=>'«'+t.name+'»').join(', ')+(gone.length>3?'…':'')+') — осталось меньше трёх точек','Вернуть',undo)}
+function toast(msg,act,fn){const el=$('toast');if(!el)return;el.innerHTML='<span>'+esc(msg)+'</span>'+(act?'<button type="button">'+act+'</button>':'');el.hidden=false;
+  const b=el.querySelector('button');if(b)b.onclick=()=>{el.hidden=true;fn()};clearTimeout(toastT);toastT=setTimeout(()=>{el.hidden=true},9000)}
+/* ===== цвет новой области: отличается от соседей по общим точкам, потом — наименее использованный ===== */
+const PAL={pol:['#c9a24c','#5fa8a0','#b5698f','#8c7ec9','#d17a3d','#6a8caf','#7fb069','#c1443b','#d9b25f','#8fb8de','#b8a07e','#9d6b53'],
+  nat:['#5fa8a0','#6a9f5b','#4f8fb5','#c9b27c','#7d9e8f','#8aa05f','#a0b8c8','#7a8f6b'],
+  dis:['#c1443b','#d17a3d','#b5698f','#a64a4a','#d9a05b']};
+function pickColor(ring,layer){const pal=PAL[layer]||PAL.pol,rs=new Set(ring),use={};
+  S.terrs.forEach(t=>{const c=String(t.color).toLowerCase();use[c]=(use[c]||0)+1});
+  const nbc=S.terrs.filter(t=>t.ring.some(n=>rs.has(n))).map(t=>t.color);
+  const dist=(a,b)=>{const x=parseHex(a)||[0,0,0],y=parseHex(b)||[0,0,0];return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])};
+  let best=pal[0],bs=-1e9;
+  pal.forEach((c,i)=>{const d=nbc.length?Math.min(...nbc.map(x=>dist(c,x))):90,sc=Math.min(d,90)*100-(use[c]||0)*50-i*.01;if(sc>bs){bs=sc;best=c}});
+  return best}
+svg.addEventListener('contextmenu',e=>{e.preventDefault();hideNodeMenu();const n=e.target.dataset&&e.target.dataset.n;if(mode!=='edit'||mapEdit||!n||!S.nodes[n])return;
+  selN=n;render();const m=$('nodeMenu');m.dataset.n=n;m.hidden=false;m.style.left=Math.min(e.clientX,innerWidth-m.offsetWidth-8)+'px';m.style.top=Math.min(e.clientY,innerHeight-m.offsetHeight-8)+'px'});
+function hideNodeMenu(){const m=$('nodeMenu');if(m)m.hidden=true}
+function dupNode(n){const A=S.nodes[n];if(!A)return;push();const id=nid(),k=V.k;let dx=10/k,dy=10/k;
+  const tr=S.terrs.find(t=>t.ring.includes(n));if(tr){const r=tr.ring,B=S.nodes[r[(r.indexOf(n)+1)%r.length]];if(B&&B!==A){const d=Math.hypot(B.x-A.x,B.y-A.y);if(d>0){const L=Math.min(d/2,20/k);dx=(B.x-A.x)/d*L;dy=(B.y-A.y)/d*L}}}
+  S.nodes[id]={x:A.x+dx,y:A.y+dy};if(A.sharp)S.nodes[id].sharp=true;
+  S.terrs.forEach(t=>{const i=t.ring.indexOf(n);if(i>=0)t.ring.splice(i+1,0,id)});
+  const j=draft.indexOf(n);if(j>=0)draft.splice(j+1,0,id);selN=id;render()}
+$('nodeMenu').onclick=e=>{const b=e.target.closest('[data-nm]');if(!b)return;const n=$('nodeMenu').dataset.n;hideNodeMenu();if(!S.nodes[n])return;
+  if(b.dataset.nm==='dup')dupNode(n);else{push();removeNode(n);selN=null;render()}};
+document.addEventListener('pointerdown',e=>{if(!e.target.closest('#nodeMenu'))hideNodeMenu()},true);
+addEventListener('keydown',e=>{if(e.key==='Escape')hideNodeMenu()},true);
 svg.addEventListener('pointerdown',e=>{
   if(off)clearOffer();
   if(mode==='view'){viewDown(e);return}
   const p=pt(e),n=e.target.dataset.n,ed=e.target.dataset.e,tid=e.target.dataset.t;
+  if(e.button===2&&n&&!mapEdit)return;
   if(e.button===1||e.button===2){drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId);return}
+  if(spaceDown){drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId);return}
+  if(mapEdit){mePD(e,p);return}
   if(tool==='draw'){
     let hn=n;clearSnap();
     if(!hn){const sn=snapAt(e,p);if(sn){if(sn.n)hn=sn.n;else{push();hn=splitEdge(sn.a,sn.b,sn.x,sn.y)}}}
-    if(hn){if(dbl('d',e)&&draft.length>=3&&hn===draft[draft.length-1]){closeDraft();return}selN=hn;drag={n:hn,draw:1,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
-    if(dbl('d',e)&&draft.length>=3){closeDraft();return}
+    if(hn){selN=hn;drag={n:hn,draw:1,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
     push();const id=nid();S.nodes[id]={x:p.x,y:p.y};draft.push(id);selN=id;render();return}
+  if(tool==='free'){drag={free:1,pts:[{x:p.x,y:p.y}],sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);return}
   if(tool==='add'&&ed){push();const[a,b]=ed.split('|'),id=nid();S.nodes[id]={x:p.x,y:p.y};
     S.terrs.forEach(t=>{const r=t.ring,l=r.length;for(let i=0;i<l;i++){const x=r[i],y=r[(i+1)%l];if((x===a&&y===b)||(x===b&&y===a)){r.splice(i+1,0,id);break}}});render();return}
   if(tool==='del'&&n){push();removeNode(n);selN=null;render();return}
-  if(tool==='marker'){push();const mk={id:'m'+(uid++),x:p.x,y:p.y,name:'Метка',type:'poi',icon:'landmark',desc:''};S.markers.push(mk);selI={k:'m',id:mk.id};sel=null;editId=null;setTool('move');render();return}
-  if(tool==='label'){push();const ty=MAP_LABEL_TYPES[lastLabelType]?lastLabelType:'country',pr=MAP_LABEL_TYPES[ty].defaults,lb={id:'l'+(uid++),x:p.x,y:p.y,text:'Название',type:ty,font:pr.font,size:pr.size,spacing:pr.spacing,curve:pr.curve,color:pr.color,rotation:0};S.labels.push(lb);selI={k:'l',id:lb.id};sel=null;editId=null;setTool('move');render();return}
+  if(tool==='marker'||tool==='label'){const kd=tool==='marker'?'m':'l',hit=e.target.closest(kd==='m'?'[data-m]':'[data-l]'),rh0=e.target.closest('[data-rot]');
+    if(!rh0){
+      if(hit){selI={k:kd,id:kd==='m'?hit.dataset.m:hit.dataset.l};sel=null;editId=null;selN=null;drag={it:selI,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
+      if(kd==='m'){push();const ic=MARKER_SVG[lastIcon]?lastIcon:'landmark',mk={id:'m'+(uid++),x:p.x,y:p.y,name:'Метка',type:'poi',icon:ic,desc:''};S.markers.push(mk);selI={k:'m',id:mk.id}}
+      if(kd==='l'){push();const ty=MAP_LABEL_TYPES[lastLabelType]?lastLabelType:'country',pr=MAP_LABEL_TYPES[ty].defaults,lb={id:'l'+(uid++),x:p.x,y:p.y,text:'Название',type:ty,font:pr.font,size:pr.size,spacing:pr.spacing,curve:pr.curve,color:pr.color,rotation:0};S.labels.push(lb);selI={k:'l',id:lb.id}}
+      sel=null;editId=null;selN=null;render();return}}
   if(tool==='path'){if(dbl('p',e)&&pd.length>=2){finishPath();return}pd.push({x:p.x,y:p.y});render();return}
   const te=e.target.closest('[data-ti]');
   if(tool==='move'&&te){sel=te.dataset.ti;selI=null;selN=null;drag={em:sel,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
   const rh=e.target.closest('[data-rot]');
-  if(tool==='move'&&rh){const lb=S.labels.find(x=>x.id===rh.dataset.rot);
+  if((tool==='move'||tool==='label')&&rh){const lb=S.labels.find(x=>x.id===rh.dataset.rot);
     if(lb){if(dbl('rot'+lb.id,e)){push();lb.rotation=0;render();return}
       const r=svg.getBoundingClientRect();drag={rot:lb.id,cx:r.left+V.x+lb.x*V.k,cy:r.top+V.y+lb.y*V.k};svg.setPointerCapture(e.pointerId);return}}
   const hit=e.target.closest('[data-m],[data-l],[data-p]'),pp=e.target.dataset.pp;
@@ -664,46 +737,55 @@ svg.addEventListener('pointermove',e=>{if(!drag)return;
   if(drag.pan){V.x=drag.vx+e.clientX-drag.sx;V.y=drag.vy+e.clientY-drag.sy;render()}
   else if(drag.rot){const lb=S.labels.find(x=>x.id===drag.rot);if(!lb)return;if(!drag.moved){drag.moved=1;push();lastK=''}
     let deg=Math.atan2(e.clientY-drag.cy,e.clientX-drag.cx)*180/Math.PI+90;deg=((deg+180)%360+360)%360-180;if(e.shiftKey)deg=Math.round(deg/15)*15;lb.rotation=Math.round(deg*10)/10;render()}
+  else if(drag.free){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1}
+    const q=pt(e),l=drag.pts[drag.pts.length-1];if(Math.hypot(q.x-l.x,q.y-l.y)*V.k>=2){drag.pts.push({x:q.x,y:q.y});paintFree(drag.pts)}}
   else if(drag.em){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),T=S.terrs.find(x=>x.id===drag.em);if(T){T.ix=q.x;T.iy=q.y}render(1)}
+  else if(drag.pic){const o=picOf(drag.pic),q=pt(e);if(!o)return;if(!drag.moved){drag.moved=1;push();lastK=''}if(drag.rs){const cx=o.x+o.w/2,cy=o.y+o.w*o.ar/2,nw=Math.max(S.w*.01,2*Math.hypot(q.x-cx,q.y-cy)/Math.hypot(1,o.ar));o.w=nw;o.x=cx-nw/2;o.y=cy-nw*o.ar/2}else{o.x=q.x-drag.dx;o.y=q.y-drag.dy}render(1)}
   else if(drag.it||drag.pi!==undefined){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),o=drag.it?item():(item()||{points:[]}).points[drag.pi];if(o){o.x=q.x;o.y=q.y}render()}
   else if(drag.n){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const p=pt(e);S.nodes[drag.n].x=p.x;S.nodes[drag.n].y=p.y;render()}});
-svg.addEventListener('pointerup',e=>{const d=drag;drag=null;if(d&&d.draw&&!d.moved)tryAdd(d.n,e)});
+svg.addEventListener('pointerup',e=>{const d=drag;drag=null;if(d&&d.draw&&!d.moved)tryAdd(d.n,e);if(d&&d.free)finishFree(d);if(d&&d.pic&&d.moved)render()});
 svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,f=e.deltaY<0?1.15:1/1.15,k=Math.min(8,Math.max(.1,V.k*f));
   V.x=mx-(mx-V.x)*k/V.k;V.y=my-(my-V.y)*k/V.k;V.k=k;render()},{passive:false});
 addEventListener('keydown',e=>{
   if(off&&e.key==='Enter'){e.preventDefault();acceptOffer();return}
   if(off&&e.key==='Escape'){clearOffer();return}
-  if(mode==='view'&&!e.key.startsWith('Arrow')){if(e.key==='Escape'){if(document.body.classList.contains('fs'))toggleFs();else if(!$('info').hidden)hideInfo()}return}
+  if(mode==='view'&&!e.key.startsWith('Arrow')){if(!/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)&&zkey(e)){e.preventDefault();return}if(e.key==='Escape'){if(document.body.classList.contains('fs'))toggleFs();else if(!$('info').hidden)hideInfo()}return}
   if(e.key==='Escape'&&pk){closePk();return}
   const typing=e.target.tagName==='INPUT'&&!['range','color','checkbox'].includes(e.target.type);if(typing||e.target.tagName==='SELECT')return;
   const key=e.key.toLowerCase();
   if((e.ctrlKey||e.metaKey)&&(key==='z'||key==='я')){e.preventDefault();e.shiftKey?redo():undo();return}
   if((e.ctrlKey||e.metaKey)&&(key==='y'||key==='н')){e.preventDefault();redo();return}
   if(e.key===' '&&walk&&tool==='draw'){e.preventDefault();walkTake(0,false);return}
+  if(e.key===' '){e.preventDefault();if(!spaceDown){spaceDown=true;svg.style.cursor='grab'}return}
+  if(zkey(e)){e.preventDefault();return}
   if(e.key.startsWith('Arrow')){e.preventDefault();const dx=e.key==='ArrowLeft'?-1:e.key==='ArrowRight'?1:0,dy=e.key==='ArrowUp'?-1:e.key==='ArrowDown'?1:0;
     if(selN&&S.nodes[selN]){push('nudge');const st=(e.shiftKey?10:2)/V.k;S.nodes[selN].x+=dx*st;S.nodes[selN].y+=dy*st}
     else{const st=e.shiftKey?160:50;V.x-=dx*st;V.y-=dy*st}
     render();return}
+  if(mapEdit&&e.key==='Delete'){if(selPic&&selPic!=='base'){push();S.pics=S.pics.filter(o=>o.id!==selPic);selPic=null;render()}return}
   if((e.key==='Delete'||e.key==='Backspace')&&selI&&!selN){push();delItem();render();return}
   if((e.key==='Delete'||e.key==='Backspace')&&selN&&S.nodes[selN]){push();removeNode(selN);selN=null;render();return}
   if(e.key==='Enter'){tool==='path'?finishPath():closeDraft()}
-  if(e.key==='Escape'){if(attachTo){attachTo=null;render();return}if(pd.length)pd=[];else if(draft.length){push();draft=[]}else if(editId)editId=null;else if(selI)selI=null;else if(document.body.classList.contains('fs-edit')){setEditFs(false);return}selN=null;render()}});
+  if(e.key==='Escape'){if(attachTo){attachTo=null;render();return}if(pd.length)pd=[];else if(draft.length){push();draft=[]}else if(editId)editId=null;else if(selI)selI=null;else if(tool==='marker'||tool==='label')setTool('move');else if(document.body.classList.contains('fs-edit')){setEditFs(false);return}selN=null;render()}});
 $('undo').onclick=undo;$('redo').onclick=redo;
 function hsv2rgb(h,s,v){const f=n=>{const k=(n+h/60)%6;return v-v*s*Math.max(0,Math.min(k,4-k,1))};return[f(5),f(3),f(1)].map(x=>Math.round(x*255))}
 function rgb2hsv(r,g,b){r/=255;g/=255;b/=255;const m=Math.max(r,g,b),d=m-Math.min(r,g,b);let h=0;if(d){h=m===r?((g-b)/d)%6:m===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return[h,m?d/m:0,m]}
 const toHex=c=>'#'+c.map(x=>x.toString(16).padStart(2,'0')).join('');
 const parseHex=c=>{const m=/^#?([0-9a-f]{6})$/i.exec(String(c).trim());if(!m)return null;const n=parseInt(m[1],16);return[n>>16&255,n>>8&255,n&255]};
 let pk=null;
-function closePk(){if(pk){pk.el.remove();pk=null}}
+function recentColors(){let r=[];try{r=JSON.parse(localStorage.getItem('stol.recent')||'[]')}catch(_){}
+  const mc=S.terrs.map(t=>String(t.color||'').toLowerCase()).filter(Boolean);return[...new Set([...r,...mc])].slice(0,16)}
+function addRecent(c){c=String(c).toLowerCase();try{const r=JSON.parse(localStorage.getItem('stol.recent')||'[]').filter(x=>x!==c);r.unshift(c);localStorage.setItem('stol.recent',JSON.stringify(r.slice(0,10)))}catch(_){}}
+function closePk(){if(pk){if(pk.cur)addRecent(pk.cur);pk.el.remove();pk=null}}
 function openPk(btn,key,val,cb){closePk();
   let[h,s,v]=rgb2hsv(...(parseHex(val)||[0,0,0])),dr=0;
   const el=document.createElement('div');el.className='pk';
-  el.innerHTML=`<div class="sv"><i></i></div><div class="pr"><button class="eye" title="Пипетка" ${window.EyeDropper?'':'hidden'}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg></button><span class="cur"></span><input type="range" class="hue" min="0" max="360" step="1"></div><div class="nums"><label><input data-c="0">R</label><label><input data-c="1">G</label><label><input data-c="2">B</label><label><input class="hx" maxlength="7">HEX</label></div>`;
+  el.innerHTML=`<div class="sv"><i></i></div><div class="pr"><button class="eye" title="Пипетка" ${window.EyeDropper?'':'hidden'}><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/><path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8a2.1 2.1 0 1 1 3-3l.4.4Z"/></svg></button><span class="cur"></span><input type="range" class="hue" min="0" max="360" step="1"></div><div class="nums"><label><input data-c="0">R</label><label><input data-c="1">G</label><label><input data-c="2">B</label><label><input class="hx" maxlength="7">HEX</label></div>${recentColors().length?'<div class="rc" title="Недавние цвета и цвета областей этой карты">'+recentColors().map(c=>`<button type="button" class="rcs" data-rc="${c}" style="background:${c}" title="${c}"></button>`).join('')+'</div>':''}`;
   document.body.appendChild(el);
   const r=btn.getBoundingClientRect();el.style.left=Math.min(r.left,innerWidth-250)+'px';el.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-el.offsetHeight-8))+'px';
   pk={el,key};
   const sv=el.querySelector('.sv'),th=sv.firstChild,cur=el.querySelector('.cur'),hue=el.querySelector('.hue'),ins=[...el.querySelectorAll('[data-c]')],hx=el.querySelector('.hx');
-  function paint(skip,emit){const c=hsv2rgb(h,s,v),x=toHex(c);sv.style.background=`linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),hsl(${h},100%,50%)`;th.style.left=s*100+'%';th.style.top=(1-v)*100+'%';cur.style.background=x;hue.value=h;ins.forEach((i,j)=>{if(i!==skip)i.value=c[j]});if(hx!==skip)hx.value=x;if(emit)cb(x)}
+  function paint(skip,emit){const c=hsv2rgb(h,s,v),x=toHex(c);sv.style.background=`linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent),hsl(${h},100%,50%)`;th.style.left=s*100+'%';th.style.top=(1-v)*100+'%';cur.style.background=x;hue.value=h;ins.forEach((i,j)=>{if(i!==skip)i.value=c[j]});if(hx!==skip)hx.value=x;if(emit){if(pk)pk.cur=x;cb(x)}}
   const setRGB=(c,skip)=>{const n=rgb2hsv(...c);if(n[1]>0&&n[2]>0)h=n[0];s=n[1];v=n[2];paint(skip,true)};
   const setSV=e=>{const b=sv.getBoundingClientRect();s=Math.min(1,Math.max(0,(e.clientX-b.left)/b.width));v=1-Math.min(1,Math.max(0,(e.clientY-b.top)/b.height));paint(null,true)};
   sv.onpointerdown=e=>{sv.setPointerCapture(e.pointerId);dr=1;setSV(e)};sv.onpointermove=e=>{if(dr)setSV(e)};sv.onpointerup=()=>dr=0;
@@ -711,9 +793,10 @@ function openPk(btn,key,val,cb){closePk();
   ins.forEach(i=>i.oninput=()=>{const c=ins.map(x=>Math.min(255,Math.max(0,parseInt(x.value)||0)));setRGB(c,i)});
   hx.oninput=()=>{const c=parseHex(hx.value);if(c)setRGB(c,hx)};
   el.querySelector('.eye').onclick=()=>new EyeDropper().open().then(x=>{const c=parseHex(x.sRGBHex);if(c)setRGB(c,null)}).catch(()=>{});
+  {const rc=el.querySelector('.rc');if(rc)rc.onclick=e=>{const b=e.target.closest('[data-rc]');if(b){const c=parseHex(b.dataset.rc);if(c)setRGB(c,null)}}}
   paint(null,false)}
 addEventListener('pointerdown',e=>{if(pk&&!pk.el.contains(e.target)&&!e.target.closest('[data-pk]'))closePk()},true);
-$('tools').onclick=e=>{const t=e.target.dataset.t;if(!t)return;if(tool==='path'&&pd.length>=2)commitPath();attachTo=null;tool=t;draft=[];pd=[];selN=null;if((t==='add'||t==='del')&&!editId&&sel)editId=sel;if(t==='draw')editId=null;[...$('tools').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t));render()};
+$('tools').onclick=e=>{const t=e.target.dataset.t;if(!t)return;if(mapEdit)setMapEdit(0);if(tool==='path'&&pd.length>=2)commitPath();attachTo=null;tool=t;draft=[];pd=[];selN=null;if((t==='add'||t==='del')&&!editId&&sel)editId=sel;if(t==='draw'||t==='free')editId=null;[...$('tools').children].forEach(b=>b.classList.toggle('on',b.dataset.t===t));render()};
 $('smooth').oninput=e=>{S.smooth=+e.target.value;render()};
 $('shared').oninput=e=>{S.shared=+e.target.value;render()};
 $('side').addEventListener('input',e=>{const t=S.terrs.find(x=>x.id===sel),i=e.target;
@@ -748,6 +831,8 @@ $('side').addEventListener('click',e=>{const pb=e.target.closest('[data-pk]');
    if(e.target.id==='pImgBtn'&&T){$('tiFile').click();return}
    if(e.target.id==='pImgDel'&&T){push();delete T.img;render();return}
    const im=e.target.closest('[data-im]');if(im&&T){push();T.imode=im.dataset.im;render();return}}
+  if(e.target.id==='pStyCopy'){const T=S.terrs.find(x=>x.id===sel);if(T){styleClip={color:T.color,alpha:T.alpha,border:T.border,border2:T.border2,bw:T.bw};render()}return}
+  if(e.target.id==='pStyPaste'){const T=S.terrs.find(x=>x.id===sel);if(T&&styleClip){push();T.color=styleClip.color;T.alpha=styleClip.alpha;['border','border2','bw'].forEach(k=>{if(styleClip[k]===undefined)delete T[k];else T[k]=styleClip[k]});render()}return}
   if(e.target.id==='pEdit'){editId=editId===sel?null:sel;selN=null;render();return}
   if(e.target.id==='pDel'){push();{const D=tById(sel);if(D)S.terrs.forEach(c=>{if(c.parent===D.id){if(D.parent)c.parent=D.parent;else delete c.parent}})}S.terrs=S.terrs.filter(t=>t.id!==sel);sel=null;editId=null;selN=null;render()}});
 function fit(){document.body.style.setProperty('--ar',S.w+'/'+S.h);const b=svg.getBoundingClientRect();V.k=Math.min(b.width/S.w,b.height/S.h)*.95;FK=V.k;V.x=(b.width-S.w*V.k)/2;V.y=(b.height-S.h*V.k)/2}
@@ -755,7 +840,7 @@ function fit(){document.body.style.setProperty('--ar',S.w+'/'+S.h);const b=svg.g
 /* ===== значки, подписи, пути героев ===== */
 let dk='',dt=0,dx=0,dy=0;
 function dbl(key,e){const now=Date.now(),r=key===dk&&now-dt<400&&Math.hypot(e.clientX-dx,e.clientY-dy)<8;dk=key;dt=now;dx=e.clientX;dy=e.clientY;return r}
-Object.assign(HINTS,{marker:'Клик по карте — поставить значок (потом выбери иконку и название справа)',label:'Клик по карте — поставить подпись; размер, шрифт и изгиб — справа, поворот — золотым кружком над надписью',path:'Ставь точки пути героя. Enter, двойной клик или кнопка «Закончить путь» — завершить, Esc — отмена. Если сменить инструмент или режим, начатый путь сохранится сам.'});
+Object.assign(HINTS,{marker:'Каждый клик по карте ставит значок (иконка — как у предыдущего; поменять — справа). Клик по готовому значку — выбрать и двигать. Esc — снять выбор, ещё раз Esc — выйти из инструмента',label:'Каждый клик по карте ставит подпись; размер, шрифт и изгиб — справа, поворот — золотым кружком над надписью. Клик по готовой подписи — выбрать и двигать. Esc — снять выбор, ещё раз Esc — выйти из инструмента',path:'Ставь точки пути героя. Enter, двойной клик или кнопка «Закончить путь» — завершить, Esc — отмена. Если сменить инструмент или режим, начатый путь сохранится сам.'});
 const cv=document.createElement('canvas').getContext('2d');
 const tw=(t,sz,fam,sp)=>{cv.font=`${sz}px "${fam}"`;t=t||' ';return cv.measureText(t).width+Math.max(0,t.length-1)*sp};
 function item(){if(!selI)return null;return(selI.k==='m'?S.markers:selI.k==='l'?S.labels:S.paths).find(x=>x.id===selI.id)||null}
@@ -767,15 +852,34 @@ function commitPath(){const pts=pd;pd=[];if(pts.length<2)return null;push();cons
 function finishPath(){if(pd.length<2){pd=[];render();return}const p=commitPath();selI={k:'p',id:p.id};sel=null;editId=null;setTool('move');render()}
 function applyFocus(){const b=document.body;b.dataset.focus=focus||'';b.dataset.fh=focus&&focusHide?'1':'0';
   document.querySelectorAll('#fchips [data-f]').forEach(x=>x.classList.toggle('on',x.dataset.f===focus));
-  const fh=$('fHide');fh.hidden=!focus;fh.classList.toggle('on',focusHide);fh.title=focusHide?'Показать остальные слои приглушёнными':'Скрыть остальные слои';fh.innerHTML=ico(focusHide?IC.eyeoff:IC.eye,15);
-  const al=focus?FOCUS[focus].tools:null;[...$('tools').children].forEach(x=>{x.style.display=al&&!al.includes(x.dataset.t)?'none':''})}
-function setFocus(f){commitPath();draft=[];pd=[];off=null;$('offer').hidden=true;attachTo=null;
+  const fh=$('fHide');fh.hidden=true;fh.classList.toggle('on',focusHide);fh.title=focusHide?'Показать остальные слои приглушёнными':'Скрыть остальные слои';fh.innerHTML=ico(focusHide?IC.eyeoff:IC.eye,15);
+  const al=focus?FOCUS[focus].tools:null;[...$('tools').children].forEach(x=>{x.style.display=al&&!al.includes(x.dataset.t)?'none':''});secFilter()}
+function setFocus(f){if(mapEdit)setMapEdit(0);commitPath();draft=[];pd=[];off=null;$('offer').hidden=true;attachTo=null;
   focus=f;focusHide=!!(f&&FOCUS[f].hide);
   if(f){if(!FOCUS[f].tools.includes(tool))setTool('move');
     if(f!=='borders'){sel=null;editId=null;selN=null}
     if(f==='borders'||(selI&&{paths:'p',markers:'m',labels:'l'}[f]!==selI.k))selI=null}
-  applyFocus();render()}
+  applyFocus();if(mode==='view'){if(!$('info').hidden)hideInfo();viewList()}render()}
 function pkRowUpd(){const r=$('pkRow');r.hidden=tool!=='path'||mode!=='edit';r.querySelectorAll('[data-kind]').forEach(b=>b.classList.toggle('on',b.dataset.kind===pathKind))}
+function placeEpPop(){const c=$('epChip'),p=$('epPop');if(!c||p.hidden)return;const r=c.getBoundingClientRect();p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px';p.style.top=(r.bottom+6)+'px';p.style.maxHeight=Math.max(200,innerHeight-r.bottom-20)+'px'}
+function placeCtPop(){const c=$('ctCfg'),p=$('ctPop');if(p.hidden||!c)return;const r=c.getBoundingClientRect();p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px';p.style.top=(r.bottom+6)+'px'}
+function ctPanel(){const C=S.contour,row=(k,t)=>`<div class="fld">${t}<button class="swb" data-ct="${k}"><span class="dot" style="background:${C[k]}"></span><span class="hv">${C[k]}</span></button></div>`;
+  $('ctBox').innerHTML=row('bg','Фон карты')+row('land','Суша (заливка областей)')+row('ink','Линии границ')+'<div style="font-size:var(--fs-sm);color:var(--text-faint);line-height:1.45">Цвета меняют только вид; границы, подписи и значки остаются прежними. Природные области сохраняют свои цвета.</div>'}
+function ctSync(){const on=!!S.contour.on;$('ctChip').classList.toggle('on',on);$('ctCfg').hidden=!on;if(!on)setCtPop(false)}
+function setCtPop(on){const p=$('ctPop'),was=!p.hidden;p.hidden=!on;$('ctCfg').classList.toggle('on',on);if(on){setEpPopOnly(false);ctPanel();placeCtPop()}else if(was)closePk()}
+$('ctChip').addEventListener('click',()=>{S.contour.on=!S.contour.on;ctSync();render()});
+$('ctCfg').addEventListener('click',e=>{e.stopPropagation();setCtPop($('ctPop').hidden)});
+$('ctBox').addEventListener('click',e=>{const b=e.target.closest('[data-ct]');if(!b)return;const k=b.dataset.ct;if(pk&&pk.key==='ct'+k){closePk();return}
+  openPk(b,'ct'+k,S.contour[k],c=>{S.contour[k]=c;b.querySelector('.dot').style.background=c;b.querySelector('.hv').textContent=c;render(1)})});
+document.addEventListener('mousedown',e=>{if(!$('ctPop').hidden&&!e.target.closest('#ctPop,#ctCfg,.pk'))setCtPop(false)},true);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('ctPop').hidden){e.stopImmediatePropagation();setCtPop(false)}},true);
+addEventListener('resize',placeCtPop);
+function setEpPopOnly(on){const p=$('epPop'),c=$('epChip');p.hidden=!on;c.classList.toggle('on',on);c.setAttribute('aria-expanded',on?'true':'false')}
+function setEpPop(on){if(on)setCtPop(false);const p=$('epPop'),c=$('epChip');p.hidden=!on;c.classList.toggle('on',on);c.setAttribute('aria-expanded',on?'true':'false');if(on){epPanel();placeEpPop()}}
+$('epChip').addEventListener('click',e=>{e.stopPropagation();setEpPop($('epPop').hidden)});
+document.addEventListener('mousedown',e=>{if(!$('epPop').hidden&&!e.target.closest('#epPop,#epChip'))setEpPop(false)},true);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('epPop').hidden){e.stopImmediatePropagation();setEpPop(false)}},true);
+addEventListener('resize',placeEpPop);
 $('fchips').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b)return setFocus(b.dataset.f===focus?null:b.dataset.f);
   if(e.target.closest('#fHide')){focusHide=!focusHide;applyFocus()}});
 $('pkRow').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(b){pathKind=b.dataset.kind;pkRowUpd()}});
@@ -817,7 +921,7 @@ function openIcons(btn,mk){closePk();const el=document.createElement('div');el.c
   let cat=MARKER_ICON_CATEGORIES.find(c=>c.icons.includes(mk.icon))||MARKER_ICON_CATEGORIES[0];
   const draw=()=>{el.innerHTML=`<div class="row" style="gap:4px;margin-bottom:8px">${MARKER_ICON_CATEGORIES.map(c=>`<button data-c="${c.key}" class="${c===cat?'on':''}" style="font-size:11px;padding:4px 6px;flex:none">${c.label}</button>`).join('')}</div><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px;max-height:230px;overflow:auto">${cat.icons.map(k=>`<button data-i="${k}" title="${esc(MARKER_ICON_LABELS[k]||k)}" class="${k===mk.icon?'on':''}" style="padding:6px;display:flex;justify-content:center">${chip(k)}</button>`).join('')}</div>`};
   draw();document.body.appendChild(el);const r=btn.getBoundingClientRect();el.style.left=Math.min(r.left,innerWidth-320)+'px';el.style.top=Math.max(8,Math.min(r.bottom+6,innerHeight-el.offsetHeight-8))+'px';pk={el,key:'icons'};
-  el.onclick=e=>{const c=e.target.closest('[data-c]'),i=e.target.closest('[data-i]');if(c){cat=MARKER_ICON_CATEGORIES.find(x=>x.key===c.dataset.c);draw()}if(i){push();mk.icon=i.dataset.i;closePk();render()}}}
+  el.onclick=e=>{const c=e.target.closest('[data-c]'),i=e.target.closest('[data-i]');if(c){cat=MARKER_ICON_CATEGORIES.find(x=>x.key===c.dataset.c);draw()}if(i){push();mk.icon=i.dataset.i;lastIcon=mk.icon;try{localStorage.setItem('stol.icon',lastIcon)}catch(_){}closePk();render()}}}
 
 /* ===== подсказка: пройти по готовой границе ===== */
 /* ===== магнит: цепляемся к существующим точкам и к линиям границ (Alt — отключить) ===== */
@@ -832,6 +936,18 @@ function snapAt(e,p){
   const[a,b]=el.dataset.e.split('|'),L=el.getTotalLength(),N=Math.max(24,Math.ceil(L*k/4));let bp=null,bq=1e9;
   for(let i=0;i<=N;i++){const q=el.getPointAtLength(L*i/N),d=Math.hypot(q.x-p.x,q.y-p.y);if(d<bq){bq=d;bp=q}}
   if(!bp||bq>9/k)return null;return{a,b,x:bp.x,y:bp.y}}
+/* ===== рисование от руки: тянешь мышью — на отпускании линия превращается в точки ===== */
+function paintFree(P){let g=document.getElementById('freeG');if(!g){g=document.createElementNS('http://www.w3.org/2000/svg','g');g.id='freeG';g.setAttribute('pointer-events','none');vp.appendChild(g)}
+  g.innerHTML=`<polyline points="${P.map(q=>q.x+','+q.y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${2.5/V.k}" stroke-linecap="round" stroke-linejoin="round"/>`}
+function simplify(P,eps){if(P.length<3)return P.slice();let mx=0,mi=0;const a=P[0],b=P[P.length-1],dx=b.x-a.x,dy=b.y-a.y,L=Math.hypot(dx,dy);
+  for(let i=1;i<P.length-1;i++){const d=L?Math.abs(dy*(P[i].x-a.x)-dx*(P[i].y-a.y))/L:Math.hypot(P[i].x-a.x,P[i].y-a.y);if(d>mx){mx=d;mi=i}}
+  if(mx<=eps)return[a,b];const l=simplify(P.slice(0,mi+1),eps),r=simplify(P.slice(mi),eps);return l.slice(0,-1).concat(r)}
+function finishFree(d){const g=document.getElementById('freeG');if(g)g.remove();
+  if(!d.moved)return;push();const k=V.k;const keep=new Set(simplify(d.pts,.8/k));let pts=[],close=false;d.pts.forEach((q,i)=>{const l=pts[pts.length-1];if(i===0||i===d.pts.length-1||keep.has(q)||Math.hypot(q.x-l.x,q.y-l.y)*k>=12)pts.push(q)});
+  const first=draft.length?S.nodes[draft[0]]:pts[0],lastP=pts[pts.length-1];
+  if(pts.length>=2&&Math.hypot(lastP.x-first.x,lastP.y-first.y)<14/k&&draft.length+pts.length-1>=3){pts=pts.slice(0,-1);close=true}
+  pts.forEach(q=>{const id=nid();S.nodes[id]={x:q.x,y:q.y};draft.push(id);selN=id});
+  if(close){closeDraft();return}render()}
 function clearSnap(){const g=document.getElementById('snapG');if(g)g.remove()}
 let hvRaf=0;
 function hoverSnap(e){if(hvRaf)return;const ev={clientX:e.clientX,clientY:e.clientY,altKey:e.altKey,target:e.target};
@@ -920,16 +1036,16 @@ $('tiFile').onchange=e=>{const f=e.target.files[0];e.target.value='';const t=S.t
 
 /* ===== режим просмотра (как в картах Мастерской) ===== */
 let mode='edit',FK=1,vtab='m';
-const ico=(d,z=15)=>`<svg viewBox="0 0 24 24" width="${z}" height="${z}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
-const IC={eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',flow:'<path d="M2 12h3M8 12h3M14 12h4M16 8l4 4-4 4"/>',fs:'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',ctr:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',stack:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',chev:'<path d="m6 9 6 6 6-6"/>'};
+const ico=(d,z=15)=>`<svg viewBox="0 0 24 24" width="${z}" height="${z}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+const IC={eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/>',eyeoff:'<path d="M3 3l18 18M10.6 5.1A10.6 10.6 0 0 1 12 5c6.5 0 10 7 10 7a17 17 0 0 1-3.2 4.2M6.6 6.6A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10 10 0 0 0 4.3-1M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',flow:'<path d="M2 12h3M8 12h3M14 12h4M16 8l4 4-4 4"/>',fs:'<path d="M8 3H5a2 2 0 0 0-2 2v3M21 8V5a2 2 0 0 0-2-2h-3M3 16v3a2 2 0 0 0 2 2h3M16 21h3a2 2 0 0 0 2-2v-3"/>',fsx:'<path d="M8 3v3a2 2 0 0 1-2 2H3M21 8h-3a2 2 0 0 1-2-2V3M3 16h3a2 2 0 0 1 2 2v3M16 21v-3a2 2 0 0 1 2-2h3"/>',undo:'<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>',redo:'<path d="m15 14 5-5-5-5"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13"/>',x:'<path d="M18 6 6 18M6 6l12 12"/>',ctr:'<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',stack:'<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 12 10 5 10-5"/><path d="m2 17 10 5 10-5"/>',eye:'<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',chev:'<path d="m6 9 6 6 6-6"/>'};
 function layersPanel(){const row=(n,on,a)=>`<div class="layer-row ${on?'':'off'}" ${a}><span>${n}</span>${ico(IC.eye)}</div>`;
   return Object.entries(LAYERS).map(([k,l])=>row(l.n,S.vis[k],`data-vl="${k}"`)).join('')+'<div class="layer-div"></div>'+row('Значки',S.vis.markers!==0,'data-vl="markers"')+row('Подписи',S.vis.labels!==0,'data-vl="labels"')+`<div class="layer-sub-list">${LABEL_GROUPS.map(([g,ts])=>row(g,ts.some(t=>S.lt[t]!==0),`data-vlg="${g}"`)+ts.map(t=>row(MAP_LABEL_TYPES[t].short,S.lt[t]!==0,`data-vlt="${t}"`)).join('')).join('')}</div>`+row('Пути',S.vis.paths!==0,'data-vl="paths"')+`<div class="layer-sub-list">${Object.keys(PKIND).map(t=>row(PKIND[t].s,S.pk[t]!==0,`data-vpk="${t}"`)).join('')}</div>`+'<div class="layer-div"></div><div class="layer-acts"><button data-vall="1">Все названия</button><button data-vall="0">Скрыть все</button></div>'}
 function buildView(){
-  $('vtop').innerHTML=`<div class="canvas-toolbar"><h3>${esc(S.name||'Карта')}</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${epCtl()}<div class="zc"><button id="vzm">−</button><span class="mono" id="vzl" style="font-size:12px;color:var(--text-faint);min-width:44px;text-align:center">100%</span><button id="vzp">+</button></div><button class="map-icon-btn" id="vctr" title="Центрировать">${ico(IC.ctr)}</button><button class="map-icon-btn ${flowOn?'on':''}" id="vflow" title="Анимация путей: пунктиры бегут от начала пути к концу">${ico(IC.flow)}</button><button class="map-icon-btn" id="vfs" title="Во весь экран">${ico(IC.fs)}</button><div class="map-layers-wrap"><button class="map-layers-btn" id="vlay">${ico(IC.stack,14)} Слои ${ico(IC.chev,11)}</button><div class="map-layers-panel" id="vlp" hidden></div></div></div></div><div class="eyebrow" style="margin:0 0 10px">Колесо мыши — масштаб · перетаскивание фона — панорама · клик по значку, подписи, пути или области — подробности</div>`;
+  $('vtop').innerHTML=`<div class="canvas-toolbar"><h3>${esc(S.name||'Карта')}</h3><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${epCtl()}<div class="zc"><button id="vzm" class="btn-tool" title="Уменьшить (−)" aria-label="Уменьшить">−</button><span class="mono" id="vzl" style="font-size:12px;color:var(--text-faint);min-width:44px;text-align:center">100%</span><button id="vzp" class="btn-tool" title="Увеличить (+)" aria-label="Увеличить">+</button></div><button id="vctr" type="button" title="Вписать карту в экран (0)">Центрировать</button><button class="btn-tool ${flowOn?'on':''}" id="vflow" title="Анимация путей: пунктиры бегут от начала пути к концу">${ico(IC.flow)}</button><button class="btn-tool" id="vfs" title="Во весь экран" aria-label="Во весь экран">${ico(IC.fs)}</button><div class="map-layers-wrap"><button class="map-layers-btn" id="vlay">${ico(IC.stack,14)} Слои ${ico(IC.chev,11)}</button><div class="map-layers-panel" id="vlp" hidden></div></div></div></div>`;
   viewList()}
 function viewList(){
   const TI0=terrInfo();
-  const tabs=[['m','Значки',S.markers.length],['l','Названия',S.labels.length],['p','Пути',S.paths.length],['t','Территории',S.terrs.length]];
+  const FT={borders:'t',markers:'m',labels:'l',paths:'p'}[focus],tabs=[['m','Значки',S.markers.length],['l','Названия',S.labels.length],['p','Пути',S.paths.length],['t','Территории',S.terrs.length]].filter(x=>!FT||x[0]===FT);if(FT)vtab=FT;
   const go=(k,id)=>`<div class="d-actions"><button data-go="${k}:${id}">Показать на карте</button></div>`;
   const C={
     m:o=>{const key=MARKER_SVG[o.icon]?o.icon:'landmark';return`<div class="dossier"><h3>${chip(key)}<span>${esc(o.name||'')}</span></h3><div class="d-role">${esc(MARKER_ICON_LABELS[key]||key)}</div>${o.desc?`<div class="d-desc">${esc(o.desc)}</div>`:''}${go('m',o.id)}</div>`},
@@ -937,30 +1053,48 @@ function viewList(){
     p:o=>`<div class="dossier"><h3><span class="pdot" style="background:${o.color||'#c9a24c'}"></span>${esc(o.name||'Путь')}</h3><div class="d-role">${PKIND[kindOf(o)].n} · ${o.points.length} точек маршрута</div>${o.desc?`<div class="d-desc">${esc(o.desc)}</div>`:''}${go('p',o.id)}</div>`,
     t:o=>`<div class="dossier"><h3><span class="pdot" style="background:${o.color}"></span>${esc(o.name)}</h3><div class="d-role">${LAYERS[o.layer].n}${o.parent&&tById(o.parent)?' · входит в «'+esc(tById(o.parent).name)+'»':''}${TI0.kids[o.id]?' · состав: '+TI0.kids[o.id].length:''}</div>${go('t',o.id)}</div>`};
   const TO=treeOrder(),L={m:S.markers,l:S.labels,p:S.paths,t:TO.rows}[vtab];
-  $('vlist').innerHTML=`<div class="map-list-tabs">${tabs.map(([k,n,c])=>`<div class="map-list-tab ${vtab===k?'on':''}" data-vt="${k}">${n}<span class="cnt">${c}</span></div>`).join('')}</div>`+(L.length?`<div class="grid">${L.map(C[vtab]).join('')}</div>`:'<div class="empty-tab">Здесь пока ничего нет — добавь в режиме «Редактирование».</div>')}
+  $('vlist').innerHTML=`<div class="eyebrow" style="margin:8px 0 0;line-height:1.6">Колесо мыши — масштаб · перетаскивание фона — панорама · клик по значку, подписи, пути или области — подробности</div><div class="map-list-tabs">${tabs.map(([k,n,c])=>`<div class="map-list-tab ${vtab===k?'on':''}" data-vt="${k}">${n}<span class="cnt">${c}</span></div>`).join('')}</div>`+(L.length?`<div class="grid">${L.map(C[vtab]).join('')}</div>`:'<div class="empty-tab">Здесь пока ничего нет — добавь в режиме «Редактирование».</div>')}
 function showInfo(k,id){let h;
   if(k==='t'){const t=S.terrs.find(x=>x.id===id);if(!t)return;sel=id;selI=null;const im=t.img&&S.imgs[t.img];h=`<h3>${esc(t.name)}</h3><div class="d-role">${LAYERS[t.layer].n}</div>${hierInfo(t)}${im?`<img src="${im}" style="max-width:100%;border-radius:3px;margin-top:8px">`:''}`}
   else{const o=(k==='m'?S.markers:k==='l'?S.labels:S.paths).find(x=>x.id===id);if(!o)return;sel=null;selI={k,id};
     if(k==='m'){const key=MARKER_SVG[o.icon]?o.icon:'landmark';h=`<h3 style="display:flex;align-items:center;gap:9px">${chip(key)}<span>${esc(o.name||'')}</span></h3><div class="d-role">${esc(MARKER_ICON_LABELS[key]||key)}</div>${o.desc?`<div class="d-desc">${esc(o.desc)}</div>`:''}`}
     else if(k==='l')h=`<h3>${esc(o.text||'')}</h3><div class="d-role">${esc((MAP_LABEL_TYPES[o.type]||MAP_LABEL_TYPES.land).label)}</div>`;
     else h=`<h3 style="display:flex;align-items:center;gap:8px"><span class="pdot" style="background:${o.color||'#c9a24c'}"></span>${esc(o.name||'Путь')}</h3><div class="d-role">${PKIND[kindOf(o)].n} · ${o.points.length} точек маршрута</div>${o.desc?`<div class="d-desc">${esc(o.desc)}</div>`:''}`}
-  $('info').innerHTML=`<button class="map-icon-btn" id="infoX" style="position:absolute;right:8px;top:8px">${ico(IC.x,14)}</button>`+h;$('info').hidden=false;render(1)}
+  $('info').innerHTML=`<button class="btn-tool" id="infoX" title="Закрыть" aria-label="Закрыть" style="position:absolute;right:8px;top:8px">${ico(IC.x,14)}</button>`+h;$('info').hidden=false;render(1)}
 function hideInfo(){$('info').hidden=true;sel=null;selI=null;render(1)}
 function viewDown(e){const it=e.target.closest('[data-m],[data-l],[data-p],[data-t],[data-ti]');
   if(it){const k=it.dataset.m?'m':it.dataset.l?'l':it.dataset.p?'p':'t';showInfo(k,it.dataset.m||it.dataset.l||it.dataset.p||it.dataset.t||it.dataset.ti)}else if(!$('info').hidden)hideInfo();
   drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId)}
 function zoomBy(f){const r=svg.getBoundingClientRect(),mx=r.width/2,my=r.height/2,k=Math.min(8,Math.max(.1,V.k*f));V.x=mx-(mx-V.x)*k/V.k;V.y=my-(my-V.y)*k/V.k;V.k=k;render(1)}
+function zoomToSel(){const b=svg.getBoundingClientRect();let pts=null;const t=S.terrs.find(x=>x.id===sel);
+  if(t)pts=t.ring.map(n=>S.nodes[n]).filter(Boolean);
+  else if(selI){const o=item();if(o)pts=o.points&&o.points.length?o.points:[o]}
+  else if(selN&&S.nodes[selN])pts=[S.nodes[selN]];
+  if(!pts||!pts.length)return false;
+  const xs=pts.map(q=>q.x),ys=pts.map(q=>q.y),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys),w=x1-x0,h=y1-y0;
+  let k=(w>1||h>1)?.85*Math.min(b.width/Math.max(w,1),b.height/Math.max(h,1)):Math.max(V.k,FK*2.5);
+  k=Math.min(8,Math.max(.1,k));V.k=k;V.x=b.width/2-(x0+x1)/2*k;V.y=b.height/2-(y0+y1)/2*k;render(1);return true}
+function zkey(e){if(e.ctrlKey||e.metaKey||e.altKey)return false;const c=e.code;
+  if(c==='Digit0'||c==='Numpad0'){fit();render(1);return true}
+  if(c==='Equal'||c==='NumpadAdd'){zoomBy(1.25);return true}
+  if(c==='Minus'||c==='NumpadSubtract'){zoomBy(1/1.25);return true}
+  if(c==='KeyF'&&mode==='edit')return zoomToSel();
+  return false}
+addEventListener('keyup',e=>{if(e.key===' '&&spaceDown){spaceDown=false;svg.style.cursor='';e.preventDefault()}});
+addEventListener('blur',()=>{spaceDown=false;svg.style.cursor=''});
 function setEditFs(on){
+  setCtPop(false);
+  setEpPop(false);
   const b=document.body;b.classList.toggle('fs-edit',on);if(!on)b.classList.remove('nopanel');
-  $('efs').innerHTML=ico(on?IC.x:IC.fs);$('efs').title=on?'Свернуть (Esc)':'Во весь экран';$('pnl').hidden=!on;
+  $('efs').innerHTML=ico(on?IC.fsx:IC.fs);$('efs').title=on?'Выйти из полноэкранного режима (Esc)':'Во весь экран';$('efs').setAttribute('aria-label',on?'Выйти из полноэкранного режима':'Во весь экран');$('pnl').hidden=!on;
   const de=document.documentElement;
   if(on){try{de.requestFullscreen&&de.requestFullscreen().catch(()=>{})}catch(_){}}
   else if(document.fullscreenElement){document.exitFullscreen().catch(()=>{})}
   requestAnimationFrame(()=>{fit();render(1)})}
-function toggleFs(){document.body.classList.toggle('fs');const on=document.body.classList.contains('fs');$('vfs').innerHTML=ico(on?IC.x:IC.fs);$('vfs').title=on?'Свернуть':'Во весь экран';fit();render(1)}
+function toggleFs(){document.body.classList.toggle('fs');const on=document.body.classList.contains('fs');$('vfs').innerHTML=ico(on?IC.fsx:IC.fs);$('vfs').title=on?'Выйти из полноэкранного режима (Esc)':'Во весь экран';$('vfs').setAttribute('aria-label',on?'Выйти из полноэкранного режима':'Во весь экран');fit();render(1)}
 function goTo(k,id){let q;if(k==='t'){const t=S.terrs.find(x=>x.id===id);q=t&&cen(t)}else{const o=(k==='m'?S.markers:k==='l'?S.labels:S.paths).find(x=>x.id===id);q=o&&(k==='p'?{x:o.points.reduce((a,b)=>a+b.x,0)/o.points.length,y:o.points.reduce((a,b)=>a+b.y,0)/o.points.length}:o)}
   if(!q)return;const b=svg.getBoundingClientRect();if(V.k<FK*1.5)V.k=FK*1.5;V.x=b.width/2-q.x*V.k;V.y=b.height/2-q.y*V.k;showInfo(k,id);$('stage').scrollIntoView({behavior:'smooth',block:'nearest'})}
-function setMode(m){if(mode===m)return;commitPath();if(m==='view'&&focus){focus=null;focusHide=false;applyFocus()}closePk();if(document.body.classList.contains('fs-edit'))setEditFs(false);mode=m;document.body.dataset.mode=m;document.body.classList.remove('fs');
+function setMode(m){if(mode===m)return;setEpPop(false);setCtPop(false);commitPath();if(mapEdit)setMapEdit(0);closePk();if(document.body.classList.contains('fs-edit'))setEditFs(false);mode=m;document.body.dataset.mode=m;document.body.classList.remove('fs');
   [...$('modeSeg').children].forEach(b=>b.classList.toggle('on',b.dataset.md===m));
   draft=[];pd=[];off=null;$('offer').hidden=true;selN=null;editId=null;drag=null;
   if(m==='view'){setTool('move');sel=null;selI=null;buildView();$('vtop').hidden=false;$('vlist').hidden=false}else{$('vtop').hidden=true;$('vlist').hidden=true;$('info').hidden=true}
@@ -987,7 +1121,7 @@ const qs=new URLSearchParams(location.search);
 let bridge=null,saveT=0,ackT=0;
 const embedded=window.parent!==window,host=window.opener||(embedded?window.parent:null);
 const refOrigin=(()=>{try{return document.referrer?new URL(document.referrer).origin:'*'}catch(_){return'*'}})();
-const sigOf=()=>JSON.stringify([S.markers,S.labels,S.paths,S.nodes,S.terrs,Object.keys(S.imgs),S.vis,S.lt,S.pk,S.shared,EP.cur,EP.list.map(e=>[e.id,e.name,e.years])]);
+const sigOf=()=>JSON.stringify([S.base,S.pics,S.markers,S.labels,S.paths,S.nodes,S.terrs,Object.keys(S.imgs),S.vis,S.lt,S.pk,S.shared,S.contour,EP.cur,EP.list.map(e=>[e.id,e.name,e.years])]);
 function setStatus(t,bad){const el=$('bstat');el.textContent=t;el.style.color=bad?'var(--thread)':'var(--text-faint)';el.hidden=!t}
 const EP={list:[],cur:null};
 function snapPct(){const X=v=>v/S.w*100,Y=v=>v/S.h*100,nodes={};
@@ -997,8 +1131,8 @@ function snapPct(){const X=v=>v/S.w*100,Y=v=>v/S.h*100,nodes={};
     paths:S.paths.map(p=>({...p,points:p.points.map(q=>({x:X(q.x),y:Y(q.y)}))})),geo:{nodes,terrs}}}
 function commitEpoch(){const e=EP.list.find(x=>x.id===EP.cur);if(e)e.d=snapPct()}
 function toPct(){commitEpoch();const f=EP.list[0].d;
-  return{markers:f.markers,labels:f.labels,paths:f.paths,geo:{nodes:f.geo.nodes,terrs:f.geo.terrs,imgs:S.imgs},
-    layers:{shared:S.shared,pathKinds:Object.fromEntries(Object.entries(S.pk).map(([k,v])=>[k,v!==0])),markers:S.vis.markers!==0,labels:S.vis.labels!==0,paths:S.vis.paths!==0,labelTypes:Object.fromEntries(Object.entries(S.lt).map(([k,v])=>[k,v!==0])),terr:{pol:!!S.vis.pol,nat:!!S.vis.nat,dis:!!S.vis.dis}},
+  return{markers:f.markers,labels:f.labels,paths:f.paths,geo:{nodes:f.geo.nodes,terrs:f.geo.terrs,imgs:S.imgs,base:pp(S.base),pics:S.pics.map(pp)},
+    layers:{contour:S.contour,shared:S.shared,pathKinds:Object.fromEntries(Object.entries(S.pk).map(([k,v])=>[k,v!==0])),markers:S.vis.markers!==0,labels:S.vis.labels!==0,paths:S.vis.paths!==0,labelTypes:Object.fromEntries(Object.entries(S.lt).map(([k,v])=>[k,v!==0])),terr:{pol:!!S.vis.pol,nat:!!S.vis.nat,dis:!!S.vis.dis}},
     epochs:EP.list.map(e=>({id:e.id,name:e.name,years:e.years||'',markers:e.d.markers,labels:e.d.labels,paths:e.d.paths,geo:e.d.geo})),epoch:EP.cur}}
 function applyEpoch(d){const X=v=>v*S.w/100,Y=v=>v*S.h/100,g=d.geo||{};
   S.markers=(d.markers||[]).map(o=>({...o,x:X(o.x),y:Y(o.y)}));
@@ -1041,7 +1175,7 @@ function epCtl(){const i=EP.list.findIndex(e=>e.id===EP.cur),one=EP.list.length<
   return`<div class="zc ec" title="Эпоха карты"><button data-epstep="-1" ${i<=0?'disabled':''} title="Предыдущая эпоха">‹</button><select id="vesel" ${one?'disabled':''}>${EP.list.map(e=>`<option value="${e.id}" ${e.id===EP.cur?'selected':''}>${esc(e.name)}${e.years?' · '+esc(e.years):''}</option>`).join('')}</select><button data-epstep="1" ${i>=EP.list.length-1?'disabled':''} title="Следующая эпоха">›</button></div>`}
 function epStep(d){const i=EP.list.findIndex(e=>e.id===EP.cur)+d;if(i>=0&&i<EP.list.length)epSwitch(EP.list[i].id)}
 function loadMap(m,mode){const im=new Image(),go=()=>{
-    S.img=m.image||null;S.name=m.name||'Карта';
+    S.img=m.image||null;S.name=m.name||'Карта';$('etitle').textContent=S.name;
     if(m.image){S.w=im.naturalWidth;S.h=im.naturalHeight}else{S.w=1600;S.h=Math.round(1600/(m.aspect||1.6))}
     const g=m.geo||{},ly=m.layers||{},tv=ly.terr||{};
     S.imgs=g.imgs||{};
@@ -1049,8 +1183,9 @@ function loadMap(m,mode){const im=new Image(),go=()=>{
     EP.cur=EP.list.some(e=>e.id===m.epoch)?m.epoch:EP.list[0].id;uid=1;
     applyEpoch(epCur().d);
     S.imgs=g.imgs||{};
+    {const px=o=>({...o,x:o.x*S.w/100,y:o.y*S.h/100,w:o.w*S.w/100});S.base=g.base?{...px(g.base),id:'base'}:{id:'base',x:0,y:0,w:S.w,ar:S.h/S.w,rot:0,op:1};S.pics=(g.pics||[]).map(px);selPic=null}
     S.vis={pol:tv.pol===false?0:1,nat:tv.nat===false?0:1,dis:tv.dis===false?0:1,markers:ly.markers===false?0:1,labels:ly.labels===false?0:1,paths:ly.paths===false?0:1};
-    S.shared=ly.shared===undefined?.4:Math.max(.15,Math.min(1,+ly.shared||.4));$('shared').value=S.shared;
+    S.contour=Object.assign({on:false,bg:'#f4efe3',land:'#fbf8f0',ink:'#1b1b1b'},ly.contour||{});ctSync();S.shared=ly.shared===undefined?.4:Math.max(.15,Math.min(1,+ly.shared||.4));$('shared').value=S.shared;
     S.pk=Object.assign({hero:1,trade:1,river:1},Object.fromEntries(Object.entries(ly.pathKinds||{}).map(([a,b])=>[a,b===false?0:1])));
     S.lt=Object.assign({country:1,river:1,lake:1,ocean:1,land:1},Object.fromEntries(Object.entries(ly.labelTypes||{}).map(([a,b])=>[a,b===false?0:1])));
     let mx=0;[...Object.keys(S.nodes),...S.terrs.map(t=>t.id),...Object.keys(S.imgs),...S.markers.map(o=>o.id),...S.labels.map(o=>o.id),...S.paths.map(o=>o.id)].forEach(id=>{const r=/^[a-z](\d+)$/.exec(id);if(r)mx=Math.max(mx,+r[1])});
@@ -1074,13 +1209,68 @@ if(qs.get('mode')){
     addEventListener('beforeunload',e=>{if(bridge.ready&&sigOf()!==bridge.savedSig){e.preventDefault();e.returnValue=''}});
   }else setStatus('Открой карту из Мастерской миров — отсюда данных нет',true);
 }
-$('efs').innerHTML=ico(IC.fs);
-$('pnl').innerHTML='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>';
+(()=>{const h=document.querySelector('header'),f=()=>document.body.style.setProperty('--hdr-w',(h.offsetWidth+24)+'px');if(window.ResizeObserver)new ResizeObserver(f).observe(h);f()})();
+$('efs').innerHTML=ico(IC.fs);$('undo').innerHTML=ico(IC.undo);$('redo').innerHTML=ico(IC.redo);
+$('pnl').innerHTML='<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M9 4v16"/></svg>';
+(function(){const g=$('sideGrip'),MIN=190,MAX=420,K='stol.sideW';
+  const set=w=>document.documentElement.style.setProperty('--side-w',Math.round(Math.min(MAX,Math.max(MIN,w)))+'px');
+  try{const v=+localStorage.getItem(K);if(v)set(v)}catch(_){}
+  g.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();const x0=e.clientX,w0=$('side').getBoundingClientRect().width;
+    g.setPointerCapture(e.pointerId);g.classList.add('drag');document.body.classList.add('sg-drag');
+    const mv=ev=>set(w0+ev.clientX-x0);
+    const up=()=>{g.removeEventListener('pointermove',mv);g.removeEventListener('pointerup',up);g.removeEventListener('pointercancel',up);g.classList.remove('drag');document.body.classList.remove('sg-drag');
+      try{localStorage.setItem(K,Math.round($('side').getBoundingClientRect().width))}catch(_){}
+      render()};
+    g.addEventListener('pointermove',mv);g.addEventListener('pointerup',up);g.addEventListener('pointercancel',up)});
+  g.addEventListener('dblclick',()=>{document.documentElement.style.removeProperty('--side-w');try{localStorage.removeItem(K)}catch(_){}render()})})();
 $('efs').onclick=()=>setEditFs(!document.body.classList.contains('fs-edit'));
 $('pnl').onclick=()=>{document.body.classList.toggle('nopanel');requestAnimationFrame(()=>{fit();render(1)})};
 document.addEventListener('fullscreenchange',()=>{if(!document.fullscreenElement&&document.body.classList.contains('fs-edit'))setEditFs(false)});
 try{const v=localStorage.getItem('stol.lt');if(MAP_LABEL_TYPES[v])lastLabelType=v}catch(_){}
 Object.values(MAP_LABEL_FONTS).forEach(f=>{try{document.fonts.load(`24px "${f.family}"`,'Абвгд').then(()=>render(1))}catch(_){}});
+/* ===== фон: сетка Вульфа, растянутая на весь холст ===== */
+const WD=(()=>{const R=190,f=v=>+v.toFixed(1);let m='',p='';for(let a=10;a<90;a+=10){const l=a*Math.PI/180,r=f(R/Math.sin(l)),q=f(R/Math.tan(l)),x=f(R*Math.cos(l)),y=f(R*Math.sin(l));m+=`M0 ${-R}A${r} ${r} 0 0 1 0 ${R}M0 ${-R}A${r} ${r} 0 0 0 0 ${R}`;p+=`M${-x} ${-y}A${q} ${q} 0 0 0 ${x} ${-y}M${-x} ${y}A${q} ${q} 0 0 1 ${x} ${y}`}return m+p})();
+const wulff=()=>`<g transform="translate(${S.w/2} ${S.h/2}) scale(${Math.min(S.w,S.h)/380})" fill="none" pointer-events="none"><circle r="190" fill="#1a1c24"/><path vector-effect="non-scaling-stroke" d="${WD}" stroke="#2a2e3a" stroke-width="1"/><path vector-effect="non-scaling-stroke" d="M0 -190V190M-190 0H190" stroke="#3d4358" stroke-width="1.5"/><circle vector-effect="non-scaling-stroke" r="190" stroke="#3d4358" stroke-width="1.5"/></g>`;
+function gridSvg(k){const b=svg.getBoundingClientRect(),x0=-V.x/k,x1=(b.width-V.x)/k,y0=-V.y/k,y1=(b.height-V.y)/k;let st=S.h/8,mi='',ma='';while((x1-x0)/st>90)st*=5;
+  const L=(a0,a1,o,v)=>{for(let n=Math.ceil((a0-o)/st);n<=Math.floor((a1-o)/st);n++){const q=o+n*st,d=v?`M${q} ${y0}V${y1}`:`M${x0} ${q}H${x1}`;if(n%5===0)ma+=d;else mi+=d}};L(x0,x1,S.w/2,1);L(y0,y1,S.h/2,0);
+  return`<path vector-effect="non-scaling-stroke" d="${mi}" stroke="#2a2e3a" stroke-width="1" fill="none" pointer-events="none"/><path vector-effect="non-scaling-stroke" d="${ma}" stroke="#3d4358" stroke-width="1" fill="none" pointer-events="none"/>`}
+/* ===== фильтр-чипы: секции меню; объекты; «Изменить карту» ===== */
+function secFilter(){document.querySelectorAll('#side [data-for],#side [data-ff]').forEach(el=>{const a=el.dataset.ff,w=(a||el.dataset.for).split(' ');el.hidden=a?!focus||!w.includes(focus):!!focus&&!w.includes(focus)})}
+function olist(){const b=$('olist');if(!focus||focus==='borders'){b.innerHTML='';return}
+  const A={markers:['m',S.markers,'Значки',o=>chip(MARKER_SVG[o.icon]?o.icon:'landmark')+esc(o.name||'Без названия')],labels:['l',S.labels,'Подписи',o=>esc(o.text||'')],paths:['p',S.paths,'Пути',o=>`<span class="pdot" style="background:${o.color||'#c9a24c'}"></span>${esc(o.name||'Путь')}`]}[focus];
+  b.innerHTML=`<div class="eyebrow">${A[2]} (${A[1].length})</div>`+(A[1].map(o=>`<div class="tl ${selI&&selI.k===A[0]&&selI.id===o.id?'sel':''}" data-o="${A[0]}:${o.id}">${A[3](o)}</div>`).join('')||'<div style="font-size:12px;color:var(--text-faint)">Пока пусто: выбери инструмент и кликни по карте</div>')}
+$('olist').onclick=e=>{const r=e.target.closest('[data-o]');if(!r)return;const[k,id]=r.dataset.o.split(':');selI={k,id};sel=null;editId=null;selN=null;render()};
+$('side').addEventListener('keydown',e=>{if(e.target.id==='pName'&&(e.key==='Enter'||e.key==='Escape'))e.target.blur()});
+Object.assign(HINTS,{map:'Изменить карту: тяни картинку — двигать · золотой кружок в углу — размер · Del — удалить · колесо — масштаб вида'});
+const pp=o=>({...o,x:o.x/S.w*100,y:o.y/S.h*100,w:o.w/S.w*100});
+const picOf=id=>id==='base'?S.base:S.pics.find(o=>o.id===id);
+const picSvg=(o,src)=>`<image ${mapEdit?`data-pic="${o.id}" style="cursor:move"`:'pointer-events="none"'} href="${src}" x="${o.x}" y="${o.y}" width="${o.w}" height="${o.w*o.ar}" opacity="${o.op===undefined?1:o.op}" transform="rotate(${o.rot||0} ${o.x+o.w/2} ${o.y+o.w*o.ar/2})"/>`;
+const picsSvg=ab=>S.pics.filter(o=>o.vis!==0&&!!o.above===!!ab&&S.imgs[o.key]).map(o=>picSvg(o,S.imgs[o.key])).join('');
+function meFrame(k){const o=mapEdit&&selPic&&picOf(selPic);if(!o)return'';const hh=o.w*o.ar;return`<g transform="rotate(${o.rot||0} ${o.x+o.w/2} ${o.y+hh/2})"><rect x="${o.x}" y="${o.y}" width="${o.w}" height="${hh}" fill="none" stroke="#c9a24c" stroke-width="${2/k}" stroke-dasharray="${6/k}" pointer-events="none"/><circle data-pich="${o.id}" cx="${o.x+o.w}" cy="${o.y+hh}" r="${8/k}" fill="#c9a24c" stroke="#14151b" stroke-width="${1.5/k}" style="cursor:nwse-resize"/></g>`}
+function mePD(e,p){const h=e.target.dataset.pich,i=e.target.dataset.pic,o=(h||i)&&picOf(h||i);
+  if(o){selPic=o.id;drag=h?{pic:o.id,rs:1}:{pic:o.id,dx:p.x-o.x,dy:p.y-o.y};svg.setPointerCapture(e.pointerId);render();return}
+  drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId)}
+function setMapEdit(on){mapEdit=!!on;document.body.classList.toggle('me',mapEdit);$('mapBtn').classList.toggle('on',mapEdit);$('mapBtn').textContent=mapEdit?'✓ Готово':'Изменить карту';$('mapPanel').hidden=!mapEdit;
+  if(mapEdit){if(focus){focus=null;focusHide=false;applyFocus()}commitPath();draft=[];pd=[];sel=null;selI=null;selN=null;editId=null;attachTo=null;if(!selPic)selPic=S.img?'base':(S.pics.length?S.pics[S.pics.length-1].id:null)}else selPic=null;render()}
+$('mapBtn').onclick=()=>setMapEdit(!mapEdit);
+function mapPanelUpd(){if(!mapEdit)return;
+  const row=o=>{const bs=o.id==='base';return`<div class="tl ${selPic===o.id?'sel':''}" data-pr="${o.id}">${bs?'':`<button class="fb" data-pv="${o.id}" title="Показать или скрыть">${ico(o.vis===0?IC.eyeoff:IC.eye)}</button>`}<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${bs?'Основная картинка':esc(o.name||'Картинка')}</span>${bs?'':`<button class="fb" data-pu="${o.id}" title="Выше">↑</button><button class="fb" data-pd="${o.id}" title="Ниже">↓</button><button class="fb" data-px="${o.id}" title="Удалить">✕</button>`}</div>`};
+  const rg=(f,l,a,c,st,v,u)=>`<div class="fld"><span style="display:flex;justify-content:space-between">${l}<b id="pv_${f}" style="color:var(--text)">${v}${u}</b></span><input type="range" data-pf="${f}" min="${a}" max="${c}" step="${st}" value="${v}"></div>`;
+  const o=selPic&&picOf(selPic);
+  $('mapPanel').innerHTML=`<div class="eyebrow">Картинки на карте</div><button data-padd style="width:100%;margin-bottom:8px">+ Добавить картинки…</button>`+S.pics.slice().reverse().map(row).join('')+(S.img?row(S.base):'')+`<div class="eyebrow">Выбранная картинка</div>`+(o?rg('w','Размер, % ширины холста',2,400,1,Math.round(o.w/S.w*100),'%')+rg('rot','Поворот',-180,180,1,Math.round(o.rot||0),'°')+rg('op','Прозрачность',.05,1,.05,o.op===undefined?1:o.op,'')+(o.id==='base'?'':`<label class="lay"><input type="checkbox" data-pab ${o.above?'checked':''}>Поверх областей и границ</label>`)+'<button data-pfit style="width:100%">Растянуть на весь холст</button>':'<span style="font-size:12px;color:var(--text-faint)">Выбери картинку в списке или на карте</span>')+xPanel()}
+$('mapPanel').addEventListener('click',e=>{const g=a=>e.target.closest(a);let b;
+  if(g('[data-padd]'))return $('picFile').click();
+  if(b=g('[data-pv]')){const o=picOf(b.dataset.pv);push();o.vis=o.vis===0?1:0;return render()}
+  if(b=g('[data-pu]')||g('[data-pd]')){const id=b.dataset.pu||b.dataset.pd,i=S.pics.findIndex(o=>o.id===id),j=i+(b.dataset.pu?1:-1);if(j>=0&&j<S.pics.length){push();[S.pics[i],S.pics[j]]=[S.pics[j],S.pics[i]];render()}return}
+  if(b=g('[data-px]')){push();S.pics=S.pics.filter(o=>o.id!==b.dataset.px);if(selPic===b.dataset.px)selPic=null;return render()}
+  if(g('[data-pfit]')){const o=picOf(selPic);if(o){push();o.x=0;o.y=0;o.w=S.w;render()}return}
+  if(b=g('[data-pr]')){selPic=b.dataset.pr;render()}});
+$('mapPanel').addEventListener('input',e=>{const i=e.target,o=picOf(selPic);if(!o)return;
+  if(i.dataset.pf){const f=i.dataset.pf,v=+i.value;push('pf'+f);if(f==='w'){const cx=o.x+o.w/2,cy=o.y+o.w*o.ar/2;o.w=v/100*S.w;o.x=cx-o.w/2;o.y=cy-o.w*o.ar/2}else o[f]=v;const lb=$('pv_'+f);if(lb)lb.textContent=f==='w'?Math.round(v)+'%':f==='rot'?Math.round(v)+'°':v;render(1)}
+  else if('pab' in i.dataset){push();o.above=i.checked?1:0;render()}});
+$('picFile').onchange=e=>{const fs=[...e.target.files];e.target.value='';fs.forEach(f=>{const r=new FileReader();r.onload=()=>{const im=new Image();im.onload=()=>{const m=Math.min(1,1600/Math.max(im.naturalWidth,im.naturalHeight)),c=document.createElement('canvas');c.width=Math.round(im.naturalWidth*m);c.height=Math.round(im.naturalHeight*m);c.getContext('2d').drawImage(im,0,0,c.width,c.height);
+  const n=uid++,w=S.w*.4,ar=c.height/c.width;push();S.imgs['i'+n]=c.toDataURL(f.type==='image/jpeg'?'image/jpeg':'image/png',.9);const o={id:'g'+n,key:'i'+n,name:f.name.replace(/\.[^.]+$/,''),x:S.w/2-w/2,y:S.h/2-w*ar/2,w,ar,rot:0,op:1};S.pics.push(o);selPic=o.id;render()};im.src=r.result};r.readAsDataURL(f)})};
+secFilter();
 /* ===== возврат в Мастерскую: сначала дожидаемся сохранения ===== */
 function leave(){
   if(embedded){host.postMessage({type:'stol:close'},refOrigin)}
@@ -1092,6 +1282,74 @@ $('backBtn').onclick=()=>{
     clearTimeout(saveT);sendSave();const t0=Date.now();
     const w=setInterval(()=>{if(sigOf()===bridge.savedSig||Date.now()-t0>3000){clearInterval(w);leave()}},80)}
   else leave()};
+
+/* ===== экспорт карты: PNG и SVG (кнопка в «Изменить карту») ===== */
+const XP={fmt:'png',sz:2,bg:'dark'},XW=1200;let xMsg='',xBad=false,xBusy=false;
+const xDims=()=>{const w=Math.round(XW*XP.sz),h=Math.round(w*S.h/S.w);return{w,h}};
+function xPanel(){const sl=(id,v,o)=>`<select id="${id}">${o.map(([k,n])=>`<option value="${k}" ${String(v)===String(k)?'selected':''}>${n}</option>`).join('')}</select>`;
+  return`<div class="eyebrow">Экспорт карты</div>`+
+  `<div class="fld">Формат${sl('xFmt',XP.fmt,[['png','PNG — картинка'],['svg','SVG — вектор, без потери качества']])}</div>`+
+  (XP.fmt==='png'?`<div class="fld">Размер${sl('xSz',XP.sz,[1,2,3,4].map(z=>[z,'×'+z+' — '+XW*z+' × '+Math.round(XW*z*S.h/S.w)+' px']))}</div>`:'')+
+  `<div class="fld">Фон${sl('xBg',XP.bg,[['dark','Тёмный, как в редакторе'],['none','Прозрачный']])}</div>`+
+  `<button id="xGo" style="width:100%" ${xBusy?'disabled':''}>${xBusy?'Готовлю файл…':'Сохранить файл'}</button>`+
+  `<div style="font-size:11.5px;color:var(--text-faint);margin-top:6px;line-height:1.4">В файл попадает то, что сейчас включено в слоях: области, значки, подписи, пути и картинки карты. Сетка и точки правки не попадают.</div>`+
+  (xMsg?`<div style="font-size:12px;color:${xBad?'var(--thread)':'var(--text-dim)'};margin-top:6px;line-height:1.4">${esc(xMsg)}</div>`:'')}
+const FONTC={};
+const inRange=(cp,r)=>r.split(',').some(u=>{u=u.trim().replace(/^U\+/i,'');if(!u)return false;
+  if(u.includes('?')){return cp>=parseInt(u.replace(/\?/g,'0'),16)&&cp<=parseInt(u.replace(/\?/g,'F'),16)}
+  const[a,b]=u.split('-'),lo=parseInt(a,16),hi=b?parseInt(b,16):lo;return cp>=lo&&cp<=hi});
+async function faceCss(fam,wt,chars){const key=fam+'|'+wt;
+  if(!FONTC[key]){const r=await fetch('https://fonts.googleapis.com/css2?family='+encodeURIComponent(fam).replace(/%20/g,'+')+':wght@'+wt+'&display=swap');if(!r.ok)throw new Error('css');FONTC[key]={css:await r.text(),data:{}}}
+  const F=FONTC[key],out=[];
+  for(const m of F.css.matchAll(/@font-face\s*\{([^}]*)\}/g)){const b=m[1],ur=(/unicode-range:\s*([^;]+)/.exec(b)||[])[1],u=/url\(([^)]+)\)/.exec(b);if(!u)continue;
+    if(ur&&![...chars].some(ch=>inRange(ch.codePointAt(0),ur)))continue;
+    const url=u[1].replace(/['"]/g,'');
+    if(!F.data[url]){const rb=await fetch(url);if(!rb.ok)throw new Error('font');const bl=await rb.blob();
+      F.data[url]=await new Promise(ok=>{const fr=new FileReader();fr.onload=()=>ok(String(fr.result).replace(/^data:[^,]*,/,'data:font/woff2;base64,'));fr.readAsDataURL(bl)})}
+    out.push("@font-face{font-family:'"+fam+"';font-style:normal;font-weight:"+wt+";src:url("+F.data[url]+") format('woff2');"+(ur?'unicode-range:'+ur+';':'')+"}")}
+  return out.join('')}
+function fontNeeds(){const need={},add=(fam,wt,txt)=>{const k=fam+'|'+wt,o=need[k]=need[k]||{fam,wt,ch:new Set()};for(const ch of String(txt||''))o.ch.add(ch)};
+  if(S.vis.labels)S.labels.forEach(lb=>{if(S.lt[lb.type||'country']===0)return;const fd=MAP_LABEL_FONTS[lb.font]||MAP_LABEL_FONTS.caveat;add(fd.family,400,lb.text)});
+  if(S.vis.markers)S.markers.forEach(mk=>add('Inter',600,mk.name));
+  return Object.values(need)}
+async function fontCss(){let css='',bad=false;for(const n of fontNeeds()){try{css+=await faceCss(n.fam,n.wt,n.ch)}catch(_){bad=true}}return{css,bad}}
+function buildExportSvg(w,h,css){
+  const bk=[sel,selI,selN,editId],k=XW/S.w,NS='http://www.w3.org/2000/svg';let body='';
+  sel=selI=selN=editId=null;
+  try{const m=nb(),TI=terrInfo(),vis=S.terrs.filter(t=>S.vis[t.layer]&&!TI.hidden.has(t.id)).sort((a,b)=>TI.depth[a.id]-TI.depth[b.id]),EO={};
+    vis.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length],key=a<b?a+'|'+b:b+'|'+a;(EO[key]=EO[key]||[]).push(t.id)}));
+    body=(S.img?picSvg(S.base,S.img):'')+picsSvg(0)+'<g>';
+    vis.forEach(t=>{const d=ringD(t.ring,m),ti=terrImg(t);body+=`<path d="${d}" fill="${t.color}" fill-opacity="${t.alpha}"/>${ti.fill}<clipPath id="c${t.id}"><path d="${d}"/></clipPath>${bord(t,d,m,EO,TI,k)}${ti.emb}`;
+      if(t.layer==='dis')body+=`<path d="${d}" fill="url(#hatch)"/>`});
+    body+='</g>'+picsSvg(1)+extra(k)}
+  finally{[sel,selI,selN,editId]=bk}
+  const root=document.createElementNS(NS,'svg');
+  root.innerHTML=svg.querySelector('defs').outerHTML+(XP.bg==='dark'?`<rect width="${S.w}" height="${S.h}" fill="#1a1c24"/>`:'')+body;
+  root.querySelectorAll('*').forEach(el=>{[...el.attributes].forEach(a=>{if((a.name.startsWith('data-')&&a.name!=='data-per')||a.name==='pointer-events')el.removeAttribute(a.name)});
+    const st=el.getAttribute('style');if(st&&/cursor/.test(st)){const n=st.replace(/cursor:[^;]*;?/g,'').trim();n?el.setAttribute('style',n):el.removeAttribute('style')}});
+  root.querySelectorAll('[stroke="transparent"],rect[fill="transparent"],title').forEach(el=>el.remove());
+  const cs=getComputedStyle(document.documentElement),vars=['gold','teal','rose','violet','gray','thread','text'].map(n=>'--'+n+':'+cs.getPropertyValue('--'+n).trim()).join(';');
+  const st=document.createElementNS(NS,'style');st.textContent=':root{'+vars+'}'+css;root.insertBefore(st,root.firstChild);
+  root.setAttribute('xmlns',NS);root.setAttribute('viewBox','0 0 '+S.w+' '+S.h);root.setAttribute('width',w);root.setAttribute('height',h);
+  return new XMLSerializer().serializeToString(root)}
+function xSave(blob,ext){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=(String(S.name||'karta').replace(/[\\/:*?"<>|]+/g,'_').trim()||'karta')+'.'+ext;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000)}
+async function xGo(){if(xBusy)return;const png=XP.fmt==='png',d=png?xDims():{w:S.w,h:S.h};
+  if(png&&(d.w>16000||d.h>16000||d.w*d.h>150e6)){xMsg='Слишком большой размер для PNG — выбери меньший или формат SVG';xBad=true;return mapPanelUpd()}
+  xBusy=true;xBad=false;xMsg='';mapPanelUpd();
+  try{const f=await fontCss(),str=buildExportSvg(d.w,d.h,f.css);
+    if(png){const url=URL.createObjectURL(new Blob([str],{type:'image/svg+xml;charset=utf-8'}));
+      try{const im=new Image();await new Promise((ok,no)=>{im.onload=ok;im.onerror=()=>no(new Error('img'));im.src=url});await new Promise(r=>setTimeout(r,200));
+        const c=document.createElement('canvas');c.width=d.w;c.height=d.h;c.getContext('2d').drawImage(im,0,0,d.w,d.h);
+        const bl=await new Promise((ok,no)=>c.toBlob(b=>b?ok(b):no(new Error('blob')),'image/png'));xSave(bl,'png')}
+      finally{URL.revokeObjectURL(url)}}
+    else xSave(new Blob(['<?xml version="1.0" encoding="UTF-8"?>\n'+str],{type:'image/svg+xml'}),'svg');
+    xMsg=f.bad?'Файл сохранён, но шрифты подписей встроить не удалось (нет доступа к Google Fonts) — подписи могут выглядеть другим шрифтом.':'Файл сохранён.';xBad=f.bad}
+  catch(err){xMsg='Не получилось сохранить: '+(err&&err.message||err);xBad=true}
+  xBusy=false;mapPanelUpd()}
+$('mapPanel').addEventListener('click',e=>{if(e.target.closest('#xGo'))xGo()});
+$('mapPanel').addEventListener('change',e=>{const i=e.target;
+  if(i.id==='xFmt'){XP.fmt=i.value;xMsg='';mapPanelUpd()}else if(i.id==='xSz'){XP.sz=+i.value;mapPanelUpd()}else if(i.id==='xBg'){XP.bg=i.value;mapPanelUpd()}});
+$('ezm').onclick=()=>zoomBy(1/1.25);$('ezp').onclick=()=>zoomBy(1.25);$('ezf').onclick=()=>{fit();render(1)};$('efsT').innerHTML=ico(IC.fs);$('efsT').onclick=()=>$('efs').click();
 fit();render();addEventListener('resize',()=>{fit();render()});
 </script>
 </body>

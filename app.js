@@ -84,7 +84,7 @@ function openAvatarCropper(source, onApply){
 function openImageViewer(src, caption=''){
   if(!src) return;
   const overlay=document.createElement('div'); overlay.className='image-viewer-backdrop'; overlay.setAttribute('role','dialog'); overlay.setAttribute('aria-modal','true');
-  overlay.innerHTML=`<button class="image-viewer-close" aria-label="Закрыть">×</button><div class="image-viewer-frame"><img src="${src}" alt="${esc(caption)}">${caption?`<div class="image-viewer-caption">${esc(caption)}</div>`:''}</div>`;
+  overlay.innerHTML=`<button class="image-viewer-close" title="Закрыть" aria-label="Закрыть">${MODAL_ICON_X}</button><div class="image-viewer-frame"><img src="${src}" alt="${esc(caption)}">${caption?`<div class="image-viewer-caption">${esc(caption)}</div>`:''}</div>`;
   overlay.addEventListener('click',e=>{if(e.target===overlay || e.target.closest('.image-viewer-close')) overlay.remove();});
   const onKey=e=>{if(e.key==='Escape'){overlay.remove();document.removeEventListener('keydown',onKey);}};
   document.addEventListener('keydown',onKey); overlay.addEventListener('remove',()=>document.removeEventListener('keydown',onKey));
@@ -671,28 +671,28 @@ function renderRelationships(el, pid){
   el.innerHTML = `
     <div class="canvas-toolbar">
       <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-        <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Связи персонажей</h3>
+        <h3 class="board-title">Связи персонажей</h3>
       </div>
       <div class="board-actions">
         ${histBtnsHtml('rel')}
         <div class="canvas-zoom-controls">
-          <button class="btn btn-sm" onclick="zoomRelCanvas(-0.15)">−</button>
-          <span class="mono" id="relZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
-          <button class="btn btn-sm" onclick="zoomRelCanvas(0.15)">+</button>
+          <button class="btn btn-sm btn-tool" onclick="zoomRelCanvas(-0.15)" title="Уменьшить" aria-label="Уменьшить">−</button>
+          <span class="mono zoom-label" id="relZoomLabel">100%</span>
+          <button class="btn btn-sm btn-tool" onclick="zoomRelCanvas(0.15)" title="Увеличить" aria-label="Увеличить">+</button>
         </div>
         ${viewSwitchHtml('networks')}
         <button class="btn btn-sm" onclick="resetRelCanvasView()">Центрировать</button>
-        <button class="btn btn-sm hist-btn" onclick="toggleBoardFs('rel')" title="Во весь экран" aria-label="Во весь экран">${BOARD_FS_ICON}</button>
+        <button class="btn btn-sm btn-tool" onclick="toggleBoardFs('rel')" title="Во весь экран" aria-label="Во весь экран">${BOARD_FS_ICON}</button>
         <button class="btn btn-primary btn-sm" onclick="openNewRelationshipModal()">+ Связь</button>
       </div>
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — создастся связь, а карточка вернётся на место. Клик по карточке — редактировать персонажа.' : 'Тащите персонажей, чтобы расставить как хотите. Бросьте карточку точно в центр другой — создастся связь, а карточка вернётся на место. Или тяните от золотой точки к другому персонажу. Клик по персонажу — подсветить его нити. Клик по линии — открыть связь.'}</div>
     ${hexMode ? hexBoardHtml('rel') : `<div id="relCanvasViewport">
       <div id="relCanvasInner">
         <svg id="relEdgesSvg" width="4000" height="3000"></svg>
         ${chars.map(relNodeHtml).join('')}
       </div>
     </div>`}
+    <div class="eyebrow board-hint">${hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — создастся связь, а карточка вернётся на место. Клик по карточке — редактировать персонажа.' : 'Тащите персонажей, чтобы расставить как хотите. Бросьте карточку точно в центр другой — создастся связь, а карточка вернётся на место. Или тяните от золотой точки к другому персонажу. Клик по персонажу — подсветить его нити. Клик по линии — открыть связь.'}</div>
     <div id="legend" style="margin-top:14px;">
       ${Object.entries(REL_TYPES).map(([k,v])=>`<div class="legend-item"><span class="legend-swatch" style="background:${v.color}"></span>${v.label}</div>`).join('')}
     </div>
@@ -900,7 +900,7 @@ function relCard(r){
   const typesHtml = types.map(t=>`<span class="d-tag" style="border-color:${relTypeColor(t)}; color:${relTypeColor(t)};">${esc(relTypeLabel(t))}</span>`).join('');
   const evolvesHtml = evolves.length ? `<span style="margin:0 4px; color:var(--text-faint);">→</span>` + evolves.map(t=>`<span class="d-tag" style="border-color:${relTypeColor(t)}; color:${relTypeColor(t)};">${esc(relTypeLabel(t))}</span>`).join('') : '';
   return `<div class="dossier">
-    <div class="d-top"><h3 style="font-size:14.5px;">${esc(charName(r.charA))} ↔ ${esc(charName(r.charB))}</h3></div>
+    <div class="d-top"><h3>${esc(charName(r.charA))} ↔ ${esc(charName(r.charB))}</h3></div>
     <div class="d-tags" style="margin-top:8px; align-items:center;">${typesHtml}${evolvesHtml}</div>
     ${r.evolveNote ? `<div class="d-alias" style="margin-top:6px;">${esc(r.evolveNote)}</div>` : ''}
     ${r.desc ? `<div class="d-desc">${esc(r.desc)}</div>` : ''}
@@ -963,10 +963,7 @@ function renderTimeline(el, pid){
   teardownTimelineNav();
   const events = itemsOf('events', pid).slice().sort((a,b)=>(a.order||0)-(b.order||0));
   el.innerHTML = `
-    <div class="toolbar">
-      <div class="eyebrow">Отсортировано по порядковому номеру события</div>
-      <button class="btn btn-primary fab-add" onclick="openNewEventModal()">+ Новое событие</button>
-    </div>
+    <button class="btn btn-primary fab-add" onclick="openNewEventModal()">+ Новое событие</button>
     <div class="tl-layout">
       <div class="tl-navlist ${events.length ? 'has-events' : ''}" id="tlNavList">
         ${events.map((e,i)=>`<div class="tl-navitem" data-id="${e.id}" onclick="scrollToTimelineEvent('${e.id}')" title="${esc(e.title)}">
@@ -975,6 +972,7 @@ function renderTimeline(el, pid){
       </div>
       <div id="timelineList" style="max-width:720px; flex:1; min-width:0;">${events.length ? events.map(eventCard).join('') : '<div class="empty-tab">Событий пока нет.</div>'}</div>
     </div>
+    <div class="eyebrow board-hint">Отсортировано по порядковому номеру события</div>
   `;
   if(events.length){
     updateTimelineNavActive(events[0].id);
@@ -1050,13 +1048,13 @@ function renderStructure(el, pid){
   const scenes = itemsOf('scenes', pid);
   el.innerHTML = `
     <div class="canvas-toolbar">
-      <div class="eyebrow">Тащите карточки за шапку. Тяните от точки справа к другой карточке — так соединяются сцены. Клик по стрелке удаляет связь. Двойной клик по карточке — редактировать.</div>
-      <div style="display:flex; gap:8px; align-items:center;">
+      <h3 class="board-title">Структура сюжета</h3>
+      <div class="board-actions">
         ${histBtnsHtml('scenes')}
         <div class="canvas-zoom-controls">
-          <button class="btn btn-sm" onclick="zoomCanvas(-0.15)">−</button>
-          <span class="mono" id="zoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
-          <button class="btn btn-sm" onclick="zoomCanvas(0.15)">+</button>
+          <button class="btn btn-sm btn-tool" onclick="zoomCanvas(-0.15)" title="Уменьшить" aria-label="Уменьшить">−</button>
+          <span class="mono zoom-label" id="zoomLabel">100%</span>
+          <button class="btn btn-sm btn-tool" onclick="zoomCanvas(0.15)" title="Увеличить" aria-label="Увеличить">+</button>
         </div>
         <button class="btn btn-sm" onclick="resetCanvasView()">Центрировать</button>
         <button class="btn btn-primary btn-sm" onclick="addScene()">+ Сцена</button>
@@ -1069,6 +1067,7 @@ function renderStructure(el, pid){
         ${scenes.map(sceneNodeHtml).join('')}
       </div>
     </div>
+    <div class="eyebrow board-hint">Тащите карточки за шапку. Тяните от точки справа к другой карточке — так соединяются сцены. Клик по стрелке удаляет связь. Двойной клик по карточке — редактировать.</div>
   `;
   applyCanvasTransform();
   drawEdges();
@@ -2418,7 +2417,7 @@ function locCard(l){
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;">
-          <h3 style="font-size:15.5px;">${esc(l.name)}</h3>
+          <h3>${esc(l.name)}</h3>
           ${l.faction ? `<div class="d-role">${esc(l.faction)}</div>` : ''}
         </div>
       </div>
@@ -2440,7 +2439,7 @@ function facCard(f){
     <div class="d-top">
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
-        <div style="min-width:0;"><h3 style="font-size:15.5px;">${esc(f.name)}</h3></div>
+        <div style="min-width:0;"><h3>${esc(f.name)}</h3></div>
       </div>
     </div>
     ${collapsibleBlock('fac-desc-'+f.id, 'Описание', f.desc)}
@@ -2460,7 +2459,7 @@ function creatureCard(c){
     <div class="d-top">
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
-        <div style="min-width:0;"><h3 style="font-size:15.5px;">${esc(c.name)}</h3></div>
+        <div style="min-width:0;"><h3>${esc(c.name)}</h3></div>
       </div>
     </div>
     ${collapsibleBlock('creature-desc-'+c.id, 'Описание, повадки, слабости', c.desc)}
@@ -2504,7 +2503,7 @@ function toggleCollapsible(id){
 }
 function mythCard(m){
   return `<div class="dossier" data-id="${m.id}">
-    <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
+    <h3>${esc(m.name)}</h3>
     ${m.origin ? `<div class="d-role">${esc(m.origin)}</div>` : ''}
     ${collapsibleBlock('myth-desc-'+m.id, 'Пересказ легенды', m.desc)}
     ${collapsibleBlock('myth-truth-'+m.id, 'Правда за легендой', m.truth)}
@@ -2535,7 +2534,7 @@ function mythFields(){
 }
 function magicCard(m){
   return `<div class="dossier" data-id="${m.id}">
-    <h3 style="font-size:15.5px;">${esc(m.name)}</h3>
+    <h3>${esc(m.name)}</h3>
     ${m.source ? `<div class="d-role">${esc(m.source)}</div>` : ''}
     ${collapsibleBlock('magic-desc-'+m.id, 'Как это работает', m.desc)}
     ${collapsibleBlock('magic-limits-'+m.id, 'Цена / ограничения', m.limits)}
@@ -2573,7 +2572,7 @@ function artifactCard(a){
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;">
-          <h3 style="font-size:15.5px;">${esc(a.name)}</h3>
+          <h3>${esc(a.name)}</h3>
           ${a.owner ? `<div class="d-role">Владелец: ${esc(a.owner)}</div>` : ''}
         </div>
       </div>
@@ -2615,7 +2614,7 @@ function deityCard(d){
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;">
-          <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
+          <h3>${esc(d.name)}</h3>
           ${d.domain ? `<div class="d-role">${esc(d.domain)}</div>` : ''}
         </div>
       </div>
@@ -2655,7 +2654,7 @@ function countryCard(c){
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;">
-          <h3 style="font-size:15.5px;">${esc(c.name)}</h3>
+          <h3>${esc(c.name)}</h3>
           ${c.capital ? `<div class="d-role">Столица: ${esc(c.capital)}</div>` : ''}
         </div>
       </div>
@@ -2699,7 +2698,7 @@ function dynastyCard(d){
       <div style="display:flex; gap:10px; align-items:flex-start; min-width:0;">
         ${avatar}
         <div style="min-width:0;">
-          <h3 style="font-size:15.5px;">${esc(d.name)}</h3>
+          <h3>${esc(d.name)}</h3>
           ${d.country ? `<div class="d-role">${esc(d.country)}</div>` : ''}
         </div>
       </div>
@@ -2786,23 +2785,22 @@ function renderTreeEditor(el, dynasty){
     <div class="canvas-toolbar">
       <div style="display:flex; align-items:center; gap:10px; min-width:0;">
         <button class="btn btn-sm" onclick="closeTreeEditor()">← Назад к династиям</button>
-        <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Древо: ${esc(dynasty.name)}</h3>
+        <h3 class="board-title">Древо: ${esc(dynasty.name)}</h3>
       </div>
       <div class="board-actions">
         ${histBtnsHtml('tree')}
         <div class="canvas-zoom-controls">
-          <button class="btn btn-sm" onclick="zoomTreeCanvas(-0.15)">−</button>
-          <span class="mono" id="treeZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
-          <button class="btn btn-sm" onclick="zoomTreeCanvas(0.15)">+</button>
+          <button class="btn btn-sm btn-tool" onclick="zoomTreeCanvas(-0.15)" title="Уменьшить" aria-label="Уменьшить">−</button>
+          <span class="mono zoom-label" id="treeZoomLabel">100%</span>
+          <button class="btn btn-sm btn-tool" onclick="zoomTreeCanvas(0.15)" title="Увеличить" aria-label="Увеличить">+</button>
         </div>
         ${viewSwitchHtml('dynasty')}
         <button class="btn btn-sm" onclick="resetTreeCanvasView()">Центрировать</button>
-        <button class="btn btn-sm hist-btn" onclick="toggleBoardFs('tree')" title="Во весь экран" aria-label="Во весь экран">${BOARD_FS_ICON}</button>
-        <button class="btn btn-sm" onclick="openNewMemberLinkModal('${dynasty.id}')">+ Связь</button>
+        <button class="btn btn-sm btn-tool" onclick="toggleBoardFs('tree')" title="Во весь экран" aria-label="Во весь экран">${BOARD_FS_ICON}</button>
+        <button class="btn btn-primary btn-sm" onclick="openNewMemberLinkModal('${dynasty.id}')">+ Связь</button>
         <button class="btn btn-primary btn-sm" onclick="openNewMemberModal('${dynasty.id}')">+ Участник</button>
       </div>
     </div>
-    <div class="eyebrow" style="margin-bottom:10px;">${famMode ? 'Перетащите один круг на другой — и выберите, кем они приходятся друг другу: круги сами встанут на место. Клик по кругу — подсветить родню, клик по линии — изменить родство, двойной клик по кругу — редактировать, правая кнопка — меню.' : hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — выберите, кем они приходятся друг другу, и карточка вернётся на место. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Бросьте карточку точно в центр другой — выберите, кем они приходятся друг другу. Или тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
     ${members.length===0 ? `<div class="empty-tab" style="margin-bottom:14px;">Пусто. Добавьте первого члена рода.</div>` : ''}
     ${famMode ? familyBoardHtml(members, links) : hexMode ? hexBoardHtml('tree') : `<div id="treeCanvasViewport">
       <div id="treeCanvasInner">
@@ -2810,6 +2808,7 @@ function renderTreeEditor(el, dynasty){
         ${members.map(treeNodeHtml).join('')}
       </div>
     </div>`}
+    <div class="eyebrow board-hint">${famMode ? 'Перетащите один круг на другой — и выберите, кем они приходятся друг другу: круги сами встанут на место. Клик по кругу — подсветить родню, клик по линии — изменить родство, двойной клик по кругу — редактировать, правая кнопка — меню.' : hexMode ? 'Тащите карточки по сотам — при отпускании они прилипают к ближайшей ячейке. Бросьте карточку на другую — выберите, кем они приходятся друг другу, и карточка вернётся на место. Клик по карточке — редактировать.' : 'Тащите карточки, чтобы расставить как хотите. Бросьте карточку точно в центр другой — выберите, кем они приходятся друг другу. Или тяните от золотой точки родителя к ребёнку — так рождается связь. Двойной клик по карточке — редактировать.'}</div>
     <div class="side-section-label" style="margin:26px 0 10px;">Родственные связи</div>
     <div class="grid">${links.length ? links.map(l=>treeLinkCard(l, members)).join('') : '<div class="empty-tab">Связей пока нет.</div>'}</div>
   `;
@@ -3666,7 +3665,7 @@ function treeMemberName(id, members){
 }
 function treeLinkCard(l, members){
   return `<div class="dossier">
-    <div class="d-top"><h3 style="font-size:14.5px;">${esc(treeMemberName(l.fromId, members))} ${l.kind==='spouse' ? '⚭' : l.kind==='sibling' ? '↔' : '→'} ${esc(treeMemberName(l.toId, members))}</h3></div>
+    <div class="d-top"><h3>${esc(treeMemberName(l.fromId, members))} ${l.kind==='spouse' ? '⚭' : l.kind==='sibling' ? '↔' : '→'} ${esc(treeMemberName(l.toId, members))}</h3></div>
     <div style="font-size:11.5px; color:var(--text-faint); margin:2px 0 6px;">${l.kind==='spouse' ? 'Супруги / партнёры' : l.kind==='sibling' ? 'Братья / сёстры' : 'Родитель → ребёнок'}</div>
     <div class="d-actions">
       <button class="btn btn-ghost btn-sm" onclick="openEditMemberLinkModal('${l.id}')">${btnIconSvg('edit')}Изменить</button>
@@ -3970,6 +3969,26 @@ const stolWins = {};   // mapId -> окно Стола
 function stolOrigin(){ try{ return new URL(STOL_URL, location.href).origin; }catch(_){ return location.origin; } }
 function stolTarget(origin){ return origin==='null' ? '*' : origin; }
 let stolFrame = null;   // {id, el} — Стол, открытый поверх Мастерской в этой же вкладке
+const STOL_TAB_ICON = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjYzlhMjRjIiBzdHJva2Utd2lkdGg9IjMuNiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIj48Y2lyY2xlIGN4PSIzMiIgY3k9IjMyIiByPSIyNiIvPjxlbGxpcHNlIGN4PSIzMiIgY3k9IjMyIiByeD0iMTIiIHJ5PSIyNiIvPjxwYXRoIGQ9Ik0zMiA2djUyTTYgMzJoNTJNMTAuMSAxOGg0My44TTEwLjEgNDZoNDMuOCIvPjwvc3ZnPg==';
+let stolSavedTab = null;   // значок и название вкладки Мастерской, пока открыт Стол
+function stolTabOn(){
+  if(stolSavedTab) return;
+  const icons = Array.from(document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]'));
+  stolSavedTab = { title: document.title, icons, parents: icons.map(l=>l.parentNode) };
+  icons.forEach(l=>l.remove());
+  const link = document.createElement('link');
+  link.rel = 'icon'; link.type = 'image/svg+xml'; link.href = STOL_TAB_ICON; link.id = 'stolTabIcon';
+  document.head.appendChild(link);
+  document.title = 'Стол картографа';
+}
+function stolTabOff(){
+  if(!stolSavedTab) return;
+  const t = stolSavedTab; stolSavedTab = null;
+  const own = document.getElementById('stolTabIcon'); if(own) own.remove();
+  t.icons.forEach((l,i)=>(t.parents[i]||document.head).appendChild(l));
+  document.title = t.title;
+}
+let stolPrevOverflow = null;   // прокрутка страницы Мастерской до открытия Стола (пока Стол открыт — страница под ним не прокручивается, второй полосы нет)
 function openInStol(id, mode){
   const m = data.maps.find(x=>x.id===id);
   if(!m) return;
@@ -3980,6 +3999,9 @@ function openInStol(id, mode){
   fr.setAttribute('allow', 'fullscreen');
   fr.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;border:0;z-index:9000;background:#14151b;';
   fr.src = STOL_URL + '?mode=' + (mode==='edit' ? 'edit' : 'view');
+  stolPrevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  stolTabOn();
   document.body.appendChild(fr);
   stolWins[id] = fr.contentWindow;
   stolFrame = { id, el: fr };
@@ -3991,6 +4013,8 @@ function closeStol(silent){
   stolFrame = null;
   delete stolWins[id];
   el.remove();
+  if(stolPrevOverflow !== null){ document.body.style.overflow = stolPrevOverflow; stolPrevOverflow = null; }
+  stolTabOff();
   if(!silent){
     try{ if(history.state && history.state.stol) history.back(); }catch(_){}
     renderMain();
@@ -3999,7 +4023,10 @@ function closeStol(silent){
 window.addEventListener('popstate', ()=>{ if(stolFrame) closeStol(true), renderMain(); });
 function openMapEditor(id){ openInStol(id, 'view'); }
 window.addEventListener('message', (e)=>{
-  if(e.origin !== stolOrigin()) return;
+  // При запуске с диска (file://) браузер подписывает сообщения iframe origin'ом 'null', а не 'file://' — принимаем и его.
+  // На сайте (https) проверка по-прежнему строгая: только свой origin.
+  const sameOrigin = e.origin === stolOrigin() || (location.protocol === 'file:' && e.origin === 'null');
+  if(!sameOrigin) return;
   const msg = e.data;
   if(!msg || typeof msg !== 'object') return;
   const id = Object.keys(stolWins).find(k=>stolWins[k]===e.source);
@@ -4899,7 +4926,7 @@ function renderMapEditor(el, m){
       <div class="canvas-toolbar">
         <div style="display:flex; align-items:center; gap:10px; min-width:0;">
           <button class="btn btn-sm" onclick="closeMapEditor()">← Назад к картам</button>
-          <h3 style="margin:0; font-size:16px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${esc(m.name)}</h3>
+          <h3 class="board-title">${esc(m.name)}</h3>
         </div>
         <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
           <div class="map-mode-seg">
@@ -4910,19 +4937,18 @@ function renderMapEditor(el, m){
           ${pathToolbar}
           ${histBtnsHtml('maps')}
           <div class="canvas-zoom-controls">
-            <button class="btn btn-sm" onclick="zoomMapCanvas(-0.2)">${uiIcon('minus',14)}</button>
-            <span class="mono" id="mapZoomLabel" style="font-size:12px; color:var(--text-faint); min-width:42px; text-align:center; display:inline-block;">100%</span>
-            <button class="btn btn-sm" onclick="zoomMapCanvas(0.2)">${uiIcon('plus',14)}</button>
+            <button class="btn btn-sm btn-tool" onclick="zoomMapCanvas(-0.2)" title="Уменьшить" aria-label="Уменьшить">−</button>
+            <span class="mono zoom-label" id="mapZoomLabel">100%</span>
+            <button class="btn btn-sm btn-tool" onclick="zoomMapCanvas(0.2)" title="Увеличить" aria-label="Увеличить">+</button>
           </div>
-          <button class="map-icon-btn" onclick="resetMapCanvasView()" title="Центрировать">${uiIcon('refresh',15)}</button>
-          <button class="map-icon-btn" onclick="toggleMapFullscreen()" title="${fullscreen ? 'Свернуть' : 'Во весь экран'}">${uiIcon(fullscreen ? 'x' : 'maximize',15)}</button>
+          <button class="btn btn-sm" onclick="resetMapCanvasView()">Центрировать</button>
+          <button class="btn btn-sm btn-tool" onclick="toggleMapFullscreen()" title="${fullscreen ? 'Выйти из полноэкранного режима (Esc)' : 'Во весь экран'}" aria-label="${fullscreen ? 'Выйти из полноэкранного режима' : 'Во весь экран'}">${fullscreen ? BOARD_FS_EXIT_ICON : BOARD_FS_ICON}</button>
           <div class="map-layers-btn-wrap">
-            <button class="map-layers-btn ${state.mapLayersPanelOpen?'open':''}" onclick="toggleMapLayersPanel(event)">${uiIcon('stack-2',14)} Слои ${uiIcon('chevron-down',11)}</button>
+            <button class="btn btn-sm map-layers-btn ${state.mapLayersPanelOpen?'open':''}" onclick="toggleMapLayersPanel(event)">${uiIcon('stack-2',14)} Слои ${uiIcon('chevron-down',11)}</button>
             ${layersPanelHtml}
           </div>
         </div>
       </div>
-      <div class="eyebrow" style="margin-bottom:${fullscreen ? '6px' : '10px'}; ${fullscreen ? 'font-size:10.5px; opacity:.65;' : ''}">${hint}</div>
       <div class="map-stage-row" id="mapStageRow">
         <div class="map-stage" id="mapStage">
           <div id="mapViewport" style="${fullscreen ? '' : `aspect-ratio:${m.aspect||1.6};`}">
@@ -4936,6 +4962,7 @@ function renderMapEditor(el, m){
         </div>
         <div id="mapSidePanel"></div>
       </div>
+      <div class="eyebrow board-hint${fullscreen ? ' board-hint-fs' : ''}">${hint}</div>
       ${fullscreen ? '' : `
       <div class="map-list-tabs">
         <div class="map-list-tab ${listTab==='marker'?'active':''}" onclick="setMapListTab('marker')">Метки<span class="count">${m.markers.length}</span></div>
@@ -5438,11 +5465,11 @@ function renderLabelPanel(m, lb, isNew){
         ${swatches.map(c=>`<button type="button" class="lbl-swatch" data-c="${c}" style="width:18px; height:18px; border-radius:50%; background:${c}; border:1px solid var(--border); cursor:pointer;"></button>`).join('')}
       </div>
     </div>
-    <div class="eyebrow" style="margin:2px 0 14px;">Поворот тяните прямо на карте — за золотой кружок над надписью.</div>
     <div style="display:flex; gap:8px;">
       ${isNew ? `<button class="btn btn-sm" id="lpCancel">Отменить</button>` : `<button class="btn btn-sm btn-danger" id="lpDelete">Удалить</button>`}
       <button class="btn btn-sm btn-primary" id="lpDone" style="margin-left:auto;">Готово</button>
     </div>
+    <div class="eyebrow board-hint">Поворот тяните прямо на карте — за золотой кружок над надписью.</div>
   </div>`;
   panel.classList.add('open');
   const upd = ()=>{ drawMapLabels(m); attachMapLabelDrag(m); };
@@ -5638,7 +5665,7 @@ function characterFieldsNew(){
 
 function openFormModal(title, fields, initial, onSave, dangerAction){
   const box = document.getElementById('modalBox');
-  box.style.maxWidth = '';
+  box.style.maxWidth = ''; box.style.minHeight = '';
   box.innerHTML = `<h2>${esc(title)}</h2><div id="modalFields"></div>
     <div id="modalActions">
       <div id="modalLeftActions">${dangerAction ? `<button class="btn btn-danger btn-sm" id="modalDangerBtn">${esc(dangerAction.label)}</button>` : ''}</div>
@@ -5771,10 +5798,10 @@ function openFormModal(title, fields, initial, onSave, dangerAction){
   if(dangerAction){ document.getElementById('modalDangerBtn').onclick = dangerAction.onClick; }
   document.getElementById('modalOverlay').classList.add('show');
 }
-function closeModal(){ document.getElementById('modalOverlay').classList.remove('show'); }
+function closeModal(){ const b=document.getElementById('modalBox'); document.getElementById('modalOverlay').classList.remove('show'); if(b){ b.style.maxWidth=''; b.style.minHeight=''; } }
 function askConfirm(message, confirmLabel, onConfirm){
   const box = document.getElementById('modalBox');
-  box.style.maxWidth = '';
+  box.style.maxWidth = '480px'; box.style.minHeight = '0';
   box.innerHTML = `<h2>Подтверждение</h2>
     <p style="font-size:13.5px; color:var(--text-dim); line-height:1.65; margin:0 0 14px;">${esc(message)}</p>
     <label style="display:flex; align-items:center; gap:9px; font-size:13px; color:var(--text); cursor:pointer; padding:10px 12px; background:var(--bg-alt); border:1px solid var(--border-soft); border-radius:var(--radius);">
@@ -5897,19 +5924,26 @@ function openReadModal(kind, id){
   if(!item) return;
   if(cfg.prepare) item = cfg.prepare(item);
   const fields = cfg.fields(item);
-  const rowsHtml = fields.map(f=>{
+  // Короткие поля и фото — в левую колонку, длинные описания (textarea) — в правую; на узком окне всё встаёт в один столбец
+  const sideRows = [], mainRows = [];
+  fields.forEach(f=>{
     const rendered = renderReadFieldValue(f, item[f.key]);
-    if(rendered===null) return '';
-    return `<div class="read-field">
+    if(rendered===null) return;
+    const row = `<div class="read-field${f.type==='image'?' read-field-photo':''}">
       <div class="read-field-label">${esc(f.label)}</div>
       <div class="read-field-value">${rendered}</div>
     </div>`;
-  }).join('');
+    (f.type==='textarea' ? mainRows : sideRows).push(row);
+  });
+  const rowsHtml = mainRows.length && sideRows.length ? '' : sideRows.concat(mainRows).join('');
+  const splitHtml = mainRows.length && sideRows.length
+    ? `<div class="read-split"><div class="read-side">${sideRows.join('')}</div><div class="read-main">${mainRows.join('')}RELATED_SLOT</div></div>` : '';
   const box = document.getElementById('modalBox');
-  box.style.maxWidth = '680px';
+  box.style.maxWidth = '1080px'; box.style.minHeight = '';
   const relatedHtml = renderRelatedBlock(kind, item);
+  const bodyHtml = splitHtml ? splitHtml.replace('RELATED_SLOT', ()=>relatedHtml) : ((rowsHtml || '<div class="empty-tab">Нет данных для отображения.</div>') + relatedHtml);
   box.innerHTML = `<h2>${esc(cfg.title(item))}</h2>
-    <div class="read-modal-body">${rowsHtml || '<div class="empty-tab">Нет данных для отображения.</div>'}${relatedHtml}</div>
+    <div class="read-modal-body">${bodyHtml}</div>
     <div id="modalActions">
       <div id="modalLeftActions"></div>
       <div id="modalRightActions" style="display:flex; gap:10px;">
@@ -6162,8 +6196,8 @@ function histRedo(scope){
 function histBtnsHtml(scope){
   const u = histCan('undo', scope), r = histCan('redo', scope);
   return `<div class="hist-btns" data-scope="${scope}">` +
-    `<button type="button" class="btn btn-sm hist-btn" data-which="undo" title="Отменить действие (Ctrl+Z)" aria-label="Отменить действие" ${u?'':'disabled'} onclick="histUndo('${scope}')">${HIST_ICON_UNDO}</button>` +
-    `<button type="button" class="btn btn-sm hist-btn" data-which="redo" title="Вернуть отменённое (Ctrl+Y)" aria-label="Вернуть отменённое действие" ${r?'':'disabled'} onclick="histRedo('${scope}')">${HIST_ICON_REDO}</button>` +
+    `<button type="button" class="btn btn-sm btn-tool hist-btn" data-which="undo" title="Отменить действие (Ctrl+Z)" aria-label="Отменить действие" ${u?'':'disabled'} onclick="histUndo('${scope}')">${HIST_ICON_UNDO}</button>` +
+    `<button type="button" class="btn btn-sm btn-tool hist-btn" data-which="redo" title="Вернуть отменённое (Ctrl+Y)" aria-label="Вернуть отменённое действие" ${r?'':'disabled'} onclick="histRedo('${scope}')">${HIST_ICON_REDO}</button>` +
     `</div>`;
 }
 function histRefreshButtons(){
@@ -6218,9 +6252,9 @@ function boardFsBar(vp, kind){
   bar = document.createElement('div');
   bar.className = 'board-fs-bar';
   bar.innerHTML = histBtnsHtml(kind) +
-    `<div class="canvas-zoom-controls"><button type="button" class="btn btn-sm" title="Уменьшить" onclick="${zi[0]}(-0.15)">−</button><button type="button" class="btn btn-sm" title="Увеличить" onclick="${zi[0]}(0.15)">+</button></div>` +
+    `<div class="canvas-zoom-controls"><button type="button" class="btn btn-sm btn-tool" title="Уменьшить" aria-label="Уменьшить" onclick="${zi[0]}(-0.15)">−</button><button type="button" class="btn btn-sm btn-tool" title="Увеличить" aria-label="Увеличить" onclick="${zi[0]}(0.15)">+</button></div>` +
     `<button type="button" class="btn btn-sm" onclick="${zi[1]}()">Центрировать</button>` +
-    `<button type="button" class="btn btn-sm btn-primary hist-btn" title="Выйти из полноэкранного режима (Esc)" aria-label="Выйти из полноэкранного режима" onclick="toggleBoardFs('${kind}')">${BOARD_FS_EXIT_ICON}</button>`;
+    `<button type="button" class="btn btn-sm btn-tool" title="Выйти из полноэкранного режима (Esc)" aria-label="Выйти из полноэкранного режима" onclick="toggleBoardFs('${kind}')">${BOARD_FS_EXIT_ICON}</button>`;
   ['mousedown','mouseup','contextmenu','dblclick'].forEach(t=>bar.addEventListener(t, ev=>ev.stopPropagation()));
   vp.appendChild(bar);
   return bar;
@@ -6534,3 +6568,62 @@ if(supabaseClient){
 }
 loadData();
 document.addEventListener('click', e=>{ const img=e.target.closest('.d-avatar, .ph-avatar img'); if(img && img.tagName==='IMG' && img.src){ e.preventDefault(); e.stopPropagation(); openImageViewer(img.src, img.alt || ''); } });
+
+
+/* ===== Размер окон: тянешь за край или угол — окно растёт в обе стороны сразу; размер запоминается ===== */
+(function initModalResize(){
+  const box = document.getElementById('modalBox'), ov = document.getElementById('modalOverlay');
+  if(!box || !ov) return;
+  const KEY = 'wow.modalSize', MINW = 380, MINH = 280;
+  let size = null;
+  try{ size = JSON.parse(localStorage.getItem(KEY) || 'null'); }catch(_){}
+  const layer = document.createElement('div'); layer.id = 'modalGrips';
+  const dirs = {n:[0,-1], s:[0,1], e:[1,0], w:[-1,0], nw:[-1,-1], ne:[1,-1], sw:[-1,1], se:[1,1]};
+  const grips = {};
+  Object.keys(dirs).forEach(k=>{ const g = document.createElement('div'); g.className = 'mg mg-'+k; g.dataset.d = k; grips[k] = g; layer.appendChild(g); });
+  ov.appendChild(layer);
+  const isConfirm = () => box.style.maxWidth === '480px';
+  const clampW = w => Math.round(Math.min(innerWidth - 24, Math.max(MINW, w)));
+  const clampH = h => Math.round(Math.min(innerHeight - 16, Math.max(MINH, h)));
+  function apply(){
+    if(isConfirm()) return;
+    if(size){ box.style.maxWidth = clampW(size.w)+'px'; box.style.minHeight = clampH(size.h)+'px'; box.style.setProperty('--modal-h', clampH(size.h)+'px'); }
+    else { box.style.removeProperty('--modal-h'); }
+  }
+  function place(){
+    const show = ov.classList.contains('show') && !isConfirm();
+    Object.values(grips).forEach(g=>g.style.display = show ? 'block' : 'none');
+    if(!show) return;
+    const r = box.getBoundingClientRect(), t = 5, c = 9;
+    const set = (k, x, y, w, h) => { const s = grips[k].style; s.left = x+'px'; s.top = y+'px'; if(w!=null) s.width = w+'px'; if(h!=null) s.height = h+'px'; };
+    set('n', r.left+c, r.top-t, r.width-2*c); set('s', r.left+c, r.bottom-t, r.width-2*c);
+    set('w', r.left-t, r.top+c, null, r.height-2*c); set('e', r.right-t, r.top+c, null, r.height-2*c);
+    set('nw', r.left-c, r.top-c); set('ne', r.right-c, r.top-c); set('sw', r.left-c, r.bottom-c); set('se', r.right-c, r.bottom-c);
+  }
+  const sync = () => { apply(); place(); };
+  new MutationObserver(()=>{ sync(); }).observe(ov, {attributes:true, attributeFilter:['class']});
+  new MutationObserver(()=>{ requestAnimationFrame(sync); }).observe(box, {childList:true});
+  new ResizeObserver(place).observe(box);
+  ov.addEventListener('scroll', place, {passive:true});
+  addEventListener('resize', sync);
+  layer.addEventListener('pointerdown', e=>{
+    const g = e.target.closest('.mg'); if(!g || e.button !== 0) return;
+    e.preventDefault();
+    const [sx, sy] = dirs[g.dataset.d], r = box.getBoundingClientRect(), x0 = e.clientX, y0 = e.clientY, w0 = r.width, h0 = r.height;
+    g.setPointerCapture(e.pointerId); g.classList.add('drag'); document.body.classList.add('mg-dragging');
+    const mv = ev => {
+      size = {w: sx ? clampW(w0 + 2*sx*(ev.clientX - x0)) : (size ? size.w : Math.round(w0)), h: sy ? clampH(h0 + 2*sy*(ev.clientY - y0)) : (size ? size.h : Math.round(h0))};
+      apply(); place();
+    };
+    const up = () => {
+      g.removeEventListener('pointermove', mv); g.removeEventListener('pointerup', up); g.removeEventListener('pointercancel', up);
+      g.classList.remove('drag'); document.body.classList.remove('mg-dragging');
+      try{ localStorage.setItem(KEY, JSON.stringify(size)); }catch(_){}
+    };
+    g.addEventListener('pointermove', mv); g.addEventListener('pointerup', up); g.addEventListener('pointercancel', up);
+  });
+  layer.addEventListener('dblclick', ()=>{            // двойной щелчок по краю — вернуть обычный размер
+    size = null; try{ localStorage.removeItem(KEY); }catch(_){}
+    box.style.maxWidth = ''; box.style.minHeight = ''; box.style.removeProperty('--modal-h'); sync();
+  });
+})();
