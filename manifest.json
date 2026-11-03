@@ -9,9 +9,11 @@
   "background_color": "#14151b",
   "theme_color": "#14151b",
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjEgMi40IDIyIDE5LjIiIGZpbGw9Im5vbmUiIHN0cm9rZT0iI2M5YTI0YyIgc3Ryb2tlLXdpZHRoPSIxLjU1IiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjxwYXRoIGQ9Ik0yLjUgNS4yYzAgMCAzLTEuNCA2LjMtMS40IDIgMCAzLjIuOSAzLjIuOXYxNC42YzAgMC0xLjItLjgtMy4yLS44LTMuMyAwLTYuMyAxLjMtNi4zIDEuM1Y1LjJaIi8+PHBhdGggZD0iTTIxLjUgNS4yYzAgMC0zLTEuNC02LjMtMS40LTIgMC0zLjIuOS0zLjIuOXYxNC42YzAgMCAxLjItLjggMy4yLS44IDMuMyAwIDYuMyAxLjMgNi4zIDEuM1Y1LjJaIi8+PC9zdmc+",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
   ]
 }

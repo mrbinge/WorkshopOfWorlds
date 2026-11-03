@@ -52,6 +52,7 @@ body[data-mode=view] #epBadge{display:none}header h1{font-size:var(--fs-h3)}head
 .eyebrow{margin:14px 0 6px}
 #wrap{flex:1;display:flex;min-height:0;position:relative}
 /* ручка изменения ширины левой панели: на краю панели, при наведении — значок ⇔ */
+#svg,#svg *{-webkit-user-select:none;user-select:none}
 #sideGrip{position:relative;width:0;flex-shrink:0;z-index:25}
 #sideGrip::before{content:"";position:absolute;top:0;bottom:0;left:-5px;width:10px;cursor:col-resize}
 #sideGrip::after{content:"";position:absolute;top:0;bottom:0;left:-1px;width:2px;background:var(--gold);opacity:0;transition:opacity .15s;pointer-events:none}
@@ -68,6 +69,16 @@ label.lay{display:flex;align-items:center;gap:8px;font-size:var(--fs-md);padding
 #hint{flex-shrink:0;margin:8px 0 0;font-family:var(--font-mono);font-size:var(--fs-2xs);letter-spacing:.14em;text-transform:uppercase;line-height:1.6;color:var(--text-faint)}
 #hint:empty{display:none}
 #epChip,#ctChip{margin-left:6px}#ctCfg{margin-left:2px;padding:5px 8px}
+#terrMenu{position:fixed;z-index:70;width:236px;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:6px;box-shadow:var(--shadow-pop)}
+#terrMenu[hidden]{display:none}
+#terrMenu .tmh{padding:2px 6px 6px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#terrMenu .qsw{margin:2px 6px 6px}
+#terrMenu button.tmb{text-align:left;justify-content:flex-start;border-color:transparent;background:none;display:flex;align-items:center;gap:8px;width:100%}
+#terrMenu button.tmb:hover{background:var(--card-hover)}
+#terrMenu .tmsep{height:1px;background:var(--border-soft);margin:4px 0}
+#terrMenu .tmlist{max-height:260px;overflow:auto;display:flex;flex-direction:column;gap:2px;padding:2px 0}
+#terrMenu .tmlist .sw{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+#terrMenu .tmcap{padding:2px 6px;font-size:var(--fs-sm);color:var(--text-faint)}
 #nodeMenu{position:fixed;z-index:70;min-width:150px;display:flex;flex-direction:column;gap:2px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:4px;box-shadow:var(--shadow-pop)}#nodeMenu button{text-align:left;justify-content:flex-start;border-color:transparent;background:none}#nodeMenu button:hover{background:var(--card-hover)}#nodeMenu .dng{color:var(--danger)}
 #epPop,#ctPop{position:fixed;z-index:60;width:300px;overflow:auto;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;box-shadow:var(--shadow-pop)}
 #etitle{margin:0;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:var(--fs-h3)}
@@ -170,6 +181,7 @@ body.me #vp .gT,body.me #vp .pg,body.me #vp [data-m],body.me #vp [data-l]{pointe
 </head>
 <body data-mode="edit">
 <header><button id="backBtn" type="button" title="Сохранить и вернуться в Мастерскую" hidden><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>В мастерскую</button><h1><span class="mark" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="26" height="26" fill="none" stroke="currentColor" style="display:block" stroke-width="3.6" stroke-linecap="round"><circle cx="32" cy="32" r="26"/><ellipse cx="32" cy="32" rx="12" ry="26"/><path d="M32 6v52M6 32h52M10.1 18h43.8M10.1 46h43.8"/></svg></span>Стол картографа</h1><div class="fchips" id="fchips"><button data-f="borders" title="Только границы: правка областей">Границы</button><button data-f="markers" title="Только значки">Значки</button><button data-f="labels" title="Только подписи">Подписи</button><button data-f="paths" title="Только пути: герои, торговые пути, реки">Пути</button><button id="ctChip" type="button" title="Контурный режим: границы линиями, без заливки и картинки">Контур</button><button id="ctCfg" type="button" hidden title="Цвета контурного режима" aria-label="Цвета контурного режима">Цвета</button><button id="epChip" type="button" aria-haspopup="true" aria-expanded="false" title="Эпохи карты и все их настройки">Эпохи</button><button class="fh" id="fHide" hidden></button></div><span id="bstat" class="eyebrow" style="margin:0 0 0 14px" hidden></span><div class="map-mode-seg" id="modeSeg"><button data-md="view">Просмотр</button><button data-md="edit" class="on">Редактирование</button></div><div id="hist"><button id="pnl" class="btn-tool" title="Показать/скрыть панель" aria-label="Показать/скрыть панель" hidden></button><button id="efs" class="btn-tool" title="Во весь экран" aria-label="Во весь экран"></button><button id="undo" class="btn-tool" title="Отменить (Ctrl+Z)" aria-label="Отменить"></button><button id="redo" class="btn-tool" title="Вернуть (Ctrl+Y)" aria-label="Вернуть"></button></div></header>
+<div id="terrMenu" hidden role="menu"></div>
 <div id="nodeMenu" hidden role="menu"><button type="button" class="btn-sm" data-nm="dup">Дублировать</button><button type="button" class="btn-sm dng" data-nm="del">Удалить</button></div>
 <div id="ctPop" hidden role="dialog" aria-label="Цвета контура"><div class="eyebrow" style="margin:0 0 10px">Контур</div><div id="ctBox"></div></div>
 <div id="epPop" hidden role="dialog" aria-label="Настройки эпох"><div class="eyebrow" style="margin:0 0 10px">Эпохи</div><div id="epBox"></div></div>
@@ -591,11 +603,14 @@ function terrInfo(){const byId={},depth={},hidden=new Set(),kids={},anc={},root=
   S.terrs.forEach(t=>{let d=0,u=t,g=0,fold=false;const A=new Set();while(u.parent&&byId[u.parent]&&g++<60){u=byId[u.parent];d++;A.add(u.id);if(u.fold)fold=true}anc[t.id]=A;root[t.id]=u.id;depth[t.id]=d;if(fold)hidden.add(t.id)});
   return{depth,hidden,kids,anc,root}}
 function descIds(id,I){I=I||terrInfo();const r=new Set(),st=[id];while(st.length){const u=st.pop();(I.kids[u]||[]).forEach(c=>{if(!r.has(c)){r.add(c);st.push(c)}})}return r}
+const LC=new Set(); // свёрнутые в левом списке страны (только список, на карту не влияет)
 function treeOrder(){const I=terrInfo(),out=[],seen=new Set(),add=t=>{if(seen.has(t.id))return;seen.add(t.id);out.push(t);(I.kids[t.id]||[]).forEach(id=>{const c=tById(id);if(c)add(c)})};
   S.terrs.filter(t=>!(t.parent&&tById(t.parent))).forEach(add);S.terrs.forEach(add);return{rows:out,I}}
+/* при включении области в состав страны она берёт основной цвет страны (потом цвет можно поменять как угодно) */
+function adoptColor(c,p){if(c&&p&&p.color)c.color=p.color}
 function attachToggle(id){const P=tById(attachTo),C=tById(id);if(!P||!C||id===attachTo)return;
   if(descIds(id).has(attachTo)){setStatus('Нельзя: «'+P.name+'» уже входит в состав «'+C.name+'»',true);setTimeout(()=>setStatus(''),2800);return}
-  push();if(C.parent===attachTo)delete C.parent;else C.parent=attachTo;render()}
+  push();if(C.parent===attachTo)delete C.parent;else{C.parent=attachTo;adoptColor(C,P)}render()}
 function hierProps(t){const TO=treeOrder(),I=TO.I,ds=descIds(t.id,I),opts=TO.rows.filter(x=>x.id!==t.id&&!ds.has(x.id)),
     kd=(I.kids[t.id]||[]).map(tById).filter(Boolean),par=t.parent&&tById(t.parent);
   return`<div class="fld">Входит в состав<select id="pParent"><option value="">— самостоятельная область —</option>${opts.map(o=>`<option value="${o.id}" ${t.parent===o.id?'selected':''}>${'· '.repeat(I.depth[o.id])}${esc(o.name)}</option>`).join('')}</select></div>
@@ -632,7 +647,7 @@ function render(ns){fixParents();
   let h=CT?`<rect x="-100000" y="-100000" width="200000" height="200000" fill="${CT.bg}" pointer-events="none"/>`:gridSvg(k)+wulff()+(S.img?picSvg(S.base,S.img):'')+picsSvg(0);
   const TI=terrInfo(),selD=sel?descIds(sel,TI):new Set(),vis=S.terrs.filter(t=>S.vis[t.layer]&&!TI.hidden.has(t.id)).sort((a,b)=>TI.depth[a.id]-TI.depth[b.id]);
   const EO={};vis.forEach(t=>t.ring.forEach((a,i)=>{const b=t.ring[(i+1)%t.ring.length],key=a<b?a+'|'+b:b+'|'+a;(EO[key]=EO[key]||[]).push(t.id)}));
-  h+='<g class="gT">';vis.forEach(t=>{const d=ringD(t.ring,m),ti=CT?{fill:'',emb:''}:terrImg(t),ctl=CT&&t.layer!=='nat';h+=`<path data-t="${t.id}" d="${d}" fill="${ctl?CT.land:t.color}" fill-opacity="${ctl?1:t.alpha}" style="cursor:pointer"/>${ti.fill}<clipPath id="c${t.id}"><path d="${d}"/></clipPath>${bord(t,d,m,EO,TI,k)}${ti.emb}`;
+  h+='<g class="gT">';vis.forEach(t=>{const d=ringD(t.ring,m),ti=CT?{fill:'',emb:''}:terrImg(t),ctl=!!CT;h+=`<path data-t="${t.id}" d="${d}" fill="${ctl?CT.land:t.color}" fill-opacity="${ctl?1:t.alpha}" style="cursor:pointer"/>${ti.fill}<clipPath id="c${t.id}"><path d="${d}"/></clipPath>${bord(t,d,m,EO,TI,k)}${ti.emb}`;
     if(t.layer==='dis'&&!CT)h+=`<path d="${d}" fill="url(#hatch)" pointer-events="none"/>`;
     if(t.id===sel)h+=`<path d="${d}" fill="none" stroke="#c9a24c" stroke-width="${3/k}" pointer-events="none"/>`;else if(selD.has(t.id))h+=`<path d="${d}" fill="#c9a24c" fill-opacity=".14" stroke="#c9a24c" stroke-width="${3/k}" pointer-events="none"/>`});h+='</g>';
   if(CT)h+=ctLines(vis,EO,m,TI,k);
@@ -646,13 +661,13 @@ function render(ns){fixParents();
 const esc=s=>s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const cen=t=>{let x=0,y=0;t.ring.forEach(n=>{x+=S.nodes[n].x;y+=S.nodes[n].y});return{x:x/t.ring.length,y:y/t.ring.length}};
 function side(){
-  pathBar();pkRowUpd();olist();mapPanelUpd();
+  pathBar();pkRowUpd();olist();terrBtnUpd();mapPanelUpd();
   $('layers').innerHTML=Object.entries(LAYERS).map(([k,l])=>`<label class="lay"><input type="checkbox" data-l="${k}" ${S.vis[k]?'checked':''}><span class="sw" style="background:${l.c}"></span>${l.n}</label>`).join('')+objLayers();
   const a=$('actLayer');if(!a.options.length)a.innerHTML=Object.entries(LAYERS).map(([k,l])=>`<option value="${k}">${l.n}</option>`).join('');
   if(attachTo&&attachTo!==sel)attachTo=null;
   {const TO=treeOrder(),sd=sel?descIds(sel,TO.I):new Set();
-  $('list').innerHTML=TO.rows.map(t=>{const d=TO.I.depth[t.id],n=(TO.I.kids[t.id]||[]).length;
-    return`<div class="tl ${t.id===sel?'sel':sd.has(t.id)?'sub':''}" data-s="${t.id}" style="margin-left:${d*14}px"><span class="sw" style="background:${t.color}"></span>${esc(t.name)}${n?`<span class="kc">${n}</span>`:''}<span style="margin-left:auto;color:var(--text-faint);font-size:11px">${LAYERS[t.layer].n}</span>${n?`<button class="fb" data-fold="${t.id}" title="${t.fold?'Показать состав':'Свернуть состав'}">${t.fold?'▸':'▾'}</button>`:''}</div>`}).join('')||'<span style="font-size:12px;color:var(--text-faint)">Пока пусто</span>'}
+  $('list').innerHTML=TO.rows.filter(t=>t.id===sel||![...TO.I.anc[t.id]].some(a=>LC.has(a))).map(t=>{const d=TO.I.depth[t.id],n=(TO.I.kids[t.id]||[]).length;
+    return`<div class="tl ${t.id===sel?'sel':sd.has(t.id)?'sub':''}" data-s="${t.id}" style="margin-left:${d*14}px"><span class="sw" style="background:${t.color}"></span>${esc(t.name)}${n?`<span class="kc">${n}</span>`:''}<span style="margin-left:auto;color:var(--text-faint);font-size:11px">${LAYERS[t.layer].n}</span>${n?`<button class="fb" data-fold="${t.id}" title="${LC.has(t.id)?'Развернуть список':'Свернуть список'}">${LC.has(t.id)?'▸':'▾'}</button>`:''}</div>`}).join('')||'<span style="font-size:12px;color:var(--text-faint)">Пока пусто</span>'}
   const t=S.terrs.find(x=>x.id===sel);
   $('props').innerHTML=selI?itemProps():t?`<button id="pEdit" class="${editId===t.id?'on':''}" style="width:100%;margin-bottom:10px">${editId===t.id?'✓ Готово':'✎ Редактировать точки'}</button><div class="fld">Название<input id="pName" value="${esc(t.name)}"></div>
   <div class="fld">Слой<select id="pLayer">${Object.entries(LAYERS).map(([k,l])=>`<option value="${k}" ${t.layer===k?'selected':''}>${l.n}</option>`).join('')}</select></div>
@@ -681,8 +696,36 @@ function pickColor(ring,layer){const pal=PAL[layer]||PAL.pol,rs=new Set(ring),us
   let best=pal[0],bs=-1e9;
   pal.forEach((c,i)=>{const d=nbc.length?Math.min(...nbc.map(x=>dist(c,x))):90,sc=Math.min(d,90)*100-(use[c]||0)*50-i*.01;if(sc>bs){bs=sc;best=c}});
   return best}
-svg.addEventListener('contextmenu',e=>{e.preventDefault();hideNodeMenu();const n=e.target.dataset&&e.target.dataset.n;if(mode!=='edit'||mapEdit||!n||!S.nodes[n])return;
+let rcMoved=false;
+svg.addEventListener('contextmenu',e=>{e.preventDefault();hideNodeMenu();hideTerrMenu();const el=document.elementFromPoint(e.clientX,e.clientY)||e.target,n=el.dataset&&el.dataset.n;
+  if(mode==='edit'&&!mapEdit&&!n&&!rcMoved&&el.dataset&&el.dataset.t&&tById(el.dataset.t)&&(tool==='move'||tool==='draw'||tool==='free')){showTerrMenu(e,el.dataset.t);return}
+  if(mode!=='edit'||mapEdit||!n||!S.nodes[n])return;
   selN=n;render();const m=$('nodeMenu');m.dataset.n=n;m.hidden=false;m.style.left=Math.min(e.clientX,innerWidth-m.offsetWidth-8)+'px';m.style.top=Math.min(e.clientY,innerHeight-m.offsetHeight-8)+'px'});
+/* ===== быстрое меню области (правая кнопка): цвет и «Добавить в…» ===== */
+function hideTerrMenu(){const m=$('terrMenu');if(m&&!m.hidden){m.hidden=true;if(pk&&pk.key==='tm')closePk()}}
+function showTerrMenu(e,id){const t=tById(id);if(!t)return;sel=id;selI=null;selN=null;render();
+  const m=$('terrMenu');m.dataset.t=id;m.dataset.join='';m.dataset.col='';fillTerrMenu(m,t);m.hidden=false;
+  m.style.left=Math.max(8,Math.min(e.clientX,innerWidth-m.offsetWidth-8))+'px';m.style.top=Math.max(8,Math.min(e.clientY,innerHeight-m.offsetHeight-8))+'px'}
+function fillTerrMenu(m,t){const pal=[...new Set([...QCOL.slice(0,2),...(PAL[t.layer]||PAL.pol)])].slice(0,14),par=t.parent&&tById(t.parent);
+  let h=`<div class="tmcap" style="padding-bottom:0">Область</div><div class="tmh">${esc(t.name)}</div>
+    <button type="button" class="tmb btn-sm" data-tm="join">Добавить к… <span style="margin-left:auto">${m.dataset.join?'▾':'▸'}</span></button>`;
+  if(m.dataset.join){const TO=treeOrder(),ds=descIds(t.id,TO.I),opts=TO.rows.filter(x=>x.id!==t.id&&!ds.has(x.id));
+    h+=`<div class="tmlist">`+(opts.map(o=>`<button type="button" class="tmb btn-sm" data-jp="${o.id}" style="padding-left:${10+TO.I.depth[o.id]*12}px"><span class="sw" style="background:${o.color}"></span><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(o.name)}</span>${t.parent===o.id?'<span style="margin-left:auto;color:var(--gold)">✓</span>':''}</button>`).join('')||'<div class="tmcap">Других областей пока нет</div>')+`</div>`}
+  if(par)h+=`<button type="button" class="tmb btn-sm" data-tm="leave">Убрать из состава «${esc(par.name)}»</button>`;
+  h+=`<div class="tmsep"></div><button type="button" class="tmb btn-sm" data-tm="color">Изменить цвет <span style="margin-left:auto">${m.dataset.col?'▾':'▸'}</span></button>`;
+  if(m.dataset.col)h+=`<div class="qsw">${pal.map(c=>`<button type="button" class="qs" data-tc="${c}" style="background:${c}" title="${c}"></button>`).join('')}</div>
+    <button type="button" class="tmb btn-sm" data-tm="pick"><span class="sw" style="width:10px;height:10px;border-radius:2px;background:${t.color};border:1px solid var(--border)"></span>Другой цвет…</button>`;
+  m.innerHTML=h}
+$('terrMenu').addEventListener('click',e=>{const m=$('terrMenu'),t=tById(m.dataset.t);if(!t)return;
+  const c=e.target.closest('[data-tc]');if(c){push();t.color=c.dataset.tc;hideTerrMenu();render();return}
+  const jp=e.target.closest('[data-jp]');if(jp){const P=tById(jp.dataset.jp);if(P&&!descIds(t.id).has(P.id)){push();t.parent=P.id;adoptColor(t,P);hideTerrMenu();render()}return}
+  const b=e.target.closest('[data-tm]');if(!b)return;
+  if(b.dataset.tm==='color'){m.dataset.col=m.dataset.col?'':'1';if(m.dataset.col)m.dataset.join='';fillTerrMenu(m,t);const r=m.getBoundingClientRect();if(r.bottom>innerHeight-8)m.style.top=Math.max(8,innerHeight-8-r.height)+'px';return}
+  if(b.dataset.tm==='join'){m.dataset.join=m.dataset.join?'':'1';if(m.dataset.join)m.dataset.col='';fillTerrMenu(m,t);const r=m.getBoundingClientRect();if(r.bottom>innerHeight-8)m.style.top=Math.max(8,innerHeight-8-r.height)+'px';return}
+  if(b.dataset.tm==='leave'){push();delete t.parent;hideTerrMenu();render();return}
+  if(b.dataset.tm==='pick'){if(pk&&pk.key==='tm'){closePk();return}openPk(b,'tm',t.color,col=>{push('tmc');t.color=col;render(1)})}});
+document.addEventListener('pointerdown',e=>{if(!$('terrMenu').hidden&&!e.target.closest('#terrMenu,.pk'))hideTerrMenu()},true);
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('terrMenu').hidden){e.stopImmediatePropagation();hideTerrMenu()}},true);
 function hideNodeMenu(){const m=$('nodeMenu');if(m)m.hidden=true}
 function dupNode(n){const A=S.nodes[n];if(!A)return;push();const id=nid(),k=V.k;let dx=10/k,dy=10/k;
   const tr=S.terrs.find(t=>t.ring.includes(n));if(tr){const r=tr.ring,B=S.nodes[r[(r.indexOf(n)+1)%r.length]];if(B&&B!==A){const d=Math.hypot(B.x-A.x,B.y-A.y);if(d>0){const L=Math.min(d/2,20/k);dx=(B.x-A.x)/d*L;dy=(B.y-A.y)/d*L}}}
@@ -698,6 +741,7 @@ svg.addEventListener('pointerdown',e=>{
   if(mode==='view'){viewDown(e);return}
   const p=pt(e),n=e.target.dataset.n,ed=e.target.dataset.e,tid=e.target.dataset.t;
   if(e.button===2&&n&&!mapEdit)return;
+  if(e.button===2)rcMoved=false;
   if(e.button===1||e.button===2){drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId);return}
   if(spaceDown){drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y};svg.setPointerCapture(e.pointerId);return}
   if(mapEdit){mePD(e,p);return}
@@ -719,6 +763,10 @@ svg.addEventListener('pointerdown',e=>{
   if(tool==='path'){if(dbl('p',e)&&pd.length>=2){finishPath();return}pd.push({x:p.x,y:p.y});render();return}
   const te=e.target.closest('[data-ti]');
   if(tool==='move'&&te){sel=te.dataset.ti;selI=null;selN=null;drag={em:sel,sx:e.clientX,sy:e.clientY};svg.setPointerCapture(e.pointerId);render();return}
+  const rsh=e.target.closest('[data-rs]');
+  if((tool==='move'||tool==='label')&&rsh){const lb=S.labels.find(x=>x.id===rsh.dataset.rs);
+    if(lb){const f=S.w/1200,fd=MAP_LABEL_FONTS[lb.font]||MAP_LABEL_FONTS.caveat,sz=Math.max(10,Math.min(160,+lb.size||26))*f,sp=(+lb.spacing||0)*f,L=tw(lb.text,sz,fd.family,sp),r=svg.getBoundingClientRect();
+      drag={rs:lb.id,side:rsh.dataset.side==='l'?-1:1,half0:L/2+6/V.k,size0:+lb.size||26,sp0:+lb.spacing||0,ang:(+lb.rotation||0)*Math.PI/180,cx:r.left+V.x+lb.x*V.k,cy:r.top+V.y+lb.y*V.k};svg.setPointerCapture(e.pointerId);return}}
   const rh=e.target.closest('[data-rot]');
   if((tool==='move'||tool==='label')&&rh){const lb=S.labels.find(x=>x.id===rh.dataset.rot);
     if(lb){if(dbl('rot'+lb.id,e)){push();lb.rotation=0;render();return}
@@ -734,16 +782,19 @@ svg.addEventListener('pointerdown',e=>{
     selN=null;selI=null;if(tid&&dbl('t'+tid,e)){sel=tid;editId=tid;render();return}if(tid){if(editId&&editId!==tid)editId=null;sel=tid;render()}else{sel=null;editId=null}
     drag={pan:1,sx:e.clientX,sy:e.clientY,vx:V.x,vy:V.y,click:!tid};svg.setPointerCapture(e.pointerId);if(!tid)render()}});
 svg.addEventListener('pointermove',e=>{if(!drag)return;
-  if(drag.pan){V.x=drag.vx+e.clientX-drag.sx;V.y=drag.vy+e.clientY-drag.sy;render()}
+  if(drag.pan){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)>4)rcMoved=true;V.x=drag.vx+e.clientX-drag.sx;V.y=drag.vy+e.clientY-drag.sy;render()}
   else if(drag.rot){const lb=S.labels.find(x=>x.id===drag.rot);if(!lb)return;if(!drag.moved){drag.moved=1;push();lastK=''}
     let deg=Math.atan2(e.clientY-drag.cy,e.clientX-drag.cx)*180/Math.PI+90;deg=((deg+180)%360+360)%360-180;if(e.shiftKey)deg=Math.round(deg/15)*15;lb.rotation=Math.round(deg*10)/10;render()}
   else if(drag.free){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1}
     const q=pt(e),l=drag.pts[drag.pts.length-1];if(Math.hypot(q.x-l.x,q.y-l.y)*V.k>=2){drag.pts.push({x:q.x,y:q.y});paintFree(drag.pts)}}
+  else if(drag.rs){const lb=S.labels.find(x=>x.id===drag.rs);if(!lb)return;if(!drag.moved){drag.moved=1;push();lastK=''}
+    const d=((e.clientX-drag.cx)*Math.cos(drag.ang)+(e.clientY-drag.cy)*Math.sin(drag.ang))/V.k*drag.side,sc=Math.max(.1,d/drag.half0),ns=Math.max(10,Math.min(160,drag.size0*sc));
+    lb.size=Math.round(ns*10)/10;lb.spacing=Math.round(drag.sp0*(ns/drag.size0)*10)/10;render(1)}
   else if(drag.em){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),T=S.terrs.find(x=>x.id===drag.em);if(T){T.ix=q.x;T.iy=q.y}render(1)}
   else if(drag.pic){const o=picOf(drag.pic),q=pt(e);if(!o)return;if(!drag.moved){drag.moved=1;push();lastK=''}if(drag.rs){const cx=o.x+o.w/2,cy=o.y+o.w*o.ar/2,nw=Math.max(S.w*.01,2*Math.hypot(q.x-cx,q.y-cy)/Math.hypot(1,o.ar));o.w=nw;o.x=cx-nw/2;o.y=cy-nw*o.ar/2}else{o.x=q.x-drag.dx;o.y=q.y-drag.dy}render(1)}
   else if(drag.it||drag.pi!==undefined){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const q=pt(e),o=drag.it?item():(item()||{points:[]}).points[drag.pi];if(o){o.x=q.x;o.y=q.y}render()}
   else if(drag.n){if(!drag.moved){if(Math.hypot(e.clientX-drag.sx,e.clientY-drag.sy)<4)return;drag.moved=1;push();lastK=''}const p=pt(e);S.nodes[drag.n].x=p.x;S.nodes[drag.n].y=p.y;render()}});
-svg.addEventListener('pointerup',e=>{const d=drag;drag=null;if(d&&d.draw&&!d.moved)tryAdd(d.n,e);if(d&&d.free)finishFree(d);if(d&&d.pic&&d.moved)render()});
+svg.addEventListener('pointerup',e=>{const d=drag;drag=null;if(d&&d.draw&&!d.moved)tryAdd(d.n,e);if(d&&d.free)finishFree(d);if(d&&d.pic&&d.moved)render();if(d&&d.rs&&d.moved)render()});
 svg.addEventListener('wheel',e=>{e.preventDefault();const r=svg.getBoundingClientRect(),mx=e.clientX-r.left,my=e.clientY-r.top,f=e.deltaY<0?1.15:1/1.15,k=Math.min(8,Math.max(.1,V.k*f));
   V.x=mx-(mx-V.x)*k/V.k;V.y=my-(my-V.y)*k/V.k;V.k=k;render()},{passive:false});
 addEventListener('keydown',e=>{
@@ -813,11 +864,11 @@ $('side').addEventListener('input',e=>{const t=S.terrs.find(x=>x.id===sel),i=e.t
 $('side').addEventListener('click',e=>{const t=e.target,ud=t.closest('[data-ud]'),up=t.closest('[data-up]'),fb=t.closest('[data-fold]');
   if(ud){e.stopPropagation();const c=tById(ud.dataset.ud);if(c){push();delete c.parent;render()}return}
   if(up){e.stopPropagation();sel=up.dataset.up;editId=null;selN=null;render();return}
-  if(fb){e.stopPropagation();const q=tById(fb.dataset.fold);if(q){push();q.fold=!q.fold;if(!q.fold)delete q.fold;render()}return}
+  if(fb){e.stopPropagation();const id=fb.dataset.fold;if(LC.has(id))LC.delete(id);else LC.add(id);render();return}
   const qc=t.closest('[data-qc]');if(qc){e.stopPropagation();const o=item();if(o){push();o.color=qc.dataset.qc;render()}return}
   if(t.id==='pAttach'){e.stopPropagation();attachTo=attachTo===sel?null:sel;render()}},true);
 $('side').addEventListener('input',e=>{const i=e.target,t=tById(sel);
-  if(i.id==='pParent'&&t){e.stopPropagation();push();if(i.value)t.parent=i.value;else delete t.parent;render();return}
+  if(i.id==='pParent'&&t){e.stopPropagation();push();if(i.value){t.parent=i.value;adoptColor(t,tById(i.value))}else delete t.parent;render();return}
   if(i.id==='pFold'&&t){e.stopPropagation();push();if(i.checked)t.fold=true;else delete t.fold;render()}},true);
 function render0(){const f=document.activeElement.id,v=document.activeElement.value;render();const el=$(f);if(el){el.focus();el.setSelectionRange&&el.setSelectionRange(v.length,v.length)}}
 $('side').addEventListener('click',e=>{const pb=e.target.closest('[data-pk]');
@@ -864,7 +915,7 @@ function pkRowUpd(){const r=$('pkRow');r.hidden=tool!=='path'||mode!=='edit';r.q
 function placeEpPop(){const c=$('epChip'),p=$('epPop');if(!c||p.hidden)return;const r=c.getBoundingClientRect();p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px';p.style.top=(r.bottom+6)+'px';p.style.maxHeight=Math.max(200,innerHeight-r.bottom-20)+'px'}
 function placeCtPop(){const c=$('ctCfg'),p=$('ctPop');if(p.hidden||!c)return;const r=c.getBoundingClientRect();p.style.left=Math.max(8,Math.min(r.left,innerWidth-p.offsetWidth-8))+'px';p.style.top=(r.bottom+6)+'px'}
 function ctPanel(){const C=S.contour,row=(k,t)=>`<div class="fld">${t}<button class="swb" data-ct="${k}"><span class="dot" style="background:${C[k]}"></span><span class="hv">${C[k]}</span></button></div>`;
-  $('ctBox').innerHTML=row('bg','Фон карты')+row('land','Суша (заливка областей)')+row('ink','Линии границ')+'<div style="font-size:var(--fs-sm);color:var(--text-faint);line-height:1.45">Цвета меняют только вид; границы, подписи и значки остаются прежними. Природные области сохраняют свои цвета.</div>'}
+  $('ctBox').innerHTML=row('bg','Фон карты')+row('land','Суша (заливка областей)')+row('ink','Линии границ')+'<div style="font-size:var(--fs-sm);color:var(--text-faint);line-height:1.45">Цвета меняют только вид; границы, подписи и значки остаются прежними.</div>'}
 function ctSync(){const on=!!S.contour.on;$('ctChip').classList.toggle('on',on);$('ctCfg').hidden=!on;if(!on)setCtPop(false)}
 function setCtPop(on){const p=$('ctPop'),was=!p.hidden;p.hidden=!on;$('ctCfg').classList.toggle('on',on);if(on){setEpPopOnly(false);ctPanel();placeCtPop()}else if(was)closePk()}
 $('ctChip').addEventListener('click',()=>{S.contour.on=!S.contour.on;ctSync();render()});
@@ -883,10 +934,15 @@ addEventListener('resize',placeEpPop);
 $('fchips').addEventListener('click',e=>{const b=e.target.closest('[data-f]');if(b)return setFocus(b.dataset.f===focus?null:b.dataset.f);
   if(e.target.closest('#fHide')){focusHide=!focusHide;applyFocus()}});
 $('pkRow').addEventListener('click',e=>{const b=e.target.closest('[data-kind]');if(b){pathKind=b.dataset.kind;pkRowUpd()}});
-$('terrToLabels').onclick=()=>{const have=new Set(S.labels.map(l=>(l.text||'').trim())),pr=MAP_LABEL_TYPES.country.defaults;let n=0;push();
+/* «Создать надписи из названий областей»: если выбрана подпись-образец (например «Тасмир»), новые надписи копируют её вид — шрифт, размер, разрядку, изгиб, цвет; иначе берётся стиль «Страна» по умолчанию */
+const sampleLabel=()=>selI&&selI.k==='l'?S.labels.find(x=>x.id===selI.id):null;
+function terrBtnUpd(){const b=$('terrToLabels');if(!b)return;const sl=sampleLabel();b.textContent=sl?'Создать надписи в стиле «'+((sl.text||'').trim()||'выбранной')+'»':'Создать надписи из названий областей';
+  b.title=sl?'Для каждой области создаст надпись с её названием и тем же видом, что у выбранной подписи. Уже существующие надписи с таким текстом не дублируются':'Для каждой области создаст надпись с её названием. Чтобы надписи вышли как нужно, сначала выберите подпись-образец в списке «Подписи»: они скопируют её вид. Уже существующие надписи с таким текстом не дублируются'}
+$('terrToLabels').onclick=()=>{const sl=sampleLabel(),have=new Set(S.labels.map(l=>(l.text||'').trim())),def=MAP_LABEL_TYPES.country.defaults;
+  const style=sl?(({id,x,y,text,rotation,...r})=>r)(sl):{type:'country',font:def.font,size:def.size,spacing:def.spacing,curve:def.curve,color:def.color};let n=0;push();
   S.terrs.forEach(t=>{const nm=(t.name||'').trim();if(!nm||have.has(nm))return;const c=cen(t);
-    S.labels.push({id:'l'+(uid++),x:c.x,y:c.y,text:nm,type:'country',font:pr.font,size:pr.size,spacing:pr.spacing,curve:pr.curve,color:pr.color,rotation:0});have.add(nm);n++});
-  setStatus(n?'Создано надписей: '+n:'Названия всех областей уже есть среди надписей');setTimeout(()=>setStatus(''),2600);render()};
+    S.labels.push({...style,id:'l'+(uid++),x:c.x,y:c.y,text:nm,rotation:0});have.add(nm);n++});
+  setStatus(n?'Создано надписей: '+n+(sl?' (в стиле «'+(sl.text||'')+'»)':''):'Названия всех областей уже есть среди надписей');setTimeout(()=>setStatus(''),2600);render()};
 function pathBar(){const b=$('pathBar');if(tool!=='path'||mode!=='edit'||!pd.length){b.hidden=true;return}
   b.innerHTML=`<button id="pDone" class="on" ${pd.length<2?'disabled':''}>✓ Закончить путь · ${pd.length} т. (Enter)</button><button id="pCancel" title="Esc">Отмена</button>`;b.hidden=false}
 $('pathBar').addEventListener('click',e=>{if(e.target.closest('#pDone'))finishPath();else if(e.target.closest('#pCancel')){pd=[];render()}});
@@ -901,8 +957,8 @@ function extra(k){
   if(off){const P=off.paths[off.i];h+=`<polyline points="${P.map(n=>S.nodes[n].x+','+S.nodes[n].y).join(' ')}" fill="none" stroke="#c9a24c" stroke-width="${5/k}" stroke-linecap="round" stroke-linejoin="round" stroke-opacity=".85" pointer-events="none"/>`+P.slice(1,-1).map(n=>`<circle cx="${S.nodes[n].x}" cy="${S.nodes[n].y}" r="${4/k}" fill="#c9a24c" pointer-events="none"/>`).join('')}
   if(pd.length)h+=`<polyline points="${pd.map(q=>q.x+','+q.y).join(' ')}" fill="none" stroke="#c1443b" stroke-width="${2/k}" stroke-dasharray="${6/k} ${4/k}" pointer-events="none"/>`+pd.map(q=>`<circle cx="${q.x}" cy="${q.y}" r="${4/k}" fill="#c1443b" pointer-events="none"/>`).join('');
   if(S.vis.labels)S.labels.slice().sort((a,b)=>(MAP_LABEL_TYPES[a.type||'country']||MAP_LABEL_TYPES.country).zLayer-(MAP_LABEL_TYPES[b.type||'country']||MAP_LABEL_TYPES.country).zLayer).forEach(lb=>{if(S.lt[lb.type||'country']===0)return;
-    const fd=MAP_LABEL_FONTS[lb.font]||MAP_LABEL_FONTS.caveat,sz=Math.max(10,Math.min(72,+lb.size||26))*f,sp=(+lb.spacing||0)*f,L=tw(lb.text,sz,fd.family,sp),bend=Math.max(-100,Math.min(100,+lb.curve||0))/100*sz*1.35,on=selI&&selI.k==='l'&&selI.id===lb.id,id='lp'+lb.id;
-    h+=`<g data-l="${lb.id}" transform="translate(${lb.x} ${lb.y}) rotate(${+lb.rotation||0})" style="cursor:pointer"><path id="${id}" d="M${-L/2} 0Q0 ${-bend} ${L/2} 0" fill="none"/><rect x="${-L/2-6/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${L+12/k}" height="${sz*1.5+Math.abs(bend)}" fill="transparent" stroke="${on?'#c9a24c':'none'}" stroke-width="${1.5/k}" stroke-dasharray="${4/k}"/><text font-family="${esc(fd.family)}" font-size="${sz}" letter-spacing="${sp}" fill="${lb.color||'#e9e4d8'}" style="paint-order:stroke;stroke:rgba(20,21,27,.6);stroke-width:${Math.max(1,sz*.05)}px;stroke-linejoin:round" pointer-events="none"><textPath href="#${id}" startOffset="50%" text-anchor="middle" dominant-baseline="middle">${esc(lb.text||'')}</textPath></text>${on&&mode==='edit'?`<line x1="0" y1="${-sz*.75-Math.abs(bend)/2}" x2="0" y2="${-sz*.75-Math.abs(bend)/2-22/k}" stroke="#c9a24c" stroke-width="${1.5/k}" pointer-events="none"/><circle data-rot="${lb.id}" cx="0" cy="${-sz*.75-Math.abs(bend)/2-22/k}" r="${7/k}" fill="#c9a24c" stroke="#14151b" stroke-width="${1.5/k}" style="cursor:grab"><title>Тяни, чтобы повернуть (Shift — шаг 15°, двойной клик — сбросить)</title></circle>`:''}</g>`});
+    const fd=MAP_LABEL_FONTS[lb.font]||MAP_LABEL_FONTS.caveat,sz=Math.max(10,Math.min(160,+lb.size||26))*f,sp=(+lb.spacing||0)*f,L=tw(lb.text,sz,fd.family,sp),bend=Math.max(-100,Math.min(100,+lb.curve||0))/100*sz*1.35,on=selI&&selI.k==='l'&&selI.id===lb.id,id='lp'+lb.id;
+    h+=`<g data-l="${lb.id}" transform="translate(${lb.x} ${lb.y}) rotate(${+lb.rotation||0})" style="cursor:pointer"><path id="${id}" d="M${-L/2} 0Q0 ${-bend} ${L/2} 0" fill="none"/><rect x="${-L/2-6/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${L+12/k}" height="${sz*1.5+Math.abs(bend)}" fill="transparent" stroke="${on?'#c9a24c':'none'}" stroke-width="${1.5/k}" stroke-dasharray="${4/k}"/>${on&&mode==='edit'?`<rect data-rs="${lb.id}" data-side="l" x="${-L/2-11/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${10/k}" height="${sz*1.5+Math.abs(bend)}" fill="rgba(201,162,76,.0)" style="cursor:ew-resize"><title>Тяни за край, чтобы изменить размер надписи</title></rect><rect data-rs="${lb.id}" data-side="r" x="${L/2+1/k}" y="${-sz*.75-Math.abs(bend)/2}" width="${10/k}" height="${sz*1.5+Math.abs(bend)}" fill="rgba(201,162,76,.0)" style="cursor:ew-resize"><title>Тяни за край, чтобы изменить размер надписи</title></rect>`:''}<text font-family="${esc(fd.family)}" font-size="${sz}" letter-spacing="${sp}" fill="${lb.color||'#e9e4d8'}" style="paint-order:stroke;stroke:rgba(20,21,27,.6);stroke-width:${Math.max(1,sz*.05)}px;stroke-linejoin:round" pointer-events="none"><textPath href="#${id}" startOffset="50%" text-anchor="middle" dominant-baseline="middle">${esc(lb.text||'')}</textPath></text>${on&&mode==='edit'?`<line x1="0" y1="${-sz*.75-Math.abs(bend)/2}" x2="0" y2="${-sz*.75-Math.abs(bend)/2-22/k}" stroke="#c9a24c" stroke-width="${1.5/k}" pointer-events="none"/><circle data-rot="${lb.id}" cx="0" cy="${-sz*.75-Math.abs(bend)/2-22/k}" r="${7/k}" fill="#c9a24c" stroke="#14151b" stroke-width="${1.5/k}" style="cursor:grab"><title>Тяни, чтобы повернуть (Shift — шаг 15°, двойной клик — сбросить)</title></circle>`:''}</g>`});
   if(S.vis.markers)S.markers.forEach(mk=>{const key=MARKER_SVG[mk.icon]?mk.icon:'landmark',col=MARKER_COLORS[key]||MARKER_COLORS.other,on=selI&&selI.k==='m'&&selI.id===mk.id,
     ic=MARKER_SVG[key].replace(/^<svg\s+viewBox="([^"]*)"[^>]*>/,`<svg x="-6" y="-6" width="12" height="12" viewBox="$1" overflow="hidden" style="color:#14151b;--marker-color:${col};fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round">`);
     h+=`<g data-m="${mk.id}" transform="translate(${mk.x} ${mk.y}) scale(${1/k})" style="cursor:pointer"><circle r="${on?11:9}" style="fill:${col}" stroke="${on?'#c9a24c':'rgba(20,21,27,.85)'}" stroke-width="${on?2.5:1.5}"/>${ic}<text y="24" text-anchor="middle" font-size="12" font-family="Inter,sans-serif" font-weight="600" fill="#e9e4d8" stroke="#14151b" stroke-width="3" paint-order="stroke" stroke-linejoin="round" pointer-events="none">${esc(mk.name||'')}</text></g>`});
@@ -915,7 +971,7 @@ function itemProps(){const o=item();if(!o)return'';
   sw=c=>`<button class="swb" data-pk="ic"><span class="dot" style="background:${c}"></span><span class="hv">${c}</span></button>`,
   opts=(O,cur)=>O.map(([v,n])=>`<option value="${v}" ${v===cur?'selected':''}>${esc(n)}</option>`).join('');
   if(selI.k==='m'){const key=MARKER_SVG[o.icon]?o.icon:'landmark';return F('Название',`<input data-f="name" value="${esc(o.name||'')}">`)+F('Значок',`<button class="swb" id="iIcon">${chip(key)}<span class="hv">${esc(MARKER_ICON_LABELS[key]||key)}</span></button>`)+F('Описание',`<input data-f="desc" value="${esc(o.desc||'')}">`)+del}
-  if(selI.k==='l')return F('Тип',`<select data-f="type">${LABEL_GROUPS.map(([g,ts])=>`<optgroup label="${g}">${ts.map(t=>`<option value="${t}" ${(o.type||'country')===t?'selected':''}>${MAP_LABEL_TYPES[t].label}</option>`).join('')}</optgroup>`).join('')}</select>`)+F('Текст',`<input data-f="text" value="${esc(o.text||'')}">`)+F('Шрифт',`<select data-f="font">${Object.entries(MAP_LABEL_FONTS).map(([v,x])=>`<option value="${v}" style="font-family:'${x.family}'" ${o.font===v?'selected':''}>${esc(x.label)}</option>`).join('')}</select>`)+rng('size','Размер',10,72,1,o.size||26)+rng('spacing','Интервал между буквами',0,20,.5,o.spacing||0)+rng('curve','Изгиб',-100,100,1,o.curve||0)+rng('rotation','Поворот',-180,180,1,o.rotation||0)+F('Цвет',sw(o.color||'#e9e4d8')+qsw())+del;
+  if(selI.k==='l')return F('Тип',`<select data-f="type">${LABEL_GROUPS.map(([g,ts])=>`<optgroup label="${g}">${ts.map(t=>`<option value="${t}" ${(o.type||'country')===t?'selected':''}>${MAP_LABEL_TYPES[t].label}</option>`).join('')}</optgroup>`).join('')}</select>`)+F('Текст',`<input data-f="text" value="${esc(o.text||'')}">`)+F('Шрифт',`<select data-f="font">${Object.entries(MAP_LABEL_FONTS).map(([v,x])=>`<option value="${v}" style="font-family:'${x.family}'" ${o.font===v?'selected':''}>${esc(x.label)}</option>`).join('')}</select>`)+rng('size','Размер',10,160,1,o.size||26)+rng('spacing','Интервал между буквами',0,20,.5,o.spacing||0)+rng('curve','Изгиб',-100,100,1,o.curve||0)+rng('rotation','Поворот',-180,180,1,o.rotation||0)+F('Цвет',sw(o.color||'#e9e4d8')+qsw())+del;
   return F('Тип пути',`<select data-f="kind">${Object.entries(PKIND).map(([k,v])=>`<option value="${k}" ${kindOf(o)===k?'selected':''}>${v.n}</option>`).join('')}</select>`)+F('Название пути',`<input data-f="name" value="${esc(o.name||'')}">`)+F('Цвет линии',sw(o.color||'#c9a24c'))+rng('width','Толщина линии',.1,2,.05,o.width||.35)+`<div class="row" style="margin-bottom:8px"><button id="iDash" class="${o.dashed?'on':''}">${o.dashed?'┄ Пунктир':'— Сплошная'}</button></div>`+F('Заметка',`<input data-f="desc" value="${esc(o.desc||'')}">`)+'<div style="font-size:11px;color:var(--text-faint);margin-bottom:8px">Точки пути можно тянуть мышью</div>'+del}
 function openIcons(btn,mk){closePk();const el=document.createElement('div');el.className='pk';el.style.width='310px';
   let cat=MARKER_ICON_CATEGORIES.find(c=>c.icons.includes(mk.icon))||MARKER_ICON_CATEGORIES[0];
