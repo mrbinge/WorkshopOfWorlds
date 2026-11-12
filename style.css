@@ -825,3 +825,9 @@
 .mg-nw, .mg-se{ width:18px; height:18px; cursor:nwse-resize; } .mg-ne, .mg-sw{ width:18px; height:18px; cursor:nesw-resize; }
 .mg-nw::after, .mg-ne::after, .mg-sw::after, .mg-se::after{ left:6px; top:6px; width:6px; height:6px; border-radius:50%; }
 body.mg-dragging{ user-select:none; }
+
+/* индикатор сохранения в облако */
+#cloudChip{position:fixed;left:12px;bottom:10px;z-index:60;font:var(--fs-2xs) var(--font-mono,monospace);letter-spacing:.04em;padding:5px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface,#1a1c24);color:var(--text-faint);cursor:default;opacity:.8}
+#cloudChip[data-k="ok"]{opacity:.55}
+#cloudChip[data-k="saving"]{color:var(--text-dim)}
+#cloudChip[data-k="err"]{color:#fff;background:var(--thread,#c1443b);border-color:transparent;cursor:pointer;opacity:1}
