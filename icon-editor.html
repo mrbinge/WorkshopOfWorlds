@@ -1,0 +1,3202 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Редактор иконок меток</title>
+<style>
+  :root{
+    --bg:#14151b; --bg-alt:#1a1c24; --panel:#1e2029; --border-soft:#2a2e3a; --border-strong:#3a3f4f;
+    --text:#e9e4d8; --text-faint:#8a8f9e; --text-dim:#5f6478;
+    --gold:#c9a24c; --teal:#5fa8a0; --rose:#b5698f; --violet:#8c7ec9; --gray:#7a7f92; --thread:#c1443b;
+    --accent:#c9a24c;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:Inter,system-ui,sans-serif; font-size:13px; height:100vh; overflow:hidden; }
+  button{ font-family:inherit; cursor:pointer; }
+  .btn{ background:var(--panel); border:1px solid var(--border-soft); color:var(--text); border-radius:6px; padding:6px 11px; font-size:12.5px; transition:background .12s, border-color .12s; }
+  .btn:hover{ background:var(--border-soft); }
+  .btn.primary{ background:var(--gold); border-color:var(--gold); color:#14151b; font-weight:600; }
+  .btn.primary:hover{ filter:brightness(1.08); }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn.sm{ padding:4px 8px; font-size:11.5px; }
+  .btn.danger{ color:var(--thread); }
+  input[type=text], input[type=number]{
+    background:var(--bg-alt); border:1px solid var(--border-soft); color:var(--text); border-radius:5px;
+    padding:5px 7px; font-size:12.5px; font-family:inherit; width:100%;
+  }
+  input[type=color]{ width:32px; height:26px; border:1px solid var(--border-soft); border-radius:5px; background:none; padding:1px; cursor:pointer; }
+  select{ background:var(--bg-alt); border:1px solid var(--border-soft); color:var(--text); border-radius:5px; padding:5px 6px; font-size:12.5px; font-family:inherit; }
+  label.field{ display:block; margin-bottom:9px; }
+  label.field .lbl{ display:block; font-size:11px; color:var(--text-faint); margin-bottom:3px; }
+  .row{ display:flex; gap:8px; }
+  .row > *{ flex:1; min-width:0; }
+
+  #app{ display:flex; height:100vh; }
+
+  #sidebar{ width:250px; min-width:125px; max-width:340px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border-soft); display:flex; flex-direction:column; position:relative; }
+  #sidebarResizeHandle{
+    position:absolute; top:0; right:-3px; width:6px; height:100%; cursor:col-resize; z-index:5;
+    background:transparent;
+  }
+  #sidebarResizeHandle:hover, #sidebarResizeHandle.dragging{ background:rgba(201,162,76,.35); }
+  #sidebarHeader{ padding:12px 12px 8px; border-bottom:1px solid var(--border-soft); }
+  #sidebarHeader h1{ font-size:14px; margin:0 0 8px; font-weight:700; }
+  #searchInput{ margin-bottom:8px; }
+  #catTabs{ display:flex; flex-wrap:wrap; gap:4px; }
+  #catTabs button{ font-size:10.5px; padding:3px 7px; }
+  #catTabs button.active{ background:var(--gold); border-color:var(--gold); color:#14151b; }
+  #iconList{ flex:1; overflow-y:auto; padding:8px; display:grid; grid-template-columns:repeat(auto-fill, minmax(48px, 1fr)); gap:6px; align-content:start; }
+  .icon-thumb{
+    position:relative; aspect-ratio:1; border-radius:8px; border:1px solid var(--border-soft); background:var(--bg-alt);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; transition:border-color .12s, background .12s;
+  }
+  .icon-thumb:hover{ border-color:var(--text-dim); }
+  .icon-thumb.active{ border-color:var(--gold); background:rgba(201,162,76,.12); }
+  .icon-thumb svg{ width:60%; height:60%; }
+  .icon-thumb .dot{ position:absolute; top:3px; right:3px; width:6px; height:6px; border-radius:50%; background:var(--gold); display:none; }
+  .icon-thumb.dirty .dot{ display:block; }
+  .icon-thumb .moved-dot{ position:absolute; top:3px; left:3px; width:6px; height:6px; border-radius:50%; background:var(--accent, #d9a441); display:none; }
+  .icon-thumb.moved .moved-dot{ display:block; }
+
+  #center{ flex:1; display:flex; flex-direction:column; min-width:0; }
+  #topbar{ display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:8px 16px; padding:10px 16px; border-bottom:1px solid var(--border-soft); background:var(--panel); }
+  #topbarLeft{ display:flex; flex-direction:column; gap:8px; min-width:0; flex:1 1 0; }
+  .topbar-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; min-width:0; }
+  #iconKeyLabel{ font-size:15px; font-weight:700; white-space:nowrap; }
+  #iconMetaLabel{ font-size:11.5px; color:var(--text-faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #iconCategorySelect{ margin-left:10px; font-size:12px; padding:4px 6px; max-width:150px; }
+  #iconMetaLabel .moved{ color:var(--accent, #d9a441); }
+  #topbarRight{ display:flex; flex-direction:column; align-items:flex-end; gap:5px; margin-left:auto; flex:0 0 auto; width:250px; }
+  #topbarBtnStack{ display:flex; gap:6px; }
+  #saveStatus{ order:2; font-size:11px; line-height:1.35; color:var(--text-faint); text-align:right; }
+  #saveStatus.warn{ color:var(--accent); }
+
+  #canvasWrap{ flex:1; display:flex; overflow:auto; background:
+    repeating-conic-gradient(#191a21 0% 25%, #16171d 0% 50%) 50% / 18px 18px; }
+  #svgCanvas{ background:var(--bg-alt); border:1px solid var(--border-strong); border-radius:4px; box-shadow:0 6px 24px rgba(0,0,0,.4); cursor:crosshair; touch-action:none; flex-shrink:0; margin:auto; }
+  #realPreviewSizes{ display:flex; justify-content:space-between; gap:8px; }
+  #realPreviewPanel{
+    position:sticky; bottom:0; background:var(--panel); border-top:1px solid var(--border-soft);
+    box-shadow:0 -8px 16px rgba(0,0,0,.35); z-index:5;
+  }
+  .rp-size-row{ display:flex; flex-direction:column; align-items:center; gap:6px; flex:1; min-width:0; }
+  .rp-badge{ border-radius:50%; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,.45); flex-shrink:0; }
+  .rp-badge svg{ display:block; }
+  .rp-size-label{ font-size:9px; color:var(--text-dim); font-family:'IBM Plex Mono', monospace; white-space:nowrap; text-align:center; }
+  #svgCanvas .safe-zone{ fill:none; stroke:var(--border-strong); stroke-width:0.25; stroke-dasharray:1 1; pointer-events:none; }
+  #svgCanvas .elem-outline{ fill:none; stroke:#4da3ff; stroke-width:0.4; stroke-dasharray:1.5 1; pointer-events:none; }
+  #svgCanvas .handle-line{ stroke:#ff9f4d; stroke-width:0.25; pointer-events:none; }
+  #svgCanvas .anchor-pt{ fill:#14151b; stroke:#4da3ff; stroke-width:0.5; cursor:grab; opacity:0.6; transition:opacity .1s; }
+  #svgCanvas .anchor-pt:hover{ opacity:1; }
+  #svgCanvas .anchor-pt.selected{ fill:#4da3ff; opacity:0.9; }
+  #svgCanvas .handle-pt{ fill:#ff9f4d; stroke:#14151b; stroke-width:0.3; cursor:grab; opacity:0.65; transition:opacity .1s; }
+  #svgCanvas .handle-pt:hover{ opacity:1; }
+  #svgCanvas .resize-handle{ fill:#14151b; stroke:#4da3ff; stroke-width:0.5; cursor:nwse-resize; opacity:0.65; transition:opacity .1s; }
+  #svgCanvas .resize-handle:hover{ opacity:1; }
+  #svgCanvas .rotate-handle{ fill:#14151b; stroke:#7ee787; stroke-width:0.5; cursor:grab; opacity:0.7; transition:opacity .1s; }
+  #svgCanvas .rotate-handle:hover{ opacity:1; }
+  #svgCanvas .rotate-handle:active{ cursor:grabbing; }
+  #svgCanvas .rotate-stick{ stroke:#7ee787; stroke-width:0.25; opacity:0.6; pointer-events:none; }
+  #svgCanvas .move-hit{ cursor:move; }
+
+  /* copy/paste toast */
+  #editorToast{
+    position:fixed; bottom:24px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel, #1c1d24); border:1px solid var(--border-strong); color:var(--text, #e9e4d8);
+    padding:10px 18px; border-radius:8px; font-size:13px; box-shadow:0 10px 28px rgba(0,0,0,.5);
+    opacity:0; pointer-events:none; transition:opacity .18s ease, transform .18s ease; z-index:600;
+  }
+  #editorToast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* right-click context menu */
+  #ctxMenu{
+    position:fixed; z-index:500; min-width:200px; background:var(--panel, #1c1d24); border:1px solid var(--border-strong);
+    border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.55); padding:5px; font-size:12.5px; user-select:none;
+  }
+  #ctxMenu .ctx-item{
+    display:flex; align-items:center; gap:8px; padding:7px 10px; border-radius:5px; cursor:pointer; white-space:nowrap;
+    color:var(--text, #e9e4d8);
+  }
+  #ctxMenu .ctx-item:hover{ background:rgba(255,255,255,.08); }
+  #ctxMenu .ctx-item.danger:hover{ background:rgba(255,90,90,.15); color:#ff8a8a; }
+  #ctxMenu .ctx-item[disabled]{ opacity:.35; cursor:default; pointer-events:none; }
+  #ctxMenu .ctx-sep{ height:1px; background:var(--border-strong); margin:4px 2px; }
+  #ctxMenu .ctx-check{ width:14px; text-align:center; flex-shrink:0; }
+  .ctx-fill-swatch{ width:12px; height:12px; border-radius:3px; flex-shrink:0; border:1px solid rgba(255,255,255,.25); }
+  .ctx-fill-swatch-main{ background:#e9e4d8; }
+  .ctx-fill-swatch-accent{ background:#8a8f9e; }
+  #ctxMenu .ctx-sub-wrap{ position:relative; }
+  #ctxMenu .ctx-sub-wrap > .ctx-item::after{ content:'▸'; margin-left:auto; padding-left:10px; color:var(--text-faint); }
+  #ctxSubMenu{
+    position:fixed; z-index:501; min-width:190px; max-height:280px; overflow-y:auto; background:var(--panel, #1c1d24);
+    border:1px solid var(--border-strong); border-radius:8px; box-shadow:0 10px 30px rgba(0,0,0,.55); padding:5px;
+  }
+  #ctxSubMenu .ctx-shape-item{
+    display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:5px; cursor:pointer; font-size:12.5px; color:var(--text, #e9e4d8);
+  }
+  #ctxSubMenu .ctx-shape-item:hover{ background:rgba(255,255,255,.08); }
+  #ctxSubMenu .ctx-shape-item svg{ width:16px; height:16px; flex-shrink:0; }
+  #ctxMenuOverlay{ position:fixed; inset:0; z-index:499; }
+  #svgCanvas .snap-guide{ stroke-width:0.18; stroke-dasharray:0.9 0.7; pointer-events:none; }
+  #svgCanvas .snap-guide-canvas{ stroke:#ff4da6; }
+  #svgCanvas .snap-guide-object{ stroke:#4da3ff; }
+  #svgCanvas .snap-guide-radial{ stroke:#7fe08a; stroke-dasharray:0.5 0.5; }
+  #svgCanvas .snap-guide-center-dot{ fill:#7fe08a; stroke:none; pointer-events:none; }
+
+  #canvasFooter{ display:flex; align-items:center; justify-content:center; gap:10px; padding:8px 16px; border-top:1px solid var(--border-soft); background:var(--panel); font-size:11.5px; color:var(--text-faint); position:relative; }
+  #zoomControls{ position:absolute; right:16px; top:50%; transform:translateY(-50%); display:flex; align-items:center; gap:6px; }
+  #zoomControls .btn.sm{ width:24px; height:24px; padding:0; display:flex; align-items:center; justify-content:center; }
+  #zoomLabel{ min-width:38px; text-align:center; font-variant-numeric:tabular-nums; }
+
+  #rightPanel{ width:280px; flex-shrink:0; background:var(--panel); border-left:1px solid var(--border-soft); display:flex; flex-direction:column; overflow-y:auto; }
+  .panel-section{ padding:12px; border-bottom:1px solid var(--border-soft); }
+  .panel-section h2{ font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-faint); margin:0 0 9px; font-weight:600; }
+  .panel-section h2.collapsible-header{ display:flex; align-items:center; justify-content:space-between; cursor:pointer; user-select:none; margin-bottom:8px; }
+  .panel-section h2.collapsible-header:hover{ color:var(--text); }
+  .panel-section h2.collapsible-header .collapse-chevron{ font-size:10px; color:var(--text-dim); flex-shrink:0; }
+  #elementList{ display:flex; flex-direction:column; gap:4px; margin-bottom:8px; }
+  .elem-row{
+    display:flex; align-items:center; gap:7px; padding:6px 8px; border-radius:6px; border:1px solid transparent;
+    background:var(--bg-alt); cursor:pointer; font-size:12px; position:relative;
+  }
+  .elem-row:hover{ border-color:var(--border-strong); }
+  .elem-row.active{ border-color:var(--gold); background:rgba(201,162,76,.1); }
+  .elem-row.link-selected{ border-color:#4da3ff; background:rgba(77,163,255,.12); }
+  .elem-row.dragging{ opacity:.4; }
+  .elem-row.drag-over-top::before, .elem-row.drag-over-bottom::after{
+    content:''; position:absolute; left:6px; right:6px; height:2px; background:var(--gold); border-radius:2px;
+  }
+  .elem-row.drag-over-top::before{ top:-2px; }
+  .elem-row.drag-over-bottom::after{ bottom:-2px; }
+  .elem-row .drag-handle{ color:var(--text-dim); cursor:grab; flex-shrink:0; font-size:12px; line-height:1; padding:0 1px; }
+  .elem-row .drag-handle:active{ cursor:grabbing; }
+  .elem-row .row-thumb{
+    width:22px; height:22px; border-radius:5px; flex-shrink:0; border:1px solid rgba(255,255,255,.12);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    background:
+      linear-gradient(45deg, rgba(255,255,255,.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.06) 75%) 0 0/8px 8px,
+      linear-gradient(45deg, rgba(255,255,255,.06) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.06) 75%) 4px 4px/8px 8px,
+      #14151b;
+    color:#e9e4d8;
+  }
+  .elem-row .row-thumb-svg{ display:block; --marker-color:#8a8f9e; }
+  .elem-row .kind{ flex:1; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .elem-row .link-badge{ color:#4da3ff; font-size:11px; flex-shrink:0; }
+  .elem-row .del{ color:var(--text-dim); background:none; border:none; padding:2px 4px; font-size:13px; }
+  .elem-row .del:hover{ color:var(--thread); }
+  #linkToolbar{ display:flex; align-items:center; gap:6px; margin:2px 0 8px; padding:6px 8px; border:1px dashed #4da3ff; border-radius:6px; background:rgba(77,163,255,.08); font-size:11px; color:var(--text-faint); flex-wrap:wrap; }
+  #linkToolbar .btn{ font-size:11px; padding:4px 8px; }
+  .link-hint{ font-size:10.5px; color:var(--text-dim); margin:-4px 0 8px; }
+  #addShapeRow{ display:flex; gap:5px; flex-wrap:wrap; }
+  #addShapeRow button{ flex:1; min-width:56px; }
+  .shape-add-wrap{ position:relative; }
+  .shape-picker-overlay{ position:fixed; inset:0; z-index:59; background:transparent; }
+  .shape-picker-popover{
+    position:absolute; top:calc(100% + 6px); left:0; right:0; z-index:60;
+    background:var(--bg-alt); border:1px solid var(--border-strong); border-radius:8px;
+    box-shadow:0 10px 28px rgba(0,0,0,.5); padding:8px; display:grid;
+    grid-template-columns:repeat(3,1fr); gap:6px; max-height:340px; overflow-y:auto;
+  }
+  .shape-opt{
+    display:flex; flex-direction:column; align-items:center; gap:4px; padding:8px 4px;
+    background:var(--panel); border:1px solid var(--border-soft); border-radius:6px; color:var(--text-faint);
+    font-size:9.5px; text-align:center; line-height:1.2; transition:border-color .12s, background .12s, color .12s;
+  }
+  .shape-opt:hover{ border-color:var(--gold); color:var(--text); background:rgba(201,162,76,.08); }
+  .shape-opt svg{ width:22px; height:22px; stroke:currentColor; }
+
+  #emptyState{ padding:30px 16px; text-align:center; color:var(--text-faint); font-size:12.5px; line-height:1.6; }
+  #pathModeHint{ font-size:11px; color:var(--text-faint); padding:0 12px 10px; line-height:1.5; }
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="sidebar">
+    <div id="sidebarResizeHandle" title="Потяните, чтобы изменить ширину"></div>
+    <div id="sidebarHeader">
+      <h1>Иконки меток</h1>
+      <div style="display:flex; gap:6px;">
+        <input type="text" id="searchInput" placeholder="Поиск по названию..." style="flex:1; min-width:0;">
+        <button class="btn sm" id="addIconBtn" title="Добавить новую иконку">+ Новая</button>
+      </div>
+      <div id="catTabs"></div>
+    </div>
+    <div id="iconList"></div>
+  </div>
+
+  <div id="center">
+    <div id="topbar">
+      <div id="topbarLeft">
+        <div class="topbar-row">
+          <button class="btn sm" id="prevBtn" title="Предыдущая">←</button>
+          <button class="btn sm" id="nextBtn" title="Следующая">→</button>
+          <div>
+            <div id="iconKeyLabel">—</div>
+            <div id="iconMetaLabel"></div>
+          </div>
+          <select id="iconCategorySelect" title="Переместить в другую категорию"></select>
+          <button class="btn sm" id="renameIconBtn" title="Переименовать эту иконку (название и/или ключ)">Переименовать</button>
+          <button class="btn sm danger" id="deleteIconBtn" title="Удалить эту иконку насовсем">Удалить</button>
+        </div>
+        <div class="topbar-row">
+          <button class="btn sm" id="undoBtn" title="Отменить (Ctrl+Z)">↶</button>
+          <button class="btn sm" id="redoBtn" title="Повторить (Ctrl+Shift+Z)">↷</button>
+          <span style="width:1px; height:20px; background:var(--border-soft); margin:0 2px;"></span>
+          <select id="alignMenu" title="Сначала выделите 2+ фигуры (Ctrl/Cmd+клик в списке слоёв слева), затем выберите действие">
+            <option value="" selected>— Распределение —</option>
+            <optgroup label="Выровнять">
+              <option value="align-left">По левому краю</option>
+              <option value="align-hcenter">По центру (гориз.)</option>
+              <option value="align-right">По правому краю</option>
+              <option value="align-top">По верхнему краю</option>
+              <option value="align-vcenter">По центру (верт.)</option>
+              <option value="align-bottom">По нижнему краю</option>
+            </optgroup>
+            <optgroup label="Распределить">
+              <option value="dist-h">Равномерно по горизонтали</option>
+              <option value="dist-v">Равномерно по вертикали</option>
+            </optgroup>
+          </select>
+        </div>
+      </div>
+      <div id="topbarRight">
+        <span id="saveStatus"></span>
+        <div id="topbarBtnStack">
+          <button class="btn" id="loadFromFileBtn" title="Открыть другой marker-icons.js (обычно не нужен: редактор сам берёт файл из своей папки)">Открыть…</button>
+          <button class="btn primary" id="saveBtn" title="Собрать marker-icons.js (Ctrl+S)">Сохранить</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="canvasWrap">
+      <svg id="svgCanvas" width="560" height="560" viewBox="-2 -2 28 28"></svg>
+    </div>
+
+    <div id="canvasFooter">
+      <span>Клик по фигуре — выбрать. Точки и рычаги — тянуть мышью.</span>
+      <div id="zoomControls">
+        <button class="btn sm" id="zoomOutBtn" title="Уменьшить (Ctrl −)">−</button>
+        <span id="zoomLabel">100%</span>
+        <button class="btn sm" id="zoomInBtn" title="Увеличить (Ctrl +)">+</button>
+        <button class="btn sm" id="zoomResetBtn" title="Сбросить масштаб (Ctrl 0)">1:1</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="rightPanel"></div>
+</div>
+
+<script id="path-engine-src">
+// ============================================================
+// path_engine.js — parse an SVG <path d="..."> string into an editable
+// "anchors with bezier handles" model, and serialize back to a 'd' string.
+//
+// Internal model per subpath: array of anchors:
+//   { x, y, inX, inY, outX, outY }   (in/out are null when the segment on
+//   that side is a straight line, not a curve)
+// A path is: { subpaths: [ {anchors:[...], closed:bool}, ... ] }
+//
+// Supports: M/m L/l H/h V/v C/c S/s Q/q T/t A/a Z/z
+// Q/T are converted to equivalent cubic C on parse (exact conversion).
+// A (arc) is approximated with cubic beziers (standard arc-to-bezier).
+// ============================================================
+
+function parsePathD(d){
+  const tokens = tokenizePath(d);
+  let i = 0;
+  let cx = 0, cy = 0;           // current point
+  let startX = 0, startY = 0;   // subpath start (for Z)
+  let prevCmd = '';
+  let prevCtrl = null;          // reflection control point for S/T
+  const subpaths = [];
+  let cur = null; // current subpath being built: {anchors:[], closed:false}
+
+  function pushAnchor(x, y, inX, inY, outXOfPrev, outYOfPrev){
+    if(outXOfPrev != null && cur.anchors.length){
+      const last = cur.anchors[cur.anchors.length-1];
+      last.outX = outXOfPrev; last.outY = outYOfPrev;
+    }
+    cur.anchors.push({ x, y, inX: inX==null?null:inX, inY: inY==null?null:inY, outX:null, outY:null });
+  }
+
+  while(i < tokens.length){
+    const cmd = tokens[i++];
+    const abs = cmd === cmd.toUpperCase();
+    const C = cmd.toUpperCase();
+    // SVG allows omitting a repeated command letter for consecutive segments
+    // of the same command — e.g. "L10,10 20,20 30,30" is three L segments.
+    // `more()` reports whether the next token is a bare number (i.e. an
+    // implicit repeat) rather than a new command letter, so every branch
+    // below loops for as long as that holds.
+    const more = () => i < tokens.length && isNum(tokens[i]);
+    if(C === 'M'){
+      moveTo();
+    } else if(C === 'L'){
+      do{ lineTo(); } while(more());
+    } else if(C === 'H'){
+      do{ horizTo(); } while(more());
+    } else if(C === 'V'){
+      do{ vertTo(); } while(more());
+    } else if(C === 'C'){
+      do{ curveTo(); } while(more());
+    } else if(C === 'S'){
+      do{ smoothCurveTo(); } while(more());
+    } else if(C === 'Q'){
+      do{ quadTo(); } while(more());
+    } else if(C === 'T'){
+      do{ smoothQuadTo(); } while(more());
+    } else if(C === 'A'){
+      do{ arcTo(); } while(more());
+    } else if(C === 'Z'){
+      cur.closed = true;
+      cx = startX; cy = startY;
+      subpaths.push(cur);
+      cur = { anchors: [], closed:false };
+      prevCmd = 'Z'; prevCtrl = null;
+    } else {
+      // unknown command — skip one token defensively (shouldn't happen for
+      // this icon set, but avoids an infinite loop on unexpected input)
+    }
+
+    function moveTo(){
+      const x = num(tokens[i++]), y = num(tokens[i++]);
+      cx = abs ? x : cx + x; cy = abs ? y : cy + y;
+      if(cur && cur.anchors.length) subpaths.push(cur);
+      cur = { anchors: [], closed:false };
+      cur.anchors.push({ x:cx, y:cy, inX:null, inY:null, outX:null, outY:null });
+      startX = cx; startY = cy;
+      prevCtrl = null; prevCmd = 'M';
+      // Subsequent implicit coordinate pairs after M are treated as L.
+      while(more()){
+        const lx = num(tokens[i++]), ly = num(tokens[i++]);
+        cx = abs ? lx : cx + lx; cy = abs ? ly : cy + ly;
+        pushAnchor(cx, cy, null, null, null, null);
+        prevCmd = 'L'; prevCtrl = null;
+      }
+    }
+    function lineTo(){
+      const x = num(tokens[i++]), y = num(tokens[i++]);
+      cx = abs ? x : cx + x; cy = abs ? y : cy + y;
+      pushAnchor(cx, cy, null, null, null, null);
+      prevCmd = 'L'; prevCtrl = null;
+    }
+    function horizTo(){
+      const x = num(tokens[i++]);
+      cx = abs ? x : cx + x;
+      pushAnchor(cx, cy, null, null, null, null);
+      prevCmd = 'H'; prevCtrl = null;
+    }
+    function vertTo(){
+      const y = num(tokens[i++]);
+      cy = abs ? y : cy + y;
+      pushAnchor(cx, cy, null, null, null, null);
+      prevCmd = 'V'; prevCtrl = null;
+    }
+    function curveTo(){
+      const x1=num(tokens[i++]), y1=num(tokens[i++]);
+      const x2=num(tokens[i++]), y2=num(tokens[i++]);
+      const x=num(tokens[i++]), y=num(tokens[i++]);
+      const c1x = abs?x1:cx+x1, c1y = abs?y1:cy+y1;
+      const c2x = abs?x2:cx+x2, c2y = abs?y2:cy+y2;
+      const nx = abs?x:cx+x, ny = abs?y:cy+y;
+      pushAnchor(nx, ny, c2x, c2y, c1x, c1y);
+      prevCtrl = {x:c2x, y:c2y};
+      cx = nx; cy = ny; prevCmd = 'C';
+    }
+    function smoothCurveTo(){
+      const x2=num(tokens[i++]), y2=num(tokens[i++]);
+      const x=num(tokens[i++]), y=num(tokens[i++]);
+      const c2x = abs?x2:cx+x2, c2y = abs?y2:cy+y2;
+      const nx = abs?x:cx+x, ny = abs?y:cy+y;
+      let c1x, c1y;
+      if(prevCtrl && (prevCmd==='C'||prevCmd==='S')){ c1x = 2*cx-prevCtrl.x; c1y = 2*cy-prevCtrl.y; }
+      else { c1x = cx; c1y = cy; }
+      pushAnchor(nx, ny, c2x, c2y, c1x, c1y);
+      prevCtrl = {x:c2x, y:c2y};
+      cx = nx; cy = ny; prevCmd = 'S';
+    }
+    function quadTo(){
+      const x1=num(tokens[i++]), y1=num(tokens[i++]);
+      const x=num(tokens[i++]), y=num(tokens[i++]);
+      const qx = abs?x1:cx+x1, qy = abs?y1:cy+y1;
+      const nx = abs?x:cx+x, ny = abs?y:cy+y;
+      const c1x = cx + 2/3*(qx-cx), c1y = cy + 2/3*(qy-cy);
+      const c2x = nx + 2/3*(qx-nx), c2y = ny + 2/3*(qy-ny);
+      pushAnchor(nx, ny, c2x, c2y, c1x, c1y);
+      prevCtrl = {x:qx, y:qy};
+      cx = nx; cy = ny; prevCmd = 'Q';
+    }
+    function smoothQuadTo(){
+      const x=num(tokens[i++]), y=num(tokens[i++]);
+      const nx = abs?x:cx+x, ny = abs?y:cy+y;
+      let qx, qy;
+      if(prevCtrl && (prevCmd==='Q'||prevCmd==='T')){ qx = 2*cx-prevCtrl.x; qy = 2*cy-prevCtrl.y; }
+      else { qx = cx; qy = cy; }
+      const c1x = cx + 2/3*(qx-cx), c1y = cy + 2/3*(qy-cy);
+      const c2x = nx + 2/3*(qx-nx), c2y = ny + 2/3*(qy-ny);
+      pushAnchor(nx, ny, c2x, c2y, c1x, c1y);
+      prevCtrl = {x:qx, y:qy};
+      cx = nx; cy = ny; prevCmd = 'T';
+    }
+    function arcTo(){
+      const rx=num(tokens[i++]), ry=num(tokens[i++]);
+      const rot=num(tokens[i++]);
+      const laf=num(tokens[i++]), sf=num(tokens[i++]);
+      const x=num(tokens[i++]), y=num(tokens[i++]);
+      const nx = abs?x:cx+x, ny = abs?y:cy+y;
+      const beziers = arcToBeziers(cx, cy, rx, ry, rot, laf, sf, nx, ny);
+      for(const b of beziers){
+        pushAnchor(b.x, b.y, b.c2x, b.c2y, b.c1x, b.c1y);
+      }
+      prevCtrl = null;
+      cx = nx; cy = ny; prevCmd = 'A';
+    }
+  }
+  if(cur && cur.anchors.length) subpaths.push(cur);
+  return { subpaths };
+}
+
+function serializePathD(pathModel, precision){
+  const p = precision==null ? 3 : precision;
+  const r = v => {
+    const n = Math.round(v * Math.pow(10,p)) / Math.pow(10,p);
+    return Number.isInteger(n) ? String(n) : String(n);
+  };
+  const parts = [];
+  for(const sp of pathModel.subpaths){
+    if(!sp.anchors.length) continue;
+    const a0 = sp.anchors[0];
+    parts.push(`M${r(a0.x)},${r(a0.y)}`);
+    for(let k=1;k<sp.anchors.length;k++){
+      const prev = sp.anchors[k-1], a = sp.anchors[k];
+      if(prev.outX==null && a.inX==null){
+        parts.push(`L${r(a.x)},${r(a.y)}`);
+      } else {
+        const c1x = prev.outX==null ? prev.x : prev.outX;
+        const c1y = prev.outY==null ? prev.y : prev.outY;
+        const c2x = a.inX==null ? a.x : a.inX;
+        const c2y = a.inY==null ? a.y : a.inY;
+        parts.push(`C${r(c1x)},${r(c1y)} ${r(c2x)},${r(c2y)} ${r(a.x)},${r(a.y)}`);
+      }
+    }
+    if(sp.closed){
+      // closing segment back to the first anchor, using the last anchor's
+      // outHandle and the first anchor's inHandle if present
+      const last = sp.anchors[sp.anchors.length-1];
+      const first = sp.anchors[0];
+      if(last.outX==null && first.inX==null){
+        parts.push('Z');
+      } else {
+        const c1x = last.outX==null ? last.x : last.outX;
+        const c1y = last.outY==null ? last.y : last.outY;
+        const c2x = first.inX==null ? first.x : first.inX;
+        const c2y = first.inY==null ? first.y : first.inY;
+        parts.push(`C${r(c1x)},${r(c1y)} ${r(c2x)},${r(c2y)} ${r(first.x)},${r(first.y)}Z`);
+      }
+    }
+  }
+  return parts.join(' ');
+}
+
+// ---- helpers ----
+function tokenizePath(d){
+  const cmdRe = /[MLHVCSQTAZmlhvcsqtaz]/;
+  const tokens = [];
+  let i = 0;
+  const n = d.length;
+  while(i < n){
+    const ch = d[i];
+    if(cmdRe.test(ch)){ tokens.push(ch); i++; continue; }
+    if(/[\s,]/.test(ch)){ i++; continue; }
+    // number: optional sign, digits, optional decimal, optional exponent
+    const m = /^[+-]?(\d+\.\d+|\.\d+|\d+\.?)(e[+-]?\d+)?/i.exec(d.slice(i));
+    if(m){ tokens.push(m[0]); i += m[0].length; continue; }
+    i++; // skip unrecognized char defensively
+  }
+  return tokens;
+}
+function num(s){ return parseFloat(s); }
+function isNum(s){ return s!=null && /^[+-]?(\d|\.\d)/.test(s); }
+
+// Standard arc-to-cubic-bezier conversion (endpoint parametrization).
+function arcToBeziers(x1,y1, rx,ry, angleDeg, largeArcFlag, sweepFlag, x2,y2){
+  if(rx===0 || ry===0) return [{x:x2,y:y2,c1x:x1,c1y:y1,c2x:x2,c2y:y2}];
+  rx = Math.abs(rx); ry = Math.abs(ry);
+  const phi = angleDeg * Math.PI/180;
+  const cosPhi = Math.cos(phi), sinPhi = Math.sin(phi);
+  const dx2 = (x1-x2)/2, dy2 = (y1-y2)/2;
+  const x1p =  cosPhi*dx2 + sinPhi*dy2;
+  const y1p = -sinPhi*dx2 + cosPhi*dy2;
+  let rxs = rx*rx, rys = ry*ry;
+  const x1ps = x1p*x1p, y1ps = y1p*y1p;
+  const cr = x1ps/rxs + y1ps/rys;
+  if(cr > 1){ const s = Math.sqrt(cr); rx*=s; ry*=s; rxs=rx*rx; rys=ry*ry; }
+  const sign = (largeArcFlag !== sweepFlag) ? 1 : -1;
+  let sq = ((rxs*rys) - (rxs*y1ps) - (rys*x1ps)) / ((rxs*y1ps) + (rys*x1ps));
+  sq = sq < 0 ? 0 : sq;
+  const coef = sign * Math.sqrt(sq);
+  const cxp = coef * (rx*y1p/ry);
+  const cyp = coef * -(ry*x1p/rx);
+  const cx = cosPhi*cxp - sinPhi*cyp + (x1+x2)/2;
+  const cy = sinPhi*cxp + cosPhi*cyp + (y1+y2)/2;
+  const ux = (x1p-cxp)/rx, uy = (y1p-cyp)/ry;
+  const vx = (-x1p-cxp)/rx, vy = (-y1p-cyp)/ry;
+  const ang = (ux,uy,vx,vy) => {
+    const dot = ux*vx+uy*vy;
+    const len = Math.sqrt((ux*ux+uy*uy)*(vx*vx+vy*vy));
+    let a = Math.acos(Math.max(-1,Math.min(1,dot/len)));
+    if(ux*vy - uy*vx < 0) a = -a;
+    return a;
+  };
+  let theta1 = ang(1,0,ux,uy);
+  let dTheta = ang(ux,uy,vx,vy);
+  if(!sweepFlag && dTheta>0) dTheta -= 2*Math.PI;
+  if(sweepFlag && dTheta<0) dTheta += 2*Math.PI;
+  const segCount = Math.max(1, Math.ceil(Math.abs(dTheta)/(Math.PI/2)));
+  const delta = dTheta/segCount;
+  const t = 4/3*Math.tan(delta/4);
+  const result = [];
+  let angle = theta1;
+  for(let s=0; s<segCount; s++){
+    const a1 = angle, a2 = angle+delta;
+    const p1x = cx + rx*Math.cos(a1)*cosPhi - ry*Math.sin(a1)*sinPhi;
+    const p1y = cy + rx*Math.cos(a1)*sinPhi + ry*Math.sin(a1)*cosPhi;
+    const p2x = cx + rx*Math.cos(a2)*cosPhi - ry*Math.sin(a2)*sinPhi;
+    const p2y = cy + rx*Math.cos(a2)*sinPhi + ry*Math.sin(a2)*cosPhi;
+    const c1x = p1x - t*(rx*Math.sin(a1)*cosPhi + ry*Math.cos(a1)*sinPhi);
+    const c1y = p1y - t*(rx*Math.sin(a1)*sinPhi - ry*Math.cos(a1)*cosPhi);
+    const c2x = p2x + t*(rx*Math.sin(a2)*cosPhi + ry*Math.cos(a2)*sinPhi);
+    const c2y = p2y + t*(rx*Math.sin(a2)*sinPhi - ry*Math.cos(a2)*cosPhi);
+    result.push({x:p2x, y:p2y, c1x, c1y, c2x, c2y});
+    angle = a2;
+  }
+  return result;
+}
+</script>
+
+<script src="marker-icons.js"></script>
+<script id="marker-icons-glue">
+// Каталог значков берётся из marker-icons.js (лежит рядом). Если его нет — редактор открывается пустым,
+// и нужно нажать «Открыть marker-icons.js».
+window.__catalogMissing = (typeof MARKER_SVG === "undefined");
+if(window.__catalogMissing){
+  window.MARKER_ICONS=[["new","Новый значок"]]; window.MARKER_ICON_LABELS={new:"Новый значок"};
+  window.MARKER_ICON_CATEGORIES=[{key:"other",label:"Прочее",icons:["new"]}]; window.MARKER_ICON_TO_CATEGORY={new:"other"};
+  window.MARKER_COLORS={other:"var(--gray)",new:"var(--gray)"}; window.MARKER_SVG={new:'<svg viewBox="-2 -2 28 28"></svg>'};
+  window.LEGACY_MARKER_ICONS={}; window.iconCategoryOf=function(k){return MARKER_ICON_TO_CATEGORY[k]||"other"};
+}
+</script>
+
+<script id="icon-model-src">
+// ============================================================
+// icon_model.js — converts between the raw SVG markup used in
+// marker-icons.js (MARKER_SVG[key]) and an editable "elements" array.
+//
+// Fill and stroke are tracked INDEPENDENTLY (not as a single "mode"),
+// because several existing icons rely on a shape that has both a real
+// fill AND an inherited stroke at the same time (they set fill="currentColor"
+// but never override stroke, so it inherits stroke:currentColor from the
+// outer .map-marker-icon svg default) — collapsing that into one mutually
+// exclusive fill-or-stroke mode silently thins those shapes out.
+//
+//   element = { id, kind:'path'|'rect'|'circle'|'ellipse',
+//               fillRole:'none'|'main'|'accent'|'custom', fillCustom,
+//               strokeRole:'none'|'main'|'accent'|'custom', strokeCustom,
+//               strokeWidth, opacity, transform, ...shape-specific fields }
+//   main   -> currentColor        (the icon's own silhouette)
+//   accent -> var(--marker-color) (a cutout that matches the marker circle's background)
+//   custom -> a literal color (rare, e.g. the volcano's fixed orange)
+//
+// A missing fill/stroke attribute in the source SVG inherits the outer
+// .map-marker-icon svg default (fill:none; stroke:currentColor) — that
+// inheritance is resolved once here on parse, so the editable model never
+// has to reason about CSS cascade itself.
+// ============================================================
+
+let __uidCounter = 1;
+function uid(){ return 'el' + (__uidCounter++) + '_' + Math.random().toString(36).slice(2,7); }
+
+function roleToColor(role, custom){
+  if(role === 'main') return 'currentColor';
+  if(role === 'accent') return 'var(--marker-color)';
+  return custom || '#000000';
+}
+function colorToRole(color){
+  if(color === 'none') return { role:'none' };
+  if(color === 'currentColor') return { role:'main' };
+  if(color === 'var(--marker-color)') return { role:'accent' };
+  return { role:'custom', customColor: color };
+}
+function fmtNum(v){
+  if(v == null || isNaN(v)) return '0';
+  const n = Math.round(v * 1000) / 1000;
+  return String(n);
+}
+
+function parseIconSvg(svgString){
+  const doc = new DOMParser().parseFromString(svgString, 'image/svg+xml');
+  const svgEl = doc.documentElement;
+  const viewBox = (svgEl && svgEl.getAttribute && svgEl.getAttribute('viewBox')) || '-2 -2 28 28';
+  const elements = [];
+  if(!svgEl || svgEl.tagName === 'parsererror'){ return { elements, viewBox }; }
+  const children = Array.from(svgEl.children || []);
+  for(const child of children){
+    const tag = (child.tagName || '').toLowerCase();
+    if(!['path','rect','circle','ellipse'].includes(tag)) continue;
+    const fillAttr = child.getAttribute('fill');
+    const strokeAttr = child.getAttribute('stroke');
+    const fillInfo = fillAttr == null ? { role:'none' } : colorToRole(fillAttr);
+    const strokeInfo = strokeAttr == null ? { role:'main' } : colorToRole(strokeAttr);
+    const strokeWidthAttr = child.getAttribute('stroke-width');
+    const opacityAttr = child.getAttribute('opacity');
+    const transformAttr = child.getAttribute('transform');
+    const dasharrayAttr = child.getAttribute('stroke-dasharray');
+    const base = {
+      id: uid(), kind: tag,
+      fillRole: fillInfo.role, fillCustom: fillInfo.customColor,
+      strokeRole: strokeInfo.role, strokeCustom: strokeInfo.customColor,
+      strokeWidth: strokeWidthAttr != null ? parseFloat(strokeWidthAttr) : 2,
+      opacity: opacityAttr != null ? parseFloat(opacityAttr) : 1,
+      transform: transformAttr || '',
+      strokeDasharray: dasharrayAttr || '',
+    };
+    if(tag === 'path'){
+      base.pathModel = parsePathD(child.getAttribute('d') || '');
+    } else if(tag === 'rect'){
+      base.x = parseFloat(child.getAttribute('x')) || 0;
+      base.y = parseFloat(child.getAttribute('y')) || 0;
+      base.width = parseFloat(child.getAttribute('width')) || 0;
+      base.height = parseFloat(child.getAttribute('height')) || 0;
+      base.rx = parseFloat(child.getAttribute('rx')) || 0;
+    } else if(tag === 'circle'){
+      base.cx = parseFloat(child.getAttribute('cx')) || 0;
+      base.cy = parseFloat(child.getAttribute('cy')) || 0;
+      base.r = parseFloat(child.getAttribute('r')) || 0;
+    } else if(tag === 'ellipse'){
+      base.cx = parseFloat(child.getAttribute('cx')) || 0;
+      base.cy = parseFloat(child.getAttribute('cy')) || 0;
+      base.rx = parseFloat(child.getAttribute('rx')) || 0;
+      base.ry = parseFloat(child.getAttribute('ry')) || 0;
+    }
+    elements.push(base);
+  }
+  return { elements, viewBox };
+}
+
+function elementToSvgString(el){
+  const fillAttr = el.fillRole === 'none' ? 'none' : roleToColor(el.fillRole, el.fillCustom);
+  const strokeAttr = el.strokeRole === 'none' ? 'none' : roleToColor(el.strokeRole, el.strokeCustom);
+  const extra = [];
+  if(el.strokeRole !== 'none') extra.push(`stroke-width="${fmtNum(el.strokeWidth || 2)}"`);
+  if(el.strokeDasharray) extra.push(`stroke-dasharray="${el.strokeDasharray}"`);
+  if(el.opacity != null && el.opacity !== 1) extra.push(`opacity="${fmtNum(el.opacity)}"`);
+  if(el.transform) extra.push(`transform="${el.transform}"`);
+  const extraStr = extra.length ? ' ' + extra.join(' ') : '';
+  if(el.kind === 'path'){
+    const d = serializePathD(el.pathModel);
+    return `<path d="${d}" fill="${fillAttr}" stroke="${strokeAttr}"${extraStr}/>`;
+  }
+  if(el.kind === 'rect'){
+    const rx = el.rx ? ` rx="${fmtNum(el.rx)}"` : '';
+    return `<rect x="${fmtNum(el.x)}" y="${fmtNum(el.y)}" width="${fmtNum(el.width)}" height="${fmtNum(el.height)}"${rx} fill="${fillAttr}" stroke="${strokeAttr}"${extraStr}/>`;
+  }
+  if(el.kind === 'circle'){
+    return `<circle cx="${fmtNum(el.cx)}" cy="${fmtNum(el.cy)}" r="${fmtNum(el.r)}" fill="${fillAttr}" stroke="${strokeAttr}"${extraStr}/>`;
+  }
+  if(el.kind === 'ellipse'){
+    return `<ellipse cx="${fmtNum(el.cx)}" cy="${fmtNum(el.cy)}" rx="${fmtNum(el.rx)}" ry="${fmtNum(el.ry)}" fill="${fillAttr}" stroke="${strokeAttr}"${extraStr}/>`;
+  }
+  return '';
+}
+
+function iconToSvgString(iconData){
+  return `<svg viewBox="${iconData.viewBox}">${iconData.elements.map(elementToSvgString).join('')}</svg>`;
+}
+
+function cloneIconData(iconData){
+  return JSON.parse(JSON.stringify(iconData));
+}
+</script>
+
+
+<script id="editor-render-src">
+
+// ============================================================
+// editor.js — the interactive part of the icon editor.
+// ============================================================
+
+/* ---------------- library bootstrap ---------------- */
+// `library[key] = { elements, viewBox, dirty, label, category }`
+const library = {};
+function buildLibrary(){
+  for(const [key, label] of MARKER_ICONS){
+    const svg = MARKER_SVG[key];
+    const parsed = svg ? parseIconSvg(svg) : { elements: [], viewBox: '-2 -2 28 28' };
+    library[key] = {
+      elements: parsed.elements,
+      viewBox: parsed.viewBox,
+      dirty: false,
+      label,
+      category: iconCategoryOf(key),
+      color: MARKER_COLORS[key] || MARKER_COLORS.other,
+    };
+  }
+}
+buildLibrary();
+
+let ALL_KEYS = MARKER_ICONS.map(([k]) => k);
+
+/* ---------------- state ---------------- */
+const state = {
+  currentKey: ALL_KEYS[0],
+  selectedElId: null,
+  selectedAnchor: null,   // { subpathIdx, anchorIdx, part:'anchor'|'in'|'out' }
+  activeCat: 'all',
+  search: '',
+  drawing: null,          // in-progress pen-tool path: { elId, subpathIdx }
+  fileHandle: null,
+  history: {},            // key -> [snapshot, ...]
+  historyIndex: {},       // key -> index into history[key]
+  shapePickerOpen: false,
+  layersCollapsed: true, // layers list starts collapsed — it can get long and isn't needed open at all times
+  linkSelectIds: new Set(), // element ids picked (ctrl/cmd+click) for building/breaking a link group
+  snapGuides: { x:null, y:null, radial:null }, // active alignment guide lines shown while dragging
+  snapToObjects: true,      // whether dragging snaps to OTHER shapes' edges/mid, on top of canvas snapping
+  contextMenu: null,        // { x, y, targetElId } while the right-click menu is open, else null
+  layerContextMenu: null,   // { x, y, elId, aboveId, belowId } while the layer-row right-click menu is open
+  zoom: 1,                  // canvas zoom level (1 = the base 560px/24-unit fit)
+  clipboard: null,          // { elements:[...], sourceKey } — in-memory copy/paste buffer, lives only in this tab/session
+};
+let BASE_CANVAS_PX = 560; // #svgCanvas's width/height at zoom 1
+const ZOOM_MIN = 0.5, ZOOM_MAX = 8;
+
+/* ---------------- snapping (canvas midpoints/edges + other objects) ---------------- */
+const CANVAS_SNAP_VALUES = [0, 12, 24];   // far edges of the 24x24 safe zone + its middle
+const SNAP_THRESHOLD = 0.35;              // in icon-space units (~7px on screen at current zoom)
+
+// Snap lines are {v, type:'canvas'|'object'} tuples so guides can be colored
+// by source. Canvas lines are always present; object lines come from the
+// start/middle/end of every OTHER element's bbox on the given axis, so a
+// dragged shape can line up with its neighbors, not just the canvas itself.
+function axisSnapLines(excludeIds, axis){
+  const lines = CANVAS_SNAP_VALUES.map(v=>({ v, type:'canvas', edge:'mid' }));
+  if(!state.snapToObjects) return lines;
+  currentIcon().elements.forEach(el=>{
+    if(excludeIds.includes(el.id)) return;
+    const b = elementBounds(el);
+    const start = axis==='x' ? b.x : b.y;
+    const size = axis==='x' ? b.w : b.h;
+    [[start,'start'], [start+size/2,'mid'], [start+size,'end']].forEach(([v,edge])=>lines.push({ v: Math.round(v*100)/100, type:'object', edge }));
+  });
+  return lines;
+}
+function findSnap(value, lines){
+  let best=null;
+  lines.forEach(l=>{
+    const d = Math.abs(value - l.v);
+    if(d < SNAP_THRESHOLD && (!best || d < best.d)) best = { d, value:l.v, type:l.type };
+  });
+  return best; // {value, type} or null
+}
+// For a moving span [start, start+size] (an element or group's bbox edge on one axis),
+// finds whichever of its start/middle/end lines up closest with a snap line, and returns
+// the delta to shift the whole span by. Used for whole-shape / whole-group dragging.
+function findSpanSnap(start, size, lines){
+  let best = null;
+  [[start,'start'], [start + size/2,'mid'], [start + size,'end']].forEach(([v, spanEdge])=>{
+    lines.forEach(l=>{
+      const d = Math.abs(v - l.v);
+      if(d < SNAP_THRESHOLD && (!best || d < best.d)) best = { d, delta: l.v - v, guide: l.v, type:l.type, spanEdge, lineEdge:l.edge };
+    });
+  });
+  if(best && best.type==='object'){
+    // One shape's start touching another's end (or vice versa) is two flat
+    // shapes placed edge-to-edge — nudge into a hair of overlap so
+    // anti-aliasing doesn't leave a 1px seam between them. Same-edge matches
+    // (start-start, mid-mid, end-end) are alignment, not abutment, and stay
+    // exact.
+    const abutting = (best.spanEdge==='start' && best.lineEdge==='end') || (best.spanEdge==='end' && best.lineEdge==='start');
+    if(abutting){
+      const overlap = screenPxToIconUnits(1);
+      best.delta += best.spanEdge==='start' ? -overlap : overlap;
+    }
+  }
+  return best;
+}
+function combinedBounds(elsArr){
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  elsArr.forEach(el=>{
+    const b = elementBounds(el);
+    minX = Math.min(minX, b.x); minY = Math.min(minY, b.y);
+    maxX = Math.max(maxX, b.x+b.w); maxY = Math.max(maxY, b.y+b.h);
+  });
+  return { x:minX, y:minY, w:maxX-minX, h:maxY-minY };
+}
+function clearSnapGuides(){ state.snapGuides = { x:null, y:null, radial:null }; }
+
+/* ---------------- self-snapping (a shape's own center + spokes) ----------------
+   Regular-ish polygons (hexagon, pentagon, star, ...) get invisible "threads"
+   radiating from their own centroid, one through each vertex's current
+   position, plus the four straight/diagonal axes through that same center.
+   Dragging a vertex snaps it onto whichever thread it comes close to,
+   letting you slide a corner in/out along its own spoke (or across the
+   shape's middle) without nudging it off-angle by accident. */
+function shapeCentroid(el){
+  const anchors = el.pathModel.subpaths.flatMap(sp => sp.anchors);
+  if(anchors.length < 3) return null;
+  const cx = anchors.reduce((s,a)=>s+a.x,0) / anchors.length;
+  const cy = anchors.reduce((s,a)=>s+a.y,0) / anchors.length;
+  return { cx, cy };
+}
+function selfShapeRadialSnap(el, spIdx, aIdx, cursorPt){
+  if(!el || el.kind !== 'path') return null;
+  const center = shapeCentroid(el);
+  if(!center) return null;
+  const { cx, cy } = center;
+  const origAnchor = el.pathModel.subpaths[spIdx].anchors[aIdx];
+  const origAngle = Math.atan2(origAnchor.y - cy, origAnchor.x - cx);
+  // the vertex's own original spoke, plus the four straight/diagonal axes
+  // through the shape's center (horizontal, vertical, both diagonals)
+  const angles = [origAngle, 0, Math.PI/4, Math.PI/2, 3*Math.PI/4, Math.PI, -Math.PI/4, -Math.PI/2, -3*Math.PI/4];
+  const dx = cursorPt.x - cx, dy = cursorPt.y - cy;
+  if(Math.hypot(dx, dy) < 0.05) return null;
+  let best = null;
+  for(const angle of angles){
+    const nx = Math.cos(angle), ny = Math.sin(angle);
+    const perp = Math.abs(-ny*dx + nx*dy); // perpendicular distance from cursor to this spoke
+    if(perp < SNAP_THRESHOLD && (!best || perp < best.perp)){
+      const proj = dx*nx + dy*ny; // signed distance along the spoke — keeps whatever radius the cursor implies
+      best = { perp, x: cx + nx*proj, y: cy + ny*proj, cx, cy };
+    }
+  }
+  return best;
+}
+
+function currentIcon(){ return library[state.currentKey]; }
+
+function snapshot(){
+  const icon = currentIcon();
+  if(!icon) return;
+  const h = state.history[state.currentKey] || (state.history[state.currentKey] = []);
+  let idx = state.historyIndex[state.currentKey] || 0;
+  // drop redo tail
+  h.length = idx + 1;
+  h.push(JSON.stringify(icon.elements));
+  if(h.length > 60) h.shift();
+  state.historyIndex[state.currentKey] = h.length - 1;
+}
+function undo(){
+  const key = state.currentKey;
+  const h = state.history[key]; if(!h) return;
+  let idx = state.historyIndex[key] || 0;
+  if(idx <= 0) return;
+  idx--;
+  state.historyIndex[key] = idx;
+  library[key].elements = JSON.parse(h[idx]);
+  markDirty(key);
+  state.selectedElId = null; state.selectedAnchor = null;
+  renderAll();
+}
+function redo(){
+  const key = state.currentKey;
+  const h = state.history[key]; if(!h) return;
+  let idx = state.historyIndex[key] || 0;
+  if(idx >= h.length-1) return;
+  idx++;
+  state.historyIndex[key] = idx;
+  library[key].elements = JSON.parse(h[idx]);
+  markDirty(key);
+  renderAll();
+}
+function markDirty(key){
+  library[key].dirty = true;
+  persistLocal();
+}
+
+/* ---------------- local persistence (survives reload without saving to file) ---------------- */
+function persistLocal(){
+  try{
+    const dirtyData = {};
+    for(const k in library){ if(library[k].dirty) dirtyData[k] = { elements: library[k].elements, viewBox: library[k].viewBox }; }
+    localStorage.setItem('icon-editor-dirty', JSON.stringify(dirtyData));
+    const categoryData = collectCategoryChanges();
+    if(Object.keys(categoryData).length) localStorage.setItem('icon-editor-categories', JSON.stringify(categoryData));
+    else localStorage.removeItem('icon-editor-categories');
+  }catch(e){ /* storage unavailable — edits still work, just won't survive a reload */ }
+}
+function restoreLocal(){
+  try{
+    const raw = localStorage.getItem('icon-editor-dirty');
+    if(raw){
+      const dirtyData = JSON.parse(raw);
+      for(const k in dirtyData){
+        if(!library[k]) continue;
+        library[k].elements = dirtyData[k].elements;
+        library[k].viewBox = dirtyData[k].viewBox;
+        library[k].dirty = true;
+      }
+    }
+  }catch(e){ /* ignore corrupt/missing local data */ }
+  try{
+    const rawCat = localStorage.getItem('icon-editor-categories');
+    if(rawCat){
+      const categoryData = JSON.parse(rawCat);
+      for(const k in categoryData){ if(library[k]) library[k].category = categoryData[k]; }
+    }
+  }catch(e){ /* ignore corrupt/missing local data */ }
+}
+restoreLocal();
+
+// Icons whose current category no longer matches the one baked into the
+// loaded MARKER_ICON_CATEGORIES — i.e. moved in this editor session but not
+// yet reflected in the exported categories block.
+function collectCategoryChanges(){
+  const changes = {};
+  for(const k in library){
+    if(library[k].category !== iconCategoryOf(k)) changes[k] = library[k].category;
+  }
+  return changes;
+}
+
+/* ---------------- открыть marker-icons.js ---------------- */
+function parseCatalogText(text){
+  return new Function(text + '\n;return {I:typeof MARKER_ICONS!=="undefined"?MARKER_ICONS:null,K:typeof MARKER_ICON_CATEGORIES!=="undefined"?MARKER_ICON_CATEGORIES:null,C:typeof MARKER_COLORS!=="undefined"?MARKER_COLORS:null,S:typeof MARKER_SVG!=="undefined"?MARKER_SVG:null,G:typeof LEGACY_MARKER_ICONS!=="undefined"?LEGACY_MARKER_ICONS:{}};')();
+}
+function applyCatalog(cat, handle){
+  MARKER_ICONS = cat.I;
+  MARKER_ICON_LABELS = Object.fromEntries(MARKER_ICONS);
+  MARKER_ICON_CATEGORIES = cat.K;
+  MARKER_ICON_TO_CATEGORY = {};
+  MARKER_ICON_CATEGORIES.forEach(c=>c.icons.forEach(k=>{ MARKER_ICON_TO_CATEGORY[k] = c.key; }));
+  MARKER_COLORS = cat.C;
+  MARKER_SVG = cat.S;
+  LEGACY_MARKER_ICONS = cat.G || {};
+  ALL_KEYS = MARKER_ICONS.map(([k]) => k);
+  state.fileHandle = handle || null;
+  try{ localStorage.removeItem('icon-editor-dirty'); localStorage.removeItem('icon-editor-categories'); }catch(_){}
+  buildLibrary();
+  populateCategorySelect();
+  state.currentKey = ALL_KEYS[0];
+  state.selectedElId = null; state.selectedAnchor = null;
+  state.history = {}; state.historyIndex = {};
+  renderAll();
+}
+async function loadFromFile(){
+  let text, handle = null;
+  try{
+    if(window.showOpenFilePicker){
+      [handle] = await window.showOpenFilePicker({ types: [{ description:'marker-icons.js', accept:{'text/javascript':['.js']} }] });
+      text = await (await handle.getFile()).text();
+    } else {
+      text = await new Promise((resolve, reject)=>{
+        const input = document.createElement('input');
+        input.type = 'file'; input.accept = '.js,text/javascript';
+        input.onchange = ()=>{ const f = input.files[0]; if(!f){ reject(new Error('no file')); return; } const r = new FileReader(); r.onload = ()=>resolve(r.result); r.onerror = reject; r.readAsText(f); };
+        input.click();
+      });
+    }
+  }catch(e){ if(e.name !== 'AbortError') alert('Не удалось прочитать файл.'); return; }
+  let cat;
+  try{ cat = parseCatalogText(text); }catch(e){ cat = null; }
+  if(!cat || !cat.I || !cat.K || !cat.C || !cat.S){ alert('Это не похоже на marker-icons.js: не нашёл в нём MARKER_ICONS, MARKER_ICON_CATEGORIES, MARKER_COLORS и MARKER_SVG.'); return; }
+  if(hasUnsaved() && !confirm('В редакторе есть несохранённые правки. Открыть файл и отбросить их?')) return;
+  applyCatalog(cat, handle);
+  flashSaveStatus('Открыт ' + (handle ? handle.name : 'файл') + (handle ? ' — «Сохранить» запишет прямо в него' : ''));
+}
+function hasUnsaved(){ return ALL_KEYS.some(k=>library[k] && library[k].dirty) || Object.keys(collectCategoryChanges()).length > 0 || state.structureDirty; }
+
+/* ---------------- element factory ---------------- */
+function newRect(){
+  return { id:uid(), kind:'rect', x:8, y:8, width:8, height:8, rx:0,
+    fillRole:'main', strokeRole:'none', strokeWidth:2, opacity:1, transform:'', strokeDasharray:'', linkGroup:null };
+}
+function newCircle(){
+  return { id:uid(), kind:'circle', cx:12, cy:12, r:5,
+    fillRole:'main', strokeRole:'none', strokeWidth:2, opacity:1, transform:'', strokeDasharray:'', linkGroup:null };
+}
+function newEllipse(){
+  return { id:uid(), kind:'ellipse', cx:12, cy:12, rx:6, ry:4,
+    fillRole:'main', strokeRole:'none', strokeWidth:2, opacity:1, transform:'', strokeDasharray:'', linkGroup:null };
+}
+function newEmptyPath(){
+  return { id:uid(), kind:'path', pathModel:{subpaths:[]},
+    fillRole:'main', strokeRole:'none', strokeWidth:2, opacity:1, transform:'', strokeDasharray:'', linkGroup:null };
+}
+
+// ---- simple geometric shapes, all inserted as an editable path so their
+// nodes can be tweaked afterwards like any other path ----
+function anchorPt(x,y){ return { x, y, inX:null, inY:null, outX:null, outY:null }; }
+function makePolygonPathModel(sides, radius, cx, cy, rotationDeg){
+  const rot = ((rotationDeg||0) - 90) * Math.PI/180;
+  const anchors = [];
+  for(let i=0;i<sides;i++){
+    const a = rot + i * (2*Math.PI/sides);
+    anchors.push(anchorPt(cx + radius*Math.cos(a), cy + radius*Math.sin(a)));
+  }
+  return { subpaths: [{ anchors, closed:true }] };
+}
+function makeStarPathModel(points, outerR, innerR, cx, cy){
+  const anchors = [];
+  const step = Math.PI/points;
+  for(let i=0;i<points*2;i++){
+    const r = i%2===0 ? outerR : innerR;
+    const a = i*step - Math.PI/2;
+    anchors.push(anchorPt(cx + r*Math.cos(a), cy + r*Math.sin(a)));
+  }
+  return { subpaths: [{ anchors, closed:true }] };
+}
+function shapePathEl(pathModel, opts){
+  const el = newEmptyPath();
+  el.pathModel = pathModel;
+  if(opts) Object.assign(el, opts);
+  return el;
+}
+function newTriangle(){ return shapePathEl(makePolygonPathModel(3, 8, 12, 12.5, 0)); }
+function newDiamond(){ return shapePathEl(makePolygonPathModel(4, 8, 12, 12, 0)); }
+function newPentagon(){ return shapePathEl(makePolygonPathModel(5, 8, 12, 12, 0)); }
+function newHexagon(){ return shapePathEl(makePolygonPathModel(6, 8, 12, 12, 0)); }
+function newOctagon(){ return shapePathEl(makePolygonPathModel(8, 8, 12, 12, 22.5)); }
+function newStar(){ return shapePathEl(makeStarPathModel(5, 9, 3.6, 12, 12)); }
+function newStar6(){ return shapePathEl(makeStarPathModel(6, 9, 5, 12, 12)); }
+function newLine(){
+  return shapePathEl(
+    { subpaths: [{ anchors:[anchorPt(4,12), anchorPt(20,12)], closed:false }] },
+    { fillRole:'none', strokeRole:'main' }
+  );
+}
+function newCross(){
+  const a=12,b=4.2; // half-size of the plus shape's outer extent / arm half-width
+  const pts = [
+    [a-b,a-a],[a+b,a-a],[a+b,a-b],[a+a-4,a-b],[a+a-4,a+b],[a+b,a+b],
+    [a+b,a+a-4],[a-b,a+a-4],[a-b,a+b],[a-a+4,a+b],[a-a+4,a-b],[a-b,a-b],
+  ];
+  return shapePathEl({ subpaths:[{ anchors: pts.map(([x,y])=>anchorPt(x,y)), closed:true }] });
+}
+function newArrowRight(){
+  const pts = [[3,9],[14,9],[14,5],[21,12],[14,19],[14,15],[3,15]];
+  return shapePathEl({ subpaths:[{ anchors: pts.map(([x,y])=>anchorPt(x,y)), closed:true }] });
+}
+function newSemicircle(){
+  const cx=12, cy=13, r=9;
+  const anchors = [];
+  const steps = 12;
+  for(let i=0;i<=steps;i++){
+    const a = Math.PI + (i/steps)*Math.PI;
+    anchors.push(anchorPt(cx + r*Math.cos(a), cy + r*Math.sin(a)));
+  }
+  return shapePathEl({ subpaths:[{ anchors, closed:true }] });
+}
+
+// Builds a chain of anchors tracing a circular arc from startAngle to
+// endAngle (radians), with correctly-shaped cubic-bezier handles between
+// consecutive anchors — split into <=maxSegAngle chunks so each bezier stays
+// a close approximation of the true circle. There's no dedicated "arc"
+// primitive in this editor, only anchors + handles, so shapes like the
+// crescent are built by chaining several of these arcs together.
+function arcAnchorChain(cx, cy, r, startAngle, endAngle, maxSegAngle){
+  maxSegAngle = maxSegAngle || Math.PI/2;
+  const sweep = endAngle - startAngle;
+  const segCount = Math.max(1, Math.ceil(Math.abs(sweep) / maxSegAngle));
+  const delta = sweep / segCount;
+  const kappa = (4/3) * Math.tan(delta/4);
+  const anchors = [];
+  for(let i=0; i<=segCount; i++){
+    const angle = startAngle + i*delta;
+    const x = cx + r*Math.cos(angle), y = cy + r*Math.sin(angle);
+    const tx = -r*Math.sin(angle), ty = r*Math.cos(angle); // tangent vector, magnitude r
+    const a = { x, y, inX:null, inY:null, outX:null, outY:null };
+    if(i > 0){ a.inX = x - tx*kappa; a.inY = y - ty*kappa; }
+    if(i < segCount){ a.outX = x + tx*kappa; a.outY = y + ty*kappa; }
+    anchors.push(a);
+  }
+  return anchors;
+}
+
+// ---- shape → subpath conversion, used by the "merge layers" feature so a
+// rect/circle/ellipse can be folded into the same combined path as a
+// neighboring shape (a single <path> element can hold several subpaths). ----
+function closedArcAnchors(cx, cy, r, maxSegAngle){
+  const chain = arcAnchorChain(cx, cy, r, 0, 2*Math.PI, maxSegAngle || Math.PI/2);
+  const first = chain[0], last = chain[chain.length-1];
+  first.inX = last.inX; first.inY = last.inY; // stitch the wrap-around join
+  chain.pop(); // drop the duplicate point at angle 2π (== the first anchor)
+  return chain;
+}
+function closedEllipseAnchors(cx, cy, rx, ry, maxSegAngle){
+  const unit = closedArcAnchors(0, 0, 1, maxSegAngle);
+  return unit.map(a => ({
+    x: cx + a.x*rx, y: cy + a.y*ry,
+    inX: a.inX!=null ? cx + a.inX*rx : null, inY: a.inY!=null ? cy + a.inY*ry : null,
+    outX: a.outX!=null ? cx + a.outX*rx : null, outY: a.outY!=null ? cy + a.outY*ry : null,
+  }));
+}
+function rectToSubpath(el){
+  const x=el.x, y=el.y, w=el.width, h=el.height;
+  const rx = Math.min(el.rx||0, w/2, h/2);
+  if(!rx){
+    return { closed:true, anchors:[
+      { x, y, inX:null,inY:null,outX:null,outY:null },
+      { x:x+w, y, inX:null,inY:null,outX:null,outY:null },
+      { x:x+w, y:y+h, inX:null,inY:null,outX:null,outY:null },
+      { x, y:y+h, inX:null,inY:null,outX:null,outY:null },
+    ]};
+  }
+  const seg = Math.PI/2;
+  const c1 = arcAnchorChain(x+w-rx, y+rx, rx, -Math.PI/2, 0, seg);
+  const c2 = arcAnchorChain(x+w-rx, y+h-rx, rx, 0, Math.PI/2, seg);
+  const c3 = arcAnchorChain(x+rx, y+h-rx, rx, Math.PI/2, Math.PI, seg);
+  const c4 = arcAnchorChain(x+rx, y+rx, rx, Math.PI, 1.5*Math.PI, seg);
+  return { closed:true, anchors:[...c1, ...c2, ...c3, ...c4] };
+}
+function shapeToSubpaths(el){
+  if(el.kind === 'path') return JSON.parse(JSON.stringify(el.pathModel.subpaths));
+  if(el.kind === 'rect') return [rectToSubpath(el)];
+  if(el.kind === 'circle') return [{ closed:true, anchors: closedEllipseAnchors(el.cx, el.cy, el.r, el.r, Math.PI/2) }];
+  if(el.kind === 'ellipse') return [{ closed:true, anchors: closedEllipseAnchors(el.cx, el.cy, el.rx, el.ry, Math.PI/2) }];
+  return [];
+}
+// Folds two elements into one combined path element (their subpaths side by
+// side in the same path), keeping the FIRST element's fill/stroke/opacity
+// and its slot in the stack; the second element is removed.
+function mergeElements(primaryEl, secondaryEl, icon){
+  const subpathsA = shapeToSubpaths(primaryEl);
+  const subpathsB = shapeToSubpaths(secondaryEl);
+  const merged = {
+    id: uid(), kind:'path',
+    pathModel: { subpaths: [...subpathsA, ...subpathsB] },
+    fillRole: primaryEl.fillRole, fillCustom: primaryEl.fillCustom,
+    strokeRole: primaryEl.strokeRole, strokeCustom: primaryEl.strokeCustom,
+    strokeWidth: primaryEl.strokeWidth, opacity: primaryEl.opacity,
+    transform:'', strokeDasharray: primaryEl.strokeDasharray, linkGroup:null,
+  };
+  const idxA = icon.elements.indexOf(primaryEl);
+  icon.elements[idxA] = merged;
+  icon.elements = icon.elements.filter(e => e !== secondaryEl);
+  return merged;
+}
+
+// the outer circle's far arc plus the inner (shifted) circle's near arc,
+// meeting at the same two points top and bottom so the outline is one
+// single closed, self-consistent path.
+function newCrescent(){
+  const cx=12, cy=12, R=8;      // outer circle
+  const shift=4.4, r2=8;        // inner circle: shifted right, same radius
+  const icx = cx + shift;
+  // circle-circle intersection (both same radius R=r2, centers on the same
+  // horizontal line) — the two points where the crescent's horns meet.
+  const a = (shift*shift) / (2*shift);           // = shift/2 since R===r2
+  const h = Math.sqrt(Math.max(0, R*R - a*a));
+  const ix = cx + a;
+  const pTop = { x: ix, y: cy - h };
+  const pBot = { x: ix, y: cy + h };
+  const angOuterTop = Math.atan2(pTop.y - cy, pTop.x - cx);
+  const angOuterBot = Math.atan2(pBot.y - cy, pBot.x - cx);
+  const angInnerTop = Math.atan2(pTop.y - cy, pTop.x - icx);
+  const angInnerBot = Math.atan2(pBot.y - cy, pBot.x - icx);
+  // Outer boundary: the LONG way around the outer circle from top to bottom
+  // point, bulging left (away from the inner circle) — going through π.
+  let outerSweep = angOuterBot - angOuterTop;
+  if(outerSweep > 0) outerSweep -= 2*Math.PI; // force the negative/long way through π (left side)
+  const outerChain = arcAnchorChain(cx, cy, R, angOuterTop, angOuterTop + outerSweep, Math.PI/3);
+  // Inner boundary: the SHORT way around the inner circle from bottom back
+  // to top, curving through its leftmost point (the concave scoop that
+  // faces the outer circle's center) — going back through π as well, but
+  // as the shorter hop this time since the inner center sits further right.
+  let innerSweep = angInnerTop - angInnerBot;
+  if(innerSweep < 0) innerSweep += 2*Math.PI;
+  const innerChain = arcAnchorChain(icx, cy, r2, angInnerBot, angInnerBot + innerSweep, Math.PI/3);
+  // Stitch: outer chain already starts at pTop and ends at pBot; the inner
+  // chain starts at pBot and ends at pTop — drop its duplicate endpoints so
+  // the two chains join into one continuous closed loop.
+  const anchors = outerChain.slice(0, -1).concat(innerChain.slice(0, -1));
+  // carry the outer chain's closing handle onto the join, and the inner
+  // chain's closing handle onto the wrap-around back to anchors[0]
+  anchors[outerChain.length - 1].outX = outerChain[outerChain.length-1].outX;
+  anchors[outerChain.length - 1].outY = outerChain[outerChain.length-1].outY;
+  const lastInner = innerChain[innerChain.length - 1];
+  anchors[0].inX = lastInner.inX; anchors[0].inY = lastInner.inY;
+  return shapePathEl({ subpaths: [{ anchors, closed:true }] });
+}
+
+// The same triple-wave squiggle already used by the desert icon's dunes
+// (M2,17 c2.5,-1.5 5,-1.5 7.5,0 s5,1.5 7.5,0 s5,-1.5 7.5,0), laid out as four
+// explicit anchors with their bezier handles — an open stroked path, no fill.
+function newWave(){
+  const anchors = [
+    { x:2,    y:17,  inX:null,   inY:null,   outX:4.5,  outY:15.5 },
+    { x:9.5,  y:17,  inX:7,      inY:15.5,   outX:12,   outY:18.5 },
+    { x:17,   y:17,  inX:14.5,   inY:18.5,   outX:19.5, outY:15.5 },
+    { x:24.5, y:17,  inX:22,     inY:15.5,   outX:null, outY:null },
+  ];
+  return shapePathEl(
+    { subpaths: [{ anchors, closed:false }] },
+    { fillRole:'none', strokeRole:'main' }
+  );
+}
+
+const SHAPE_LIBRARY = [
+  { key:'rect', label:'Прямоугольник', make:newRect },
+  { key:'circle', label:'Круг', make:newCircle },
+  { key:'ellipse', label:'Овал', make:newEllipse },
+  { key:'triangle', label:'Треугольник', make:newTriangle },
+  { key:'diamond', label:'Ромб', make:newDiamond },
+  { key:'pentagon', label:'Пятиугольник', make:newPentagon },
+  { key:'hexagon', label:'Шестиугольник', make:newHexagon },
+  { key:'octagon', label:'Восьмиугольник', make:newOctagon },
+  { key:'star', label:'Звезда 5', make:newStar },
+  { key:'star6', label:'Звезда 6', make:newStar6 },
+  { key:'cross', label:'Крест', make:newCross },
+  { key:'arrow', label:'Стрелка', make:newArrowRight },
+  { key:'semicircle', label:'Полукруг', make:newSemicircle },
+  { key:'crescent', label:'Полумесяц', make:newCrescent },
+  { key:'wave', label:'Волна', make:newWave },
+  { key:'line', label:'Линия', make:newLine },
+  { key:'path', label:'Путь (перо)', make:null }, // handled specially — starts the pen tool
+];
+function shapeThumbSvg(key){
+  const defs = { rect:'M5 6h14v12H5Z', circle:'M12 4a8 8 0 1 0 0.01 0Z',
+    ellipse:'M12 6c5 0 9 2.7 9 6s-4 6-9 6-9-2.7-9-6 4-6 9-6Z',
+    triangle:'M12 4 20 18H4Z', diamond:'M12 3 20 12 12 21 4 12Z',
+    pentagon:'M12 3 21 9.8 17.5 20.5 6.5 20.5 3 9.8Z',
+    hexagon:'M6 4h12l4 8-4 8H6l-4-8Z', octagon:'M8 3h8l5 5v8l-5 5H8l-5-5V8Z',
+    star:'M12 2.5 14.9 9.4 22.4 10 16.8 14.9 18.5 22.2 12 18.3 5.5 22.2 7.2 14.9 1.6 10 9.1 9.4Z',
+    star6:'M12 2 14.8 7.4 20.8 6.5 17.8 11.8 20.8 17.1 14.8 16.2 12 21.6 9.2 16.2 3.2 17.1 6.2 11.8 3.2 6.5 9.2 7.4Z',
+    cross:'M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z',
+    arrow:'M3 9h11V5l7 7-7 7v-4H3Z',
+    semicircle:'M3 12a9 9 0 0 1 18 0Z',
+    crescent:'M12 3a9 9 0 1 0 0 18c-3-1.5-5-5-5-9s2-7.5 5-9Z',
+    wave:'M2 15c2-2 4-2 6 0s4 2 6 0 4-2 6 0',
+    line:'M4 12h16', path:'M4 18 9 6 14 16 20 5' };
+  const d = defs[key] || '';
+  const strokeOnly = key==='line' || key==='path' || key==='wave';
+  return `<svg viewBox="0 0 24 24"><path d="${d}" fill="${strokeOnly?'none':'currentColor'}" stroke="currentColor" stroke-width="${strokeOnly?2:0}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+/* ---------------- SVG helpers ---------------- */
+const SVGNS = 'http://www.w3.org/2000/svg';
+function svgEl(tag, attrs){
+  const el = document.createElementNS(SVGNS, tag);
+  for(const k in attrs){ if(attrs[k] != null) el.setAttribute(k, attrs[k]); }
+  return el;
+}
+function elementBounds(el){
+  // rough bbox in icon-space, used for selection outline + resize handles
+  if(el.kind === 'rect') return { x:el.x, y:el.y, w:el.width, h:el.height };
+  if(el.kind === 'circle') return { x:el.cx-el.r, y:el.cy-el.r, w:el.r*2, h:el.r*2 };
+  if(el.kind === 'ellipse') return { x:el.cx-el.rx, y:el.cy-el.ry, w:el.rx*2, h:el.ry*2 };
+  if(el.kind === 'path'){
+    let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+    for(const sp of el.pathModel.subpaths){
+      for(const a of sp.anchors){
+        [[a.x,a.y],[a.inX,a.inY],[a.outX,a.outY]].forEach(([x,y])=>{
+          if(x==null) return;
+          if(x<minX)minX=x; if(x>maxX)maxX=x; if(y<minY)minY=y; if(y>maxY)maxY=y;
+        });
+      }
+    }
+    if(minX===Infinity) return {x:10,y:10,w:4,h:4};
+    return { x:minX, y:minY, w:maxX-minX, h:maxY-minY };
+  }
+  return {x:0,y:0,w:0,h:0};
+}
+
+// Align/distribute reuses the same multi-select set built via Ctrl/Cmd+click
+// in the layers list (normally used for linking) — no separate "select for
+// alignment" mechanism needed.
+function getAlignTargets(){
+  const icon = currentIcon();
+  return icon.elements.filter(el => state.linkSelectIds.has(el.id));
+}
+function applyAlignOrDistribute(kind){
+  const targets = getAlignTargets();
+  const isDistribute = kind === 'dist-h' || kind === 'dist-v';
+  if(targets.length < 2){ alert('Сначала выделите минимум 2 фигуры: Ctrl/Cmd+клик по ним в списке слоёв слева.'); return; }
+  if(isDistribute && targets.length < 3){ alert('Для распределения нужно минимум 3 фигуры.'); return; }
+  const boundsList = targets.map(el=>({ el, b: elementBounds(el) }));
+
+  if(kind==='align-left' || kind==='align-hcenter' || kind==='align-right'){
+    const minX = Math.min(...boundsList.map(o=>o.b.x));
+    const maxRight = Math.max(...boundsList.map(o=>o.b.x + o.b.w));
+    const centerX = (minX + maxRight) / 2;
+    boundsList.forEach(({el,b})=>{
+      const targetX = kind==='align-left' ? minX : kind==='align-right' ? maxRight - b.w : centerX - b.w/2;
+      translateElement(el, el, targetX - b.x, 0);
+    });
+  } else if(kind==='align-top' || kind==='align-vcenter' || kind==='align-bottom'){
+    const minY = Math.min(...boundsList.map(o=>o.b.y));
+    const maxBottom = Math.max(...boundsList.map(o=>o.b.y + o.b.h));
+    const centerY = (minY + maxBottom) / 2;
+    boundsList.forEach(({el,b})=>{
+      const targetY = kind==='align-top' ? minY : kind==='align-bottom' ? maxBottom - b.h : centerY - b.h/2;
+      translateElement(el, el, 0, targetY - b.y);
+    });
+  } else if(kind==='dist-h' || kind==='dist-v'){
+    const axis = kind==='dist-h' ? 'x' : 'y';
+    const sizeKey = kind==='dist-h' ? 'w' : 'h';
+    const sorted = boundsList.slice().sort((a,b)=>a.b[axis]-b.b[axis]);
+    const first = sorted[0], last = sorted[sorted.length-1];
+    const totalSpan = (last.b[axis] + last.b[sizeKey]) - first.b[axis];
+    const totalSize = sorted.reduce((s,o)=>s + o.b[sizeKey], 0);
+    const gap = (totalSpan - totalSize) / (sorted.length - 1);
+    let cursor = first.b[axis] + first.b[sizeKey] + gap;
+    for(let i=1; i<sorted.length-1; i++){
+      const { el, b } = sorted[i];
+      if(axis==='x') translateElement(el, el, cursor - b.x, 0);
+      else translateElement(el, el, 0, cursor - b.y);
+      cursor += b[sizeKey] + gap;
+    }
+  }
+
+  markDirty(state.currentKey);
+  snapshot();
+  renderAll();
+}
+
+// Adding/removing icon KEYS themselves (not just shapes inside one) — mutates
+// the now-`let` MARKER_ICONS/MARKER_COLORS/MARKER_ICON_CATEGORIES/ALL_KEYS
+// globals directly so every part of the editor that reads them (sidebar,
+// category select, etc.) picks the change up immediately. Saving later
+// diffs ALL_KEYS against whatever's in the connected/downloaded file
+// (see computeKeyDiff) to know which lines to add or strip on export.
+function addNewIcon(){
+  let key = prompt('Ключ новой иконки (латиница, цифры, подчёркивания, без пробелов), например: watchtower');
+  if(key == null) return;
+  key = key.trim();
+  if(!key){ alert('Ключ не может быть пустым.'); return; }
+  if(!/^[a-z][a-z0-9_]*$/.test(key)){ alert('Ключ должен начинаться с латинской буквы и содержать только латинские строчные буквы, цифры и подчёркивания.'); return; }
+  if(library[key]){ alert('Иконка с таким ключом уже существует.'); return; }
+  const label = (prompt('Название (то, что видно в списке), например: Сторожевая башня', key) || key).trim() || key;
+  const fallbackCat = MARKER_ICON_CATEGORIES.find(c=>c.key==='other') || MARKER_ICON_CATEGORIES[MARKER_ICON_CATEGORIES.length-1];
+  const catKey = fallbackCat ? fallbackCat.key : 'other';
+  MARKER_ICONS = MARKER_ICONS.concat([[key, label]]);
+  MARKER_ICON_LABELS[key] = label;
+  MARKER_COLORS[key] = MARKER_COLORS.other || 'var(--gray)';
+  if(fallbackCat) fallbackCat.icons.push(key);
+  MARKER_ICON_TO_CATEGORY[key] = catKey;
+  library[key] = { elements: [], viewBox: '-2 -2 28 28', dirty: true, label, category: catKey, color: MARKER_COLORS[key] };
+  ALL_KEYS = ALL_KEYS.concat([key]);
+  state.currentKey = key;
+  state.selectedElId = null;
+  state.selectedAnchor = null;
+  state.history[key] = [JSON.stringify(library[key].elements)];
+  state.historyIndex[key] = 0;
+  persistLocal();
+  populateCategorySelect();
+  renderSidebar();
+  renderAll();
+  state.structureDirty = true; flashSaveStatus(`Добавлена новая иконка «${key}» — нарисуйте её и сохраните, когда будете готовы.`);
+}
+function deleteCurrentIcon(){
+  const key = state.currentKey;
+  if(!key || !library[key]) return;
+  if(ALL_KEYS.length <= 1){ alert('Нельзя удалить последнюю оставшуюся иконку.'); return; }
+  if(!confirm(`Удалить иконку «${library[key].label || key}» (${key}) насовсем? После сохранения это будет необратимо.`)) return;
+  delete library[key];
+  ALL_KEYS = ALL_KEYS.filter(k=>k!==key);
+  MARKER_ICONS = MARKER_ICONS.filter(([k])=>k!==key);
+  delete MARKER_ICON_LABELS[key];
+  delete MARKER_COLORS[key];
+  delete MARKER_ICON_TO_CATEGORY[key];
+  MARKER_ICON_CATEGORIES.forEach(cat=>{ cat.icons = cat.icons.filter(k=>k!==key); });
+  state.linkSelectIds.delete(key);
+  delete state.history[key];
+  delete state.historyIndex[key];
+  state.currentKey = ALL_KEYS[0];
+  state.selectedElId = null;
+  state.selectedAnchor = null;
+  persistLocal();
+  populateCategorySelect();
+  renderSidebar();
+  renderAll();
+  state.structureDirty = true; flashSaveStatus(`Иконка «${key}» удалена — нажмите «Сохранить», чтобы это попало в файл.`);
+}
+
+function renameCurrentIcon(){
+  const oldKey = state.currentKey;
+  if(!oldKey || !library[oldKey]) return;
+  const currentLabel = library[oldKey].label || oldKey;
+
+  const newLabelRaw = prompt('Новое название иконки:', currentLabel);
+  if(newLabelRaw == null) return; // cancelled
+  const newLabel = newLabelRaw.trim() || currentLabel;
+
+  const newKeyRaw = prompt('Ключ иконки (латиница, цифры, подчёркивания) — оставьте как есть, если менять не нужно:', oldKey);
+  if(newKeyRaw == null) return; // cancelled
+  let newKey = newKeyRaw.trim() || oldKey;
+
+  if(newKey !== oldKey){
+    if(!/^[a-z][a-z0-9_]*$/.test(newKey)){ alert('Ключ должен начинаться с латинской буквы и содержать только латинские строчные буквы, цифры и подчёркивания.'); return; }
+    if(library[newKey]){ alert('Иконка с таким ключом уже существует.'); return; }
+    if(!confirm(`Сменить ключ «${oldKey}» на «${newKey}»? Если где-то (например, на карте в основном приложении) уже стоят метки с типом «${oldKey}», они перестанут находить эту иконку и будут показываться как «Другое», пока вы сами не переставите их на новый тип. Продолжить?`)) return;
+
+    library[newKey] = library[oldKey];
+    delete library[oldKey];
+    ALL_KEYS = ALL_KEYS.map(k => k === oldKey ? newKey : k);
+    MARKER_COLORS[newKey] = MARKER_COLORS[oldKey];
+    delete MARKER_COLORS[oldKey];
+    delete MARKER_ICON_LABELS[oldKey];
+    MARKER_ICON_TO_CATEGORY[newKey] = MARKER_ICON_TO_CATEGORY[oldKey];
+    delete MARKER_ICON_TO_CATEGORY[oldKey];
+    MARKER_ICON_CATEGORIES.forEach(cat=>{ cat.icons = cat.icons.map(k => k === oldKey ? newKey : k); });
+    MARKER_ICONS = MARKER_ICONS.filter(([k]) => k !== oldKey);
+    state.linkSelectIds.delete(oldKey);
+    if(state.history[oldKey]){ state.history[newKey] = state.history[oldKey]; delete state.history[oldKey]; }
+    if(state.historyIndex[oldKey] !== undefined){ state.historyIndex[newKey] = state.historyIndex[oldKey]; delete state.historyIndex[oldKey]; }
+    state.currentKey = newKey;
+    // the old key's SVG line must be stripped and the (new) one written back
+    // in on save — marking dirty makes the existing per-icon save logic do that
+    library[newKey].dirty = true;
+  }
+
+  const finalKey = newKey;
+  library[finalKey].label = newLabel;
+  MARKER_ICON_LABELS[finalKey] = newLabel;
+  const pair = MARKER_ICONS.find(([k]) => k === finalKey);
+  if(pair) pair[1] = newLabel;
+  else MARKER_ICONS = MARKER_ICONS.concat([[finalKey, newLabel]]);
+
+  persistLocal();
+  populateCategorySelect();
+  renderSidebar();
+  renderAll();
+  state.structureDirty = true; flashSaveStatus(`Переименовано${newKey!==oldKey ? ` (ключ: «${oldKey}» → «${newKey}»)` : ''} — нажмите «Сохранить», чтобы это попало в файл.`);
+}
+
+/* ---------------- render: sidebar ---------------- */
+function iconThumbSvg(key, sizePx){
+  const icon = library[key];
+  const svg = iconToSvgString(icon).replace('currentColor', '#e9e4d8').replace(/var\(--marker-color\)/g, '#8a8f9e');
+  // the above only replaces the FIRST currentColor; do a full pass instead:
+  return iconToSvgStringForPreview(icon);
+}
+function iconToSvgStringForPreview(icon){
+  const inner = icon.elements.map(elementToSvgString).join('');
+  const previewInner = inner.replace(/currentColor/g, '#e9e4d8').replace(/var\(--marker-color\)/g, '#8a8f9e');
+  return `<svg viewBox="${icon.viewBox}">${previewInner}</svg>`;
+}
+function renderSidebar(){
+  const catTabs = document.getElementById('catTabs');
+  const cats = [{key:'all',label:'Все'}, ...MARKER_ICON_CATEGORIES.map(c=>({key:c.key,label:c.label}))];
+  catTabs.innerHTML = cats.map(c=>`<button data-cat="${c.key}" class="${state.activeCat===c.key?'active':''}">${esc(c.label)}</button>`).join('');
+  catTabs.querySelectorAll('button').forEach(b=>{
+    b.addEventListener('click', ()=>{ state.activeCat = b.dataset.cat; renderSidebar(); });
+  });
+
+  const list = document.getElementById('iconList');
+  const q = state.search.trim().toLowerCase();
+  const keys = ALL_KEYS.filter(k=>{
+    if(state.activeCat !== 'all' && library[k].category !== state.activeCat) return false;
+    if(q && !k.includes(q) && !(library[k].label||'').toLowerCase().includes(q)) return false;
+    return true;
+  });
+  list.innerHTML = keys.map(k=>{
+    const icon = library[k];
+    const hasArt = icon.elements.length > 0;
+    const moved = icon.category !== iconCategoryOf(k);
+    return `<div class="icon-thumb ${k===state.currentKey?'active':''} ${icon.dirty?'dirty':''} ${moved?'moved':''}" data-key="${k}" title="${esc(icon.label)} (${k})${moved?' — перемещена в другую категорию':''}">
+      ${hasArt ? iconToSvgStringForPreview(icon) : '<span style="font-size:9px; color:var(--text-dim);">пусто</span>'}
+      <span class="dot"></span>
+      <span class="moved-dot"></span>
+    </div>`;
+  }).join('');
+  list.querySelectorAll('.icon-thumb').forEach(t=>{
+    t.addEventListener('click', ()=> loadIcon(t.dataset.key));
+  });
+}
+
+/* ---------------- render: topbar ---------------- */
+function populateCategorySelect(){
+  const sel = document.getElementById('iconCategorySelect');
+  sel.innerHTML = MARKER_ICON_CATEGORIES.map(c=>`<option value="${c.key}">${esc(c.label)}</option>`).join('');
+}
+function renderTopbar(){
+  const icon = currentIcon();
+  document.getElementById('iconKeyLabel').textContent = state.currentKey;
+  const originalCat = iconCategoryOf(state.currentKey);
+  const moved = icon.category !== originalCat;
+  const catLabel = (MARKER_ICON_CATEGORIES.find(c=>c.key===icon.category)||{}).label || icon.category;
+  document.getElementById('iconMetaLabel').innerHTML =
+    `${esc(icon.label)} · ${esc(catLabel)}${moved ? ` <span class="moved">(было: ${esc((MARKER_ICON_CATEGORIES.find(c=>c.key===originalCat)||{}).label || originalCat)})</span>` : ''}${icon.dirty ? ' · изменено' : ''}`;
+  document.getElementById('iconCategorySelect').value = icon.category;
+  const dirtyCount = Object.values(library).filter(x=>x.dirty).length;
+  const st = document.getElementById('saveStatus');
+  const unsaved = hasUnsaved();
+  st.classList.toggle('warn', !!unsaved);
+  st.textContent = (unsaved ? `Не сохранено${dirtyCount ? ` (изменено значков: ${dirtyCount})` : ''}. ` : 'Всё сохранено. ')
+    + (window.__catalogMissing ? 'Рядом нет marker-icons.js — нажмите «Открыть…».' : state.fileHandle ? `Сохранение пишет в ${state.fileHandle.name}.` : 'Сохранение выберет файл или скачает marker-icons.js.');
+  requestAnimationFrame(fitBaseCanvas);
+  const h = state.history[state.currentKey] || [];
+  const idx = state.historyIndex[state.currentKey] || 0;
+  document.getElementById('undoBtn').disabled = idx <= 0;
+  document.getElementById('redoBtn').disabled = idx >= h.length - 1;
+}
+
+/* ---------------- render: canvas ---------------- */
+function renderCanvas(){
+  const svg = document.getElementById('svgCanvas');
+  const icon = currentIcon();
+  svg.setAttribute('viewBox', icon.viewBox);
+  while(svg.firstChild) svg.removeChild(svg.firstChild);
+
+  // safe-zone guide: shows the canonical 24x24 icon area distinct from the
+  // small bleed margin the -2 -2 28 28 viewBox leaves around it.
+  svg.appendChild(svgEl('rect', {class:'safe-zone', x:0, y:0, width:24, height:24}));
+
+  // icon artwork itself
+  for(const el of icon.elements){
+    const node = renderElementNode(el);
+    node.dataset.elId = el.id;
+    node.classList.add('move-hit');
+    node.addEventListener('pointerdown', (e)=> onElementPointerDown(e, el));
+    svg.appendChild(node);
+  }
+
+  // selection overlay
+  const sel = icon.elements.find(e=>e.id===state.selectedElId);
+  if(sel){
+    if(sel.kind === 'path'){
+      renderPathEditOverlay(svg, sel);
+    } else {
+      renderShapeResizeOverlay(svg, sel);
+    }
+    renderRotateHandle(svg, sel);
+  }
+
+  // in-progress pen tool preview
+  if(state.drawing){
+    renderDrawingPreview(svg);
+  }
+
+  // active snap guides — full-length lines across the canvas while dragging
+  if(state.snapGuides.x){
+    const cls = 'snap-guide ' + (state.snapGuides.x.type==='object' ? 'snap-guide-object' : 'snap-guide-canvas');
+    svg.appendChild(svgEl('line', {class:cls, x1:state.snapGuides.x.value, y1:-2, x2:state.snapGuides.x.value, y2:26}));
+  }
+  if(state.snapGuides.y){
+    const cls = 'snap-guide ' + (state.snapGuides.y.type==='object' ? 'snap-guide-object' : 'snap-guide-canvas');
+    svg.appendChild(svgEl('line', {class:cls, x1:-2, y1:state.snapGuides.y.value, x2:26, y2:state.snapGuides.y.value}));
+  }
+  if(state.snapGuides.radial){
+    const r = state.snapGuides.radial;
+    // extend the spoke line well past the vertex in both directions so it
+    // reads as an infinite "thread" through the shape's center, not just a
+    // stub ending at the cursor.
+    const dx = r.x - r.cx, dy = r.y - r.cy;
+    const len = Math.hypot(dx, dy) || 1;
+    const ux = dx/len, uy = dy/len;
+    const ext = 30;
+    svg.appendChild(svgEl('line', {
+      class:'snap-guide snap-guide-radial',
+      x1: r.cx - ux*ext, y1: r.cy - uy*ext, x2: r.cx + ux*ext, y2: r.cy + uy*ext,
+    }));
+    svg.appendChild(svgEl('circle', {class:'snap-guide-center-dot', cx:r.cx, cy:r.cy, r:0.35}));
+  }
+  renderRealPreview();
+}
+
+// Renders the current icon at the same pixel sizes / colors it actually
+// appears at in the app (marker on the map, marker in the card list), plus
+// one larger reference size — so tiny-detail legibility issues (windows
+// that turn to mush, etc.) are visible right here without exporting and
+// reopening the main app.
+function renderRealPreview(){
+  const wrap = document.getElementById('realPreviewSizes');
+  if(!wrap) return;
+  const icon = currentIcon();
+  const innerSvg = icon.elements.map(elementToSvgString).join('');
+  const color = icon.color || 'var(--gold)';
+  const sizes = [
+    { label:'На карте', icon:9, badge:16 },
+    { label:'В карточке', icon:16, badge:30 },
+    { label:'Крупно', icon:24, badge:43 },
+  ];
+  wrap.innerHTML = sizes.map(s=>`
+    <div class="rp-size-row">
+      <div class="rp-badge" style="width:${s.badge}px; height:${s.badge}px; background:${color}; color:#14151b; --marker-color:${color};">
+        <svg width="${s.icon}" height="${s.icon}" viewBox="${icon.viewBox}">${innerSvg}</svg>
+      </div>
+      <div class="rp-size-label">${esc(s.label)} · ${s.icon}px</div>
+    </div>
+  `).join('');
+}
+
+function renderElementNode(el){
+  const fillAttr = el.fillRole==='none' ? 'none' : roleToColor(el.fillRole, el.fillCustom);
+  const strokeAttr = el.strokeRole==='none' ? 'none' : roleToColor(el.strokeRole, el.strokeCustom);
+  const previewFill = fillAttr === 'currentColor' ? '#e9e4d8' : fillAttr === 'var(--marker-color)' ? '#8a8f9e' : fillAttr;
+  const previewStroke = strokeAttr === 'currentColor' ? '#e9e4d8' : strokeAttr === 'var(--marker-color)' ? '#8a8f9e' : strokeAttr;
+  const attrs = {
+    fill: previewFill, stroke: previewStroke,
+    'stroke-width': el.strokeRole!=='none' ? (el.strokeWidth||2) : null,
+    'stroke-dasharray': el.strokeDasharray || null,
+    opacity: (el.opacity!=null && el.opacity!==1) ? el.opacity : null,
+    transform: el.transform || null,
+  };
+  if(el.kind === 'path') return svgEl('path', {...attrs, d: serializePathD(el.pathModel)});
+  if(el.kind === 'rect') return svgEl('rect', {...attrs, x:el.x, y:el.y, width:el.width, height:el.height, rx:el.rx||null});
+  if(el.kind === 'circle') return svgEl('circle', {...attrs, cx:el.cx, cy:el.cy, r:el.r});
+  if(el.kind === 'ellipse') return svgEl('ellipse', {...attrs, cx:el.cx, cy:el.cy, rx:el.rx, ry:el.ry});
+  return svgEl('g', {});
+}
+
+/* ---- path node-edit overlay ---- */
+function renderPathEditOverlay(svg, el){
+  const g = svgEl('g', {});
+  el.pathModel.subpaths.forEach((sp, spIdx)=>{
+    sp.anchors.forEach((a, aIdx)=>{
+      // handle lines + points
+      if(a.inX != null){
+        g.appendChild(svgEl('line', {class:'handle-line', x1:a.x, y1:a.y, x2:a.inX, y2:a.inY}));
+        const hp = svgEl('circle', {class:'handle-pt', cx:a.inX, cy:a.inY, r:0.35});
+        hp.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); startAnchorDrag(e, spIdx, aIdx, 'in'); });
+        g.appendChild(hp);
+      }
+      if(a.outX != null){
+        g.appendChild(svgEl('line', {class:'handle-line', x1:a.x, y1:a.y, x2:a.outX, y2:a.outY}));
+        const hp = svgEl('circle', {class:'handle-pt', cx:a.outX, cy:a.outY, r:0.35});
+        hp.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); startAnchorDrag(e, spIdx, aIdx, 'out'); });
+        g.appendChild(hp);
+      }
+      const isSel = state.selectedAnchor && state.selectedAnchor.subpathIdx===spIdx && state.selectedAnchor.anchorIdx===aIdx && state.selectedAnchor.part==='anchor';
+      const ap = svgEl('circle', {class:'anchor-pt'+(isSel?' selected':''), cx:a.x, cy:a.y, r:0.5});
+      ap.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); startAnchorDrag(e, spIdx, aIdx, 'anchor'); });
+      g.appendChild(ap);
+    });
+  });
+  svg.appendChild(g);
+}
+
+/* ---- simple shape resize overlay (rect/circle/ellipse) ---- */
+function renderShapeResizeOverlay(svgRoot, el){
+  const svg = svgEl('g', { transform: el.transform || null });
+  svgRoot.appendChild(svg);
+  const b = elementBounds(el);
+  const outline = svgEl('rect', {class:'elem-outline', x:b.x, y:b.y, width:b.w, height:b.h});
+  svg.appendChild(outline);
+  const corners = [
+    {x:b.x, y:b.y, k:'nw'}, {x:b.x+b.w, y:b.y, k:'ne'},
+    {x:b.x, y:b.y+b.h, k:'sw'}, {x:b.x+b.w, y:b.y+b.h, k:'se'},
+  ];
+  corners.forEach(c=>{
+    const h = svgEl('circle', {class:'resize-handle', cx:c.x, cy:c.y, r:0.5});
+    h.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); startResizeDrag(e, el, c.k); });
+    svg.appendChild(h);
+  });
+}
+
+/* ---- rotate handle: drag to spin the element around its bbox center
+   (or its existing custom pivot, if the transform field already has one) ---- */
+function parseRotateTransform(t){
+  const m = /rotate\(\s*(-?[\d.]+)(?:[ ,]+(-?[\d.]+)[ ,]+(-?[\d.]+))?\s*\)/.exec(t || '');
+  if(!m) return null;
+  return { angle: parseFloat(m[1]), cx: m[2] != null ? parseFloat(m[2]) : null, cy: m[3] != null ? parseFloat(m[3]) : null };
+}
+/* Поворот и редактирование точек.
+   У контура поворот «запекается» прямо в координаты точек (transform убирается), иначе точки
+   рисуются в одной системе координат, а фигура — в другой, и всё ломается.
+   У rect/circle/ellipse поворот остаётся атрибутом transform, поэтому их рамку и мышь
+   пересчитываем через rotateAround(). */
+function rotateAround(pt, angleDeg, cx, cy){
+  const a = angleDeg * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a), dx = pt.x - cx, dy = pt.y - cy;
+  return { x: cx + dx*c - dy*sn, y: cy + dx*sn + dy*c };
+}
+function localizePoint(el, p){
+  const r = parseRotateTransform(el && el.transform);
+  if(!r || !r.angle) return p;
+  return rotateAround(p, -r.angle, r.cx != null ? r.cx : 0, r.cy != null ? r.cy : 0);
+}
+function bakeRotation(el){
+  if(!el || el.kind !== 'path' || !el.transform) return false;
+  const r = parseRotateTransform(el.transform);
+  if(!r || !/^\s*rotate\([^)]*\)\s*$/.test(el.transform)) return false;
+  if(r.angle){
+    const cx = r.cx != null ? r.cx : 0, cy = r.cy != null ? r.cy : 0;
+    for(const sp of el.pathModel.subpaths){
+      for(const a of sp.anchors){
+        const q = rotateAround(a, r.angle, cx, cy); a.x = q.x; a.y = q.y;
+        if(a.inX != null){ const i = rotateAround({x:a.inX,y:a.inY}, r.angle, cx, cy); a.inX = i.x; a.inY = i.y; }
+        if(a.outX != null){ const o = rotateAround({x:a.outX,y:a.outY}, r.angle, cx, cy); a.outX = o.x; a.outY = o.y; }
+      }
+    }
+  }
+  el.transform = null;
+  return true;
+}
+function rotatePivotFor(el, b){
+  const parsed = parseRotateTransform(el.transform);
+  if(parsed && parsed.cx != null && parsed.cy != null) return { x:parsed.cx, y:parsed.cy };
+  return { x: b.x + b.w/2, y: b.y + b.h/2 };
+}
+const ROTATE_HANDLE_OFFSET = 3; // icon-space units above the bbox top edge
+function renderRotateHandle(svg, el){
+  const b = elementBounds(el);
+  const pivot = rotatePivotFor(el, b);
+  const angle = (parseRotateTransform(el.transform) || { angle:0 }).angle;
+  const rad = angle * Math.PI / 180;
+  const topX = b.x + b.w/2, topY = b.y - ROTATE_HANDLE_OFFSET;
+  // rotate the (unrotated) stick/handle position by the element's current
+  // angle around its pivot, so the handle stays visually attached to the
+  // shape as it spins rather than always pointing straight up.
+  const rot = (px, py) => ({
+    x: pivot.x + (px - pivot.x) * Math.cos(rad) - (py - pivot.y) * Math.sin(rad),
+    y: pivot.y + (px - pivot.x) * Math.sin(rad) + (py - pivot.y) * Math.cos(rad),
+  });
+  const anchorTop = rot(b.x + b.w/2, b.y);
+  const handlePt = rot(topX, topY);
+  svg.appendChild(svgEl('line', { class:'rotate-stick', x1:anchorTop.x, y1:anchorTop.y, x2:handlePt.x, y2:handlePt.y }));
+  const h = svgEl('circle', { class:'rotate-handle', cx:handlePt.x, cy:handlePt.y, r:0.55 });
+  h.addEventListener('pointerdown', (e)=>{ e.stopPropagation(); startRotateDrag(e, el); });
+  svg.appendChild(h);
+}
+function startRotateDrag(e, el){
+  const svg = document.getElementById('svgCanvas');
+  svg.setPointerCapture(e.pointerId);
+  const b = elementBounds(el);
+  const pivot = rotatePivotFor(el, b);
+  const startAngle = (parseRotateTransform(el.transform) || { angle:0 }).angle;
+  const p0 = getSvgPoint(e);
+  const pointerStartDeg = Math.atan2(p0.y - pivot.y, p0.x - pivot.x) * 180 / Math.PI;
+  let moved = false;
+  function onMove(ev){
+    moved = true;
+    const p = getSvgPoint(ev);
+    const pointerDeg = Math.atan2(p.y - pivot.y, p.x - pivot.x) * 180 / Math.PI;
+    let newAngle = startAngle + (pointerDeg - pointerStartDeg);
+    if(ev.shiftKey) newAngle = Math.round(newAngle / 15) * 15;
+    newAngle = Math.round(newAngle * 10) / 10;
+    el.transform = `rotate(${newAngle} ${round2(pivot.x)} ${round2(pivot.y)})`;
+    renderCanvas();
+  }
+  function onUp(){
+    svg.releasePointerCapture(e.pointerId);
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    if(moved){ bakeRotation(el); renderCanvas(); markDirty(state.currentKey); snapshot(); renderRightPanel(); renderSidebar(); }
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+}
+function round2(v){ return Math.round(v*100)/100; }
+
+function renderDrawingPreview(svg){
+  const d = state.drawing;
+  const el = currentIcon().elements.find(x=>x.id===d.elId);
+  if(!el) return;
+  renderPathEditOverlay(svg, el);
+}
+
+function shapePickerPopoverHtml(){
+  return `<div class="shape-picker-overlay" id="shapePickerOverlay"></div>
+  <div class="shape-picker-popover">
+    ${SHAPE_LIBRARY.map(s=>`<button class="shape-opt" data-shape="${s.key}" title="${esc(s.label)}">${shapeThumbSvg(s.key)}<span>${esc(s.label)}</span></button>`).join('')}
+  </div>`;
+}
+
+/* ---------------- render: right panel ---------------- */
+function renderRightPanel(){
+  const panel = document.getElementById('rightPanel');
+  const icon = currentIcon();
+  const sel = icon.elements.find(e=>e.id===state.selectedElId);
+
+  const linkCount = state.linkSelectIds.size;
+  let linkToolbarHtml = '';
+  if(linkCount > 0){
+    const groups = new Set(Array.from(state.linkSelectIds).map(id=>{
+      const el = icon.elements.find(x=>x.id===id);
+      return el && el.linkGroup;
+    }).filter(Boolean));
+    linkToolbarHtml = `<div id="linkToolbar">
+      <span>🔗 Выбрано для связи: ${linkCount}</span>
+      ${linkCount>=2 ? `<button class="btn sm" id="linkSelBtn">Связать</button>` : ''}
+      ${groups.size ? `<button class="btn sm danger" id="unlinkSelBtn">Отвязать</button>` : ''}
+      <button class="btn sm" id="clearLinkSelBtn">Сбросить</button>
+    </div>`;
+  }
+
+  let html = `<div class="panel-section">
+    <h2 id="layersHeader" class="collapsible-header">
+      <span>Слои (${icon.elements.length})</span>
+      <span class="collapse-chevron">${state.layersCollapsed ? '▸' : '▾'}</span>
+    </h2>
+    ${state.layersCollapsed ? '' : `
+    <div class="link-hint">Ctrl/Cmd+клик по слою — выбрать для связывания. ПКМ по слою — объединить или связать с соседним.</div>
+    ${linkToolbarHtml}
+    <div id="elementList">${icon.elements.map(el=>elementRowHtml(el)).join('') || '<div style="color:var(--text-dim); font-size:11.5px;">Пока пусто</div>'}</div>
+    `}
+    <div class="shape-add-wrap" style="margin-top:8px">
+      <button class="btn sm" id="addShapeBtn" style="width:100%;">+ Добавить фигуру ${state.shapePickerOpen?'▴':'▾'}</button>
+      ${state.shapePickerOpen ? shapePickerPopoverHtml() : ''}
+    </div>
+  </div>`;
+
+  if(sel){
+    html += propertyPanelHtml(sel);
+  } else {
+    html += `<div id="emptyState">Выберите фигуру на холсте или в списке слоёв слева, чтобы редактировать её.<br><br>Или добавьте новую кнопкой выше.</div>`;
+  }
+
+  html += `<div class="panel-section" id="realPreviewPanel">
+    <h2>Реальный размер</h2>
+    <div id="realPreviewSizes"></div>
+  </div>`;
+
+  panel.innerHTML = html;
+  bindRightPanel();
+  renderRealPreview();
+}
+
+function elementRowHtml(el){
+  const kindLabel = {path:'Путь', rect:'Прямоугольник', circle:'Круг', ellipse:'Овал'}[el.kind] || el.kind;
+  const linkSelected = state.linkSelectIds.has(el.id);
+  const viewBox = currentIcon().viewBox;
+  const thumb = `<svg class="row-thumb-svg" viewBox="${viewBox}" width="20" height="20">${elementToSvgString(el)}</svg>`;
+  return `<div class="elem-row ${el.id===state.selectedElId?'active':''} ${linkSelected?'link-selected':''}" data-el="${el.id}" draggable="true">
+    <span class="drag-handle" title="Перетащите, чтобы изменить порядок">⠿</span>
+    <span class="row-thumb" title="${esc(kindLabel)}">${thumb}</span>
+    <span class="kind">${kindLabel}</span>
+    ${el.linkGroup ? `<span class="link-badge" title="Связано с другими фигурами">🔗</span>` : ''}
+    <button class="del" data-del="${el.id}" title="Удалить">✕</button>
+  </div>`;
+}
+
+function colorRoleSelectHtml(name, current){
+  const opts = [['main','Основной (currentColor)'], ['accent','Акцент (marker-color)'], ['custom','Свой цвет'], ['none','Нет']];
+  return `<select data-prop="${name}">${opts.map(([v,l])=>`<option value="${v}" ${current===v?'selected':''}>${l}</option>`).join('')}</select>`;
+}
+
+function propertyPanelHtml(el){
+  let shapeFields = '';
+  if(el.kind === 'rect'){
+    shapeFields = `
+      <div class="row">
+        <label class="field"><span class="lbl">X</span><input type="number" step="0.5" data-prop="x" value="${el.x}"></label>
+        <label class="field"><span class="lbl">Y</span><input type="number" step="0.5" data-prop="y" value="${el.y}"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="lbl">Ширина</span><input type="number" step="0.5" data-prop="width" value="${el.width}"></label>
+        <label class="field"><span class="lbl">Высота</span><input type="number" step="0.5" data-prop="height" value="${el.height}"></label>
+      </div>
+      <label class="field"><span class="lbl">Скругление углов</span><input type="number" step="0.5" min="0" data-prop="rx" value="${el.rx||0}"></label>
+    `;
+  } else if(el.kind === 'circle'){
+    shapeFields = `
+      <div class="row">
+        <label class="field"><span class="lbl">Центр X</span><input type="number" step="0.5" data-prop="cx" value="${el.cx}"></label>
+        <label class="field"><span class="lbl">Центр Y</span><input type="number" step="0.5" data-prop="cy" value="${el.cy}"></label>
+      </div>
+      <label class="field"><span class="lbl">Радиус</span><input type="number" step="0.5" min="0" data-prop="r" value="${el.r}"></label>
+    `;
+  } else if(el.kind === 'ellipse'){
+    shapeFields = `
+      <div class="row">
+        <label class="field"><span class="lbl">Центр X</span><input type="number" step="0.5" data-prop="cx" value="${el.cx}"></label>
+        <label class="field"><span class="lbl">Центр Y</span><input type="number" step="0.5" data-prop="cy" value="${el.cy}"></label>
+      </div>
+      <div class="row">
+        <label class="field"><span class="lbl">Радиус X</span><input type="number" step="0.5" min="0" data-prop="rx" value="${el.rx}"></label>
+        <label class="field"><span class="lbl">Радиус Y</span><input type="number" step="0.5" min="0" data-prop="ry" value="${el.ry}"></label>
+      </div>
+    `;
+  } else if(el.kind === 'path'){
+    shapeFields = `
+      <div style="display:flex; gap:6px; margin-bottom:9px;">
+        <button class="btn sm" id="addPointModeBtn">${state.drawing ? '✓ Готово' : '+ Добавить точки'}</button>
+        <button class="btn sm danger" id="deleteAnchorBtn" ${!(state.selectedAnchor && state.selectedAnchor.part==='anchor') ? 'disabled' : ''}>Удалить точку</button>
+      </div>
+      <div id="pathModeHint" style="padding:0; margin-bottom:9px;">${state.drawing ? 'Кликайте по холсту, чтобы добавлять точки. Перетащите при клике — получится кривая. «Готово» или Enter — закончить.' : 'Тяните узлы (синие) и рычаги кривизны (оранжевые) прямо на холсте.'}</div>
+    `;
+  }
+
+  return `<div class="panel-section">
+    <h2>Заливка</h2>
+    ${colorRoleSelectHtml('fillRole', el.fillRole)}
+    ${el.fillRole==='custom' ? `<div style="margin-top:6px;"><input type="color" data-prop="fillCustom" value="${el.fillCustom||'#000000'}"></div>` : ''}
+  </div>
+  <div class="panel-section">
+    <h2>Обводка</h2>
+    ${colorRoleSelectHtml('strokeRole', el.strokeRole)}
+    ${el.strokeRole==='custom' ? `<div style="margin-top:6px;"><input type="color" data-prop="strokeCustom" value="${el.strokeCustom||'#000000'}"></div>` : ''}
+    ${el.strokeRole!=='none' ? `<label class="field" style="margin-top:8px;"><span class="lbl">Толщина обводки</span><input type="number" step="0.1" min="0.1" data-prop="strokeWidth" value="${el.strokeWidth||2}"></label>` : ''}
+  </div>
+  <div class="panel-section">
+    <h2>Форма</h2>
+    ${shapeFields}
+  </div>
+  ${el.linkGroup ? `<div class="panel-section">
+    <h2>🔗 Связь</h2>
+    <div style="font-size:11.5px; color:var(--text-faint); margin-bottom:8px;">Эта фигура привязана к другим — они двигаются вместе при перетаскивании.</div>
+    <button class="btn sm danger" id="unlinkOneBtn" style="width:100%;">Отвязать эту фигуру</button>
+  </div>` : ''}
+  <div class="panel-section">
+    <h2>Расположение</h2>
+    <div class="row" style="margin-bottom:8px;">
+      <button class="btn sm" id="centerXBtn">↔ Центр по X</button>
+      <button class="btn sm" id="centerYBtn">↕ Центр по Y</button>
+    </div>
+    <div class="row" style="margin-bottom:8px;">
+      <button class="btn sm" id="flipHBtn">⇋ Отразить по горизонтали</button>
+      <button class="btn sm" id="flipVBtn">⇵ Отразить по вертикали</button>
+    </div>
+    <div style="font-size:11px; color:var(--text-faint); margin-bottom:2px;">Стрелки на клавиатуре — сдвиг на 1px, Shift — на 2, Alt — на 0.1</div>
+    ${el.kind==='path' ? `<div style="font-size:11px; color:var(--text-faint); margin-top:4px;">Shift + перетаскивание узла контура — масштабирует всю фигуру относительно её центра</div>` : ''}
+  </div>
+  <div class="panel-section">
+    <h2>Прочее</h2>
+    <label class="field"><span class="lbl">Прозрачность (0–1)</span><input type="number" step="0.05" min="0" max="1" data-prop="opacity" value="${el.opacity!=null?el.opacity:1}"></label>
+    <label class="field"><span class="lbl">Поворот (transform, необязательно)</span><input type="text" data-prop="transform" value="${esc(el.transform||'')}" placeholder="rotate(30 12 12)"></label>
+    <div class="row">
+      <button class="btn sm" id="duplicateElBtn">⧉ Копировать</button>
+      <button class="btn sm danger" id="deleteElBtn">Удалить</button>
+    </div>
+  </div>`;
+}
+
+/* ---------------- render everything ---------------- */
+function renderAll(){
+  renderSidebar();
+  renderTopbar();
+  renderCanvas();
+  renderRightPanel();
+}
+
+function esc(s){ return (s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+</script>
+
+<script id="editor-interact-src">
+
+// ============================================================
+// editor_interact.js — pointer interactions + load/save.
+// ============================================================
+
+function getSvgPoint(evt){
+  const svg = document.getElementById('svgCanvas');
+  const pt = svg.createSVGPoint();
+  pt.x = evt.clientX; pt.y = evt.clientY;
+  const ctm = svg.getScreenCTM();
+  if(!ctm) return { x:0, y:0 };
+  const loc = pt.matrixTransform(ctm.inverse());
+  return { x: loc.x, y: loc.y };
+}
+
+function selectElement(id){
+  { const el0 = currentIcon().elements.find(x=>x.id===id); if(el0) bakeRotation(el0); }
+  state.selectedElId = id;
+  state.selectedAnchor = null;
+  renderCanvas();
+  renderRightPanel();
+}
+
+/* ---------------- linking (binding) between objects ----------------
+   Elements sharing a `linkGroup` id move together when any one of them is
+   dragged on the canvas. Purely a move-together binding — it doesn't
+   propagate resize/rotate/color, just translation, which covers the common
+   case of keeping a multi-shape icon (e.g. a roof + body + window) aligned
+   while you nudge the whole thing into place. */
+function linkElementIds(ids, opts){
+  const icon = currentIcon();
+  ids = (ids||[]).filter(Boolean).filter(id=>icon.elements.some(x=>x.id===id));
+  if(ids.length < 2) return;
+  const selectedEls = ids.map(id=>icon.elements.find(x=>x.id===id));
+  // If the selection spans one or more existing groups, merge all of those
+  // groups (not just the clicked members) into a single group so linking
+  // never leaves a group silently split in two.
+  const existingGroups = Array.from(new Set(selectedEls.map(el=>el.linkGroup).filter(Boolean)));
+  const groupId = existingGroups[0] || ('grp-' + uid());
+  icon.elements.forEach(el=>{
+    if(ids.includes(el.id) || existingGroups.includes(el.linkGroup)) el.linkGroup = groupId;
+  });
+  if(!opts || !opts.skipClearSelection) state.linkSelectIds.clear();
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+function linkSelectedElements(){
+  linkElementIds(Array.from(state.linkSelectIds));
+}
+function unlinkSelectedElements(){
+  const icon = currentIcon();
+  state.linkSelectIds.forEach(id=> unlinkGroupMember(icon, id, {skipCleanup:true}));
+  cleanupSingletonLinkGroups(icon);
+  state.linkSelectIds.clear();
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+// Removes one element from its link group (if any). Leaves other members
+// of the group linked to each other.
+function unlinkGroupMember(icon, id, opts){
+  const el = icon.elements.find(x=>x.id===id);
+  if(!el || !el.linkGroup) return;
+  el.linkGroup = null;
+  if(!opts || !opts.skipCleanup) cleanupSingletonLinkGroups(icon);
+}
+// A "group" of exactly one element is meaningless — if unlinking leaves a
+// group with a single remaining member, clear its linkGroup too.
+function cleanupSingletonLinkGroups(icon){
+  const counts = {};
+  icon.elements.forEach(el=>{ if(el.linkGroup) counts[el.linkGroup] = (counts[el.linkGroup]||0) + 1; });
+  icon.elements.forEach(el=>{ if(el.linkGroup && counts[el.linkGroup] < 2) el.linkGroup = null; });
+}
+
+function loadIcon(key){
+  if(state.drawing) finishDrawing();
+  state.currentKey = key;
+  state.selectedElId = null;
+  state.selectedAnchor = null;
+  if(!state.history[key]) snapshot();
+  renderAll();
+}
+
+/* ---------------- element drag (move whole shape) ---------------- */
+function onElementPointerDown(e, el){
+  if(state.drawing){ onCanvasPointerDownForDrawing(e); return; }
+  e.stopPropagation();
+  selectElement(el.id);
+  const startPt = getSvgPoint(e);
+  const icon = currentIcon();
+  // If this shape is linked to others, they all move together — snapshot
+  // every member of the group up front so each can be translated from its
+  // own starting position as the pointer moves.
+  const groupEls = el.linkGroup ? icon.elements.filter(x => x.linkGroup === el.linkGroup) : [el];
+  const startSnapshots = groupEls.map(x => JSON.parse(JSON.stringify(x)));
+  const origBounds = combinedBounds(startSnapshots);
+  const excludeIds = groupEls.map(g=>g.id);
+  const linesX = axisSnapLines(excludeIds, 'x');
+  const linesY = axisSnapLines(excludeIds, 'y');
+  const svg = document.getElementById('svgCanvas');
+  svg.setPointerCapture(e.pointerId);
+  let moved = false;
+  function onMove(ev){
+    const p = getSvgPoint(ev);
+    let dx = p.x - startPt.x, dy = p.y - startPt.y;
+    if(Math.abs(dx) > 0.05 || Math.abs(dy) > 0.05) moved = true;
+    const snapX = findSpanSnap(origBounds.x + dx, origBounds.w, linesX);
+    const snapY = findSpanSnap(origBounds.y + dy, origBounds.h, linesY);
+    if(snapX) dx += snapX.delta;
+    if(snapY) dy += snapY.delta;
+    state.snapGuides = {
+      x: snapX ? { value:snapX.guide, type:snapX.type } : null,
+      y: snapY ? { value:snapY.guide, type:snapY.type } : null,
+    };
+    groupEls.forEach((gEl, i) => translateElement(gEl, startSnapshots[i], dx, dy));
+    renderCanvas();
+  }
+  function onUp(){
+    svg.releasePointerCapture(e.pointerId);
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    clearSnapGuides(); renderCanvas();
+    if(moved){ markDirty(state.currentKey); snapshot(); renderRightPanel(); renderSidebar(); }
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+}
+function translateElement(el, startEl, dx, dy){
+  if(el.kind === 'rect'){ el.x = startEl.x + dx; el.y = startEl.y + dy; }
+  else if(el.kind === 'circle' || el.kind === 'ellipse'){ el.cx = startEl.cx + dx; el.cy = startEl.cy + dy; }
+  if(el.kind !== 'path' && startEl.transform){
+    const r = parseRotateTransform(startEl.transform);
+    if(r) el.transform = `rotate(${r.angle} ${round2((r.cx != null ? r.cx : 0) + dx)} ${round2((r.cy != null ? r.cy : 0) + dy)})`;
+  }
+  else if(el.kind === 'path'){
+    el.pathModel = JSON.parse(JSON.stringify(startEl.pathModel));
+    for(const sp of el.pathModel.subpaths){
+      for(const a of sp.anchors){
+        a.x += dx; a.y += dy;
+        if(a.inX != null){ a.inX += dx; a.inY += dy; }
+        if(a.outX != null){ a.outX += dx; a.outY += dy; }
+      }
+    }
+  }
+}
+
+/* ---------------- path anchor / handle drag ---------------- */
+function startAnchorDrag(e, spIdx, aIdx, part){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  state.selectedAnchor = { subpathIdx: spIdx, anchorIdx: aIdx, part };
+  const svg = document.getElementById('svgCanvas');
+  svg.setPointerCapture(e.pointerId);
+  const anchor = el.pathModel.subpaths[spIdx].anchors[aIdx];
+  const start = { x:anchor.x, y:anchor.y, inX:anchor.inX, inY:anchor.inY, outX:anchor.outX, outY:anchor.outY };
+  const linesX = axisSnapLines([el.id], 'x');
+  const linesY = axisSnapLines([el.id], 'y');
+
+  // Whole-shape scaling: holding Shift while dragging an anchor point scales
+  // every anchor (and its curve handles) of the shape around its own
+  // centroid, using this anchor's own distance from center as the dial —
+  // drag it outward to grow the whole shape, inward to shrink it.
+  const scaleCenter = part === 'anchor' ? shapeCentroid(el) : null;
+  const scaleStartModel = scaleCenter ? JSON.parse(JSON.stringify(el.pathModel)) : null;
+  const scaleD0 = scaleCenter ? Math.hypot(start.x - scaleCenter.cx, start.y - scaleCenter.cy) : 0;
+  let wasScaling = false;
+
+  let moved = false;
+  function onMove(ev){
+    const p = getSvgPoint(ev);
+    moved = true;
+
+    if(part === 'anchor' && ev.shiftKey && scaleCenter && scaleD0 > 0.05){
+      wasScaling = true;
+      const { cx, cy } = scaleCenter;
+      const d1 = Math.hypot(p.x - cx, p.y - cy);
+      const scale = d1 / scaleD0;
+      el.pathModel.subpaths.forEach((sp, spI) => {
+        sp.anchors.forEach((a, aI) => {
+          const orig = scaleStartModel.subpaths[spI].anchors[aI];
+          a.x = cx + (orig.x - cx) * scale;
+          a.y = cy + (orig.y - cy) * scale;
+          if(orig.inX != null){ a.inX = cx + (orig.inX - cx) * scale; a.inY = cy + (orig.inY - cy) * scale; }
+          if(orig.outX != null){ a.outX = cx + (orig.outX - cx) * scale; a.outY = cy + (orig.outY - cy) * scale; }
+        });
+      });
+      // Reuse the radial-guide visuals as a scaling pivot indicator: a spoke
+      // from the shape's center out to the cursor, plus a dot at the pivot.
+      state.snapGuides = { x:null, y:null, radial:{ x:p.x, y:p.y, cx, cy } };
+      renderCanvas();
+      return;
+    }
+    if(wasScaling){
+      // Shift released mid-drag: restore the pre-scale geometry (in place,
+      // so the `anchor` reference below stays valid) and fall through to a
+      // normal single-point drag from the original baseline, instead of
+      // leaving the shape mid-scale while also yanking one point around.
+      el.pathModel.subpaths.forEach((sp, spI) => {
+        sp.anchors.forEach((a, aI) => {
+          const orig = scaleStartModel.subpaths[spI].anchors[aI];
+          a.x = orig.x; a.y = orig.y; a.inX = orig.inX; a.inY = orig.inY; a.outX = orig.outX; a.outY = orig.outY;
+        });
+      });
+      wasScaling = false;
+    }
+
+    if(part === 'anchor'){
+      let ax = p.x, ay = p.y;
+      const sx = findSnap(ax, linesX), sy = findSnap(ay, linesY);
+      if(sx || sy){
+        if(sx) ax = sx.value;
+        if(sy) ay = sy.value;
+        state.snapGuides = { x: sx ? {value:sx.value,type:sx.type} : null, y: sy ? {value:sy.value,type:sy.type} : null, radial:null };
+      } else {
+        const radial = ev.altKey ? null : selfShapeRadialSnap(el, spIdx, aIdx, p);
+        if(radial){
+          ax = radial.x; ay = radial.y;
+          state.snapGuides = { x:null, y:null, radial };
+        } else {
+          state.snapGuides = { x:null, y:null, radial:null };
+        }
+      }
+      const dx = ax - start.x, dy = ay - start.y;
+      anchor.x = ax; anchor.y = ay;
+      if(anchor.inX != null){ anchor.inX = start.inX + dx; anchor.inY = start.inY + dy; }
+      if(anchor.outX != null){ anchor.outX = start.outX + dx; anchor.outY = start.outY + dy; }
+    } else if(part === 'in'){
+      clearSnapGuides();
+      anchor.inX = p.x; anchor.inY = p.y;
+    } else if(part === 'out'){
+      clearSnapGuides();
+      anchor.outX = p.x; anchor.outY = p.y;
+    }
+    renderCanvas();
+  }
+  function onUp(){
+    svg.releasePointerCapture(e.pointerId);
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    clearSnapGuides(); renderCanvas();
+    if(moved){ markDirty(state.currentKey); snapshot(); renderSidebar(); }
+    renderRightPanel();
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+  renderCanvas();
+  renderRightPanel();
+}
+
+/* ---------------- rect/circle/ellipse resize ---------------- */
+function startResizeDrag(e, el, corner){
+  const svg = document.getElementById('svgCanvas');
+  svg.setPointerCapture(e.pointerId);
+  const b0 = elementBounds(el);
+  const rotated = !!(parseRotateTransform(el.transform) || {}).angle;
+  const linesX = rotated ? [] : axisSnapLines([el.id], 'x');
+  const linesY = rotated ? [] : axisSnapLines([el.id], 'y');
+  function onMove(ev){
+    const p = localizePoint(el, getSvgPoint(ev));
+    let px = p.x, py = p.y;
+    const sx = findSnap(px, linesX), sy = findSnap(py, linesY);
+    if(sx) px = sx.value;
+    if(sy) py = sy.value;
+    state.snapGuides = { x: sx ? {value:sx.value,type:sx.type} : null, y: sy ? {value:sy.value,type:sy.type} : null };
+    let x0=b0.x, y0=b0.y, x1=b0.x+b0.w, y1=b0.y+b0.h;
+    if(corner === 'nw'){ x0 = px; y0 = py; }
+    else if(corner === 'ne'){ x1 = px; y0 = py; }
+    else if(corner === 'sw'){ x0 = px; y1 = py; }
+    else if(corner === 'se'){ x1 = px; y1 = py; }
+    const nx = Math.min(x0,x1), ny = Math.min(y0,y1), nw = Math.abs(x1-x0), nh = Math.abs(y1-y0);
+    if(el.kind === 'rect'){ el.x=nx; el.y=ny; el.width=nw; el.height=nh; }
+    else if(el.kind === 'circle'){ el.cx=nx+nw/2; el.cy=ny+nh/2; el.r=Math.max(nw,nh)/2; }
+    else if(el.kind === 'ellipse'){ el.cx=nx+nw/2; el.cy=ny+nh/2; el.rx=nw/2; el.ry=nh/2; }
+    renderCanvas();
+  }
+  function onUp(){
+    svg.releasePointerCapture(e.pointerId);
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    clearSnapGuides(); renderCanvas();
+    markDirty(state.currentKey); snapshot(); renderRightPanel(); renderSidebar();
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+}
+
+/* ---------------- pen tool (add new path) ---------------- */
+function toggleAddPointMode(){
+  if(state.drawing){ finishDrawing(); return; }
+  const icon = currentIcon();
+  const el = newEmptyPath();
+  el.pathModel.subpaths.push({ anchors: [], closed:false });
+  icon.elements.push(el);
+  state.selectedElId = el.id;
+  state.selectedAnchor = null;
+  state.drawing = { elId: el.id };
+  renderAll();
+}
+function finishDrawing(){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === (state.drawing && state.drawing.elId));
+  state.drawing = null;
+  // drop a path that ended up empty (user toggled the tool on/off without clicking)
+  if(el && el.pathModel.subpaths.every(sp => sp.anchors.length === 0)){
+    icon.elements = icon.elements.filter(x => x.id !== el.id);
+    state.selectedElId = null;
+  } else {
+    markDirty(state.currentKey);
+    snapshot();
+  }
+  renderAll();
+}
+function onCanvasPointerDownForDrawing(e){
+  if(!state.drawing) return;
+  e.preventDefault();
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.drawing.elId);
+  if(!el) return;
+  const startP = getSvgPoint(e);
+  const sp = el.pathModel.subpaths[el.pathModel.subpaths.length - 1];
+
+  // clicking near the subpath's own starting point closes and finishes it
+  if(sp.anchors.length >= 2){
+    const first = sp.anchors[0];
+    const dist = Math.hypot(first.x - startP.x, first.y - startP.y);
+    if(dist < 0.7){
+      sp.closed = true;
+      finishDrawing();
+      return;
+    }
+  }
+
+  const anchor = { x:startP.x, y:startP.y, inX:null, inY:null, outX:null, outY:null };
+  sp.anchors.push(anchor);
+  renderCanvas();
+  const svg = document.getElementById('svgCanvas');
+  svg.setPointerCapture(e.pointerId);
+  let dragged = false;
+  function onMove(ev){
+    const p = getSvgPoint(ev);
+    const dx = p.x - startP.x, dy = p.y - startP.y;
+    if(Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) dragged = true;
+    anchor.outX = p.x; anchor.outY = p.y;
+    anchor.inX = startP.x - dx; anchor.inY = startP.y - dy;
+    renderCanvas();
+  }
+  function onUp(){
+    svg.releasePointerCapture(e.pointerId);
+    svg.removeEventListener('pointermove', onMove);
+    svg.removeEventListener('pointerup', onUp);
+    if(!dragged){ anchor.inX = null; anchor.inY = null; anchor.outX = null; anchor.outY = null; }
+    renderCanvas();
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerup', onUp);
+}
+
+/* ---------------- duplicate ---------------- */
+/* ---------------- toast ---------------- */
+function showToast(msg){
+  let el = document.getElementById('editorToast');
+  if(!el){
+    el = document.createElement('div');
+    el.id = 'editorToast';
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.classList.remove('show');
+  void el.offsetWidth; // restart the fade animation if a toast is already showing
+  el.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=>{ el.classList.remove('show'); }, 2200);
+}
+function pluralShapes(n){
+  const mod10 = n % 10, mod100 = n % 100;
+  if(mod10===1 && mod100!==11) return 'фигура';
+  if([2,3,4].includes(mod10) && ![12,13,14].includes(mod100)) return 'фигуры';
+  return 'фигур';
+}
+
+/* ---------------- copy / paste (in-memory, this session only) ---------------- */
+// Lives in `state.clipboard`, not the OS clipboard — no permission prompts,
+// works instantly, and that's all copying shapes between icons needs since
+// it only ever happens within one open editor tab.
+function copySelection(){
+  const icon = currentIcon();
+  let ids;
+  if(state.linkSelectIds.size > 0){
+    ids = Array.from(state.linkSelectIds);
+  } else if(state.selectedElId){
+    const el = icon.elements.find(x => x.id === state.selectedElId);
+    if(!el) return;
+    // Copying one member of a linked group copies the whole group, same
+    // convention as duplicate/flip elsewhere in this editor.
+    ids = el.linkGroup ? icon.elements.filter(x => x.linkGroup === el.linkGroup).map(x => x.id) : [el.id];
+  } else {
+    return;
+  }
+  const els = ids.map(id => icon.elements.find(x => x.id === id)).filter(Boolean);
+  if(!els.length) return;
+  state.clipboard = { elements: JSON.parse(JSON.stringify(els)), sourceKey: state.currentKey };
+  showToast(`Скопировано: ${els.length} ${pluralShapes(els.length)}`);
+}
+function pasteClipboard(targetPoint){
+  if(!state.clipboard || !state.clipboard.elements.length) return;
+  const icon = currentIcon();
+  const sameIcon = state.clipboard.sourceKey === state.currentKey;
+  // Pasting into a different icon lands at the exact same coordinates (every
+  // icon shares the same 24x24 grid) — pasting back into the SAME icon gets
+  // a small nudge so the copy doesn't sit invisibly right on top of the original.
+  const offset = (sameIcon && !targetPoint) ? 1.5 : 0;
+  const groupIdMap = {};
+  const copies = state.clipboard.elements.map(orig=>{
+    const copy = JSON.parse(JSON.stringify(orig));
+    copy.id = uid();
+    if(copy.linkGroup){
+      // preserve the link BETWEEN pasted copies, never back to the originals
+      if(!groupIdMap[copy.linkGroup]) groupIdMap[copy.linkGroup] = 'grp-' + uid();
+      copy.linkGroup = groupIdMap[copy.linkGroup];
+    }
+    if(offset){
+      if(copy.kind === 'rect'){ copy.x += offset; copy.y += offset; }
+      else if(copy.kind === 'circle' || copy.kind === 'ellipse'){ copy.cx += offset; copy.cy += offset; }
+      else if(copy.kind === 'path'){
+        for(const sp of copy.pathModel.subpaths){
+          for(const a of sp.anchors){
+            a.x += offset; a.y += offset;
+            if(a.inX != null){ a.inX += offset; a.inY += offset; }
+            if(a.outX != null){ a.outX += offset; a.outY += offset; }
+          }
+        }
+      }
+    }
+    return copy;
+  });
+  // "Paste here" from the right-click menu: recenter the whole pasted group
+  // on the clicked point instead of the default offset/as-is placement.
+  if(targetPoint){
+    const combined = combinedBounds(copies);
+    const dx = targetPoint.x - (combined.x + combined.w/2), dy = targetPoint.y - (combined.y + combined.h/2);
+    copies.forEach(copy=>{
+      if(copy.kind === 'rect'){ copy.x += dx; copy.y += dy; }
+      else if(copy.kind === 'circle' || copy.kind === 'ellipse'){ copy.cx += dx; copy.cy += dy; }
+      else if(copy.kind === 'path'){
+        for(const sp of copy.pathModel.subpaths){
+          for(const a of sp.anchors){
+            a.x += dx; a.y += dy;
+            if(a.inX != null){ a.inX += dx; a.inY += dy; }
+            if(a.outX != null){ a.outX += dx; a.outY += dy; }
+          }
+        }
+      }
+    });
+  }
+  icon.elements.push(...copies);
+  state.selectedElId = copies[copies.length - 1].id;
+  state.selectedAnchor = null;
+  state.linkSelectIds.clear();
+  markDirty(state.currentKey); snapshot(); renderAll();
+  showToast(`Вставлено: ${copies.length} ${pluralShapes(copies.length)}`);
+}
+
+function duplicateSelected(){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  // If the selected shape is part of a linked group, duplicate the whole
+  // group together (same offset for every member, so relative positions are
+  // preserved) and link the copies to each other — not to the originals.
+  const groupEls = el.linkGroup ? icon.elements.filter(x => x.linkGroup === el.linkGroup) : [el];
+  const newGroupId = groupEls.length > 1 ? ('grp-' + uid()) : null;
+  const offset = 1.5;
+  const copies = groupEls.map(orig=>{
+    const copy = JSON.parse(JSON.stringify(orig));
+    copy.id = uid();
+    copy.linkGroup = newGroupId;
+    if(copy.kind === 'rect'){ copy.x += offset; copy.y += offset; }
+    else if(copy.kind === 'circle' || copy.kind === 'ellipse'){ copy.cx += offset; copy.cy += offset; }
+    else if(copy.kind === 'path'){
+      for(const sp of copy.pathModel.subpaths){
+        for(const a of sp.anchors){
+          a.x += offset; a.y += offset;
+          if(a.inX != null){ a.inX += offset; a.inY += offset; }
+          if(a.outX != null){ a.outX += offset; a.outY += offset; }
+        }
+      }
+    }
+    return copy;
+  });
+  icon.elements.push(...copies);
+  // Re-select whichever copy corresponds to the shape that was actually
+  // selected, so duplicating one member of a group still focuses the right one.
+  const matchIdx = groupEls.findIndex(x=>x.id===el.id);
+  state.selectedElId = (copies[matchIdx] || copies[0]).id;
+  state.selectedAnchor = null;
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+
+/* ---------------- center on canvas ---------------- */
+function centerElementAxis(axis){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  const b = elementBounds(el);
+  const target = 12; // center of the 24x24 safe zone
+  const curCenter = axis === 'x' ? b.x + b.w/2 : b.y + b.h/2;
+  const delta = target - curCenter;
+  if(el.kind === 'rect'){ if(axis==='x') el.x += delta; else el.y += delta; }
+  else if(el.kind === 'circle' || el.kind === 'ellipse'){ if(axis==='x') el.cx += delta; else el.cy += delta; }
+  else if(el.kind === 'path'){
+    for(const sp of el.pathModel.subpaths){
+      for(const a of sp.anchors){
+        if(axis==='x'){ a.x += delta; if(a.inX!=null) a.inX += delta; if(a.outX!=null) a.outX += delta; }
+        else { a.y += delta; if(a.inY!=null) a.inY += delta; if(a.outY!=null) a.outY += delta; }
+      }
+    }
+  }
+  markDirty(state.currentKey); snapshot(); renderCanvas(); renderSidebar();
+}
+
+/* ---------------- flip horizontal / vertical ---------------- */
+// Mirrors the selected shape (or its whole linked group, together, around
+// their shared bounding box) left-right or top-bottom. A no-op for
+// rect/circle/ellipse (they're already symmetric), but flips a path's
+// anchors and their bezier handles for real.
+function flipOneElement(el, axis, center){
+  if(el.kind === 'rect'){
+    if(axis === 'h') el.x = 2*center - el.x - el.width;
+    else el.y = 2*center - el.y - el.height;
+  } else if(el.kind === 'circle' || el.kind === 'ellipse'){
+    if(axis === 'h') el.cx = 2*center - el.cx;
+    else el.cy = 2*center - el.cy;
+  } else if(el.kind === 'path'){
+    for(const sp of el.pathModel.subpaths){
+      for(const a of sp.anchors){
+        if(axis === 'h'){
+          a.x = 2*center - a.x;
+          if(a.inX != null) a.inX = 2*center - a.inX;
+          if(a.outX != null) a.outX = 2*center - a.outX;
+        } else {
+          a.y = 2*center - a.y;
+          if(a.inY != null) a.inY = 2*center - a.inY;
+          if(a.outY != null) a.outY = 2*center - a.outY;
+        }
+      }
+    }
+  }
+}
+// Right-click quick fill: one click sets the shape's fill straight to the
+// "main" (currentColor) or "accent" (var(--marker-color)) role, skipping
+// the property-panel dropdown entirely for the two colors you use 95% of
+// the time.
+// Reorders layers by dragging: moves srcId to sit just before (or after)
+// targetId within icon.elements, preserving the same top-of-list ↔
+// array-index correspondence the layers panel already renders with.
+function reorderElement(srcId, targetId, insertBefore){
+  const icon = currentIcon();
+  const srcIdx = icon.elements.findIndex(x => x.id === srcId);
+  if(srcIdx === -1) return;
+  const [srcEl] = icon.elements.splice(srcIdx, 1);
+  const targetIdx = icon.elements.findIndex(x => x.id === targetId);
+  if(targetIdx === -1){ icon.elements.push(srcEl); }
+  else { icon.elements.splice(insertBefore ? targetIdx : targetIdx + 1, 0, srcEl); }
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+
+function quickFillSelected(role){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  el.fillRole = role;
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+
+function flipSelected(axis){
+  const icon = currentIcon();
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  const groupEls = el.linkGroup ? icon.elements.filter(x => x.linkGroup === el.linkGroup) : [el];
+  const b = combinedBounds(groupEls);
+  const center = axis === 'h' ? b.x + b.w/2 : b.y + b.h/2;
+  groupEls.forEach(gel => flipOneElement(gel, axis, center));
+  markDirty(state.currentKey); snapshot(); renderCanvas(); renderRightPanel(); renderSidebar();
+}
+
+/* ---------------- arrow-key nudge ---------------- */
+// Converts a distance in real on-screen CSS pixels to icon-space (viewBox)
+// units, based on the canvas's actual current rendered size — so "1px" via
+// arrow keys always means one pixel on your monitor, not one viewBox unit
+// (those aren't the same: this canvas is 560 CSS px showing a 28-unit
+// viewBox, i.e. ~20 screen px per icon unit).
+function screenPxToIconUnits(px){
+  const svg = document.getElementById('svgCanvas');
+  const rect = svg.getBoundingClientRect();
+  const vb = svg.viewBox.baseVal;
+  if(!rect.width || !vb.width) return px; // fallback if canvas isn't laid out yet
+  return px * (vb.width / rect.width);
+}
+
+/* ---------------- canvas zoom ----------------
+   Zoom only changes #svgCanvas's rendered CSS size (width/height); the
+   viewBox stays fixed, so every coordinate helper above (getSvgPoint,
+   screenPxToIconUnits) keeps working unchanged — they already read the
+   canvas's live rendered size rather than assuming 560px. #canvasWrap is
+   overflow:auto, so zooming in past the visible area just makes it
+   scrollable. */
+function fitBaseCanvas(){
+  const wrap = document.getElementById('canvasWrap');
+  const w = wrap.clientWidth, h = wrap.clientHeight;
+  if(!w || !h) return;
+  const base = Math.max(240, Math.min(900, Math.floor(Math.min(w, h) - 40)));
+  if(base === BASE_CANVAS_PX) return;
+  BASE_CANVAS_PX = base;
+  const px = Math.round(base * state.zoom), svg = document.getElementById('svgCanvas');
+  svg.setAttribute('width', px); svg.setAttribute('height', px);
+}
+window.addEventListener('resize', fitBaseCanvas);
+function setZoom(newZoom, anchorClientX, anchorClientY){
+  const svg = document.getElementById('svgCanvas');
+  const wrap = document.getElementById('canvasWrap');
+  const clamped = Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, newZoom));
+  if(clamped === state.zoom) return;
+
+  // Keep whatever icon-space point is under the cursor (or the canvas
+  // center, if no cursor position given) fixed on screen while zooming,
+  // instead of always zooming toward the top-left corner.
+  const wrapRect = wrap.getBoundingClientRect();
+  const cx = anchorClientX != null ? anchorClientX : wrapRect.left + wrapRect.width/2;
+  const cy = anchorClientY != null ? anchorClientY : wrapRect.top + wrapRect.height/2;
+  const before = getSvgPoint({ clientX:cx, clientY:cy });
+
+  state.zoom = clamped;
+  const px = Math.round(BASE_CANVAS_PX * state.zoom);
+  svg.setAttribute('width', px);
+  svg.setAttribute('height', px);
+
+  const after = getSvgPoint({ clientX:cx, clientY:cy });
+  const svgRect = svg.getBoundingClientRect();
+  const scale = svgRect.width / svg.viewBox.baseVal.width;
+  wrap.scrollLeft += (before.x - after.x) * scale;
+  wrap.scrollTop  += (before.y - after.y) * scale;
+
+  renderZoomLabel();
+}
+function zoomBy(factor, anchorClientX, anchorClientY){ setZoom(state.zoom * factor, anchorClientX, anchorClientY); }
+function resetZoom(){ setZoom(1); }
+function renderZoomLabel(){
+  const el = document.getElementById('zoomLabel');
+  if(el) el.textContent = Math.round(state.zoom * 100) + '%';
+}
+
+function nudgeSelected(dx, dy){
+  const icon = currentIcon();
+  if(state.selectedAnchor && state.selectedAnchor.part === 'anchor'){
+    const el = icon.elements.find(x => x.id === state.selectedElId);
+    if(el && el.kind === 'path'){
+      const a = el.pathModel.subpaths[state.selectedAnchor.subpathIdx].anchors[state.selectedAnchor.anchorIdx];
+      a.x += dx; a.y += dy;
+      if(a.inX != null){ a.inX += dx; a.inY += dy; }
+      if(a.outX != null){ a.outX += dx; a.outY += dy; }
+      markDirty(state.currentKey); snapshot(); renderCanvas();
+      return;
+    }
+  }
+  const el = icon.elements.find(x => x.id === state.selectedElId);
+  if(!el) return;
+  const groupEls = el.linkGroup ? icon.elements.filter(x => x.linkGroup === el.linkGroup) : [el];
+  groupEls.forEach(gEl => translateElement(gEl, JSON.parse(JSON.stringify(gEl)), dx, dy));
+  markDirty(state.currentKey); snapshot(); renderCanvas(); renderSidebar();
+}
+function deleteSelected(){
+  const icon = currentIcon();
+  if(state.selectedAnchor && state.selectedAnchor.part === 'anchor'){
+    const el = icon.elements.find(x => x.id === state.selectedElId);
+    if(el && el.kind === 'path'){
+      const sp = el.pathModel.subpaths[state.selectedAnchor.subpathIdx];
+      if(sp){
+        sp.anchors.splice(state.selectedAnchor.anchorIdx, 1);
+        if(sp.anchors.length === 0) el.pathModel.subpaths.splice(state.selectedAnchor.subpathIdx, 1);
+      }
+      state.selectedAnchor = null;
+      markDirty(state.currentKey); snapshot(); renderAll();
+      return;
+    }
+  }
+  if(state.selectedElId){
+    icon.elements = icon.elements.filter(x => x.id !== state.selectedElId);
+    state.linkSelectIds.delete(state.selectedElId);
+    cleanupSingletonLinkGroups(icon);
+    state.selectedElId = null; state.selectedAnchor = null;
+    markDirty(state.currentKey); snapshot(); renderAll();
+  }
+}
+
+/* ---------------- property panel bindings ---------------- */
+function bindRightPanel(){
+  const layersHeader = document.getElementById('layersHeader');
+  if(layersHeader) layersHeader.addEventListener('click', ()=>{
+    state.layersCollapsed = !state.layersCollapsed;
+    renderRightPanel();
+  });
+  document.querySelectorAll('#elementList .elem-row').forEach(row=>{
+    row.addEventListener('click', (e)=>{
+      if(e.target.closest('[data-del]')) return;
+      const id = row.dataset.el;
+      if(e.ctrlKey || e.metaKey){
+        // Ctrl/Cmd+click toggles this shape in the link-building selection
+        // without disturbing whatever's open in the property panel.
+        if(state.linkSelectIds.has(id)) state.linkSelectIds.delete(id);
+        else state.linkSelectIds.add(id);
+        renderRightPanel();
+        return;
+      }
+      selectElement(id);
+    });
+    row.addEventListener('contextmenu', (e)=>{
+      e.preventDefault();
+      openLayerContextMenu(e.clientX, e.clientY, row.dataset.el);
+    });
+  });
+
+  // Drag-and-drop reordering of layers — grab any row (the ⠿ handle makes
+  // the affordance obvious) and drop it above/below another to reorder.
+  let dragSrcId = null;
+  const rows = document.querySelectorAll('#elementList .elem-row');
+  const clearDragMarkers = ()=> rows.forEach(r=>r.classList.remove('drag-over-top','drag-over-bottom'));
+  rows.forEach(row=>{
+    row.addEventListener('dragstart', (e)=>{
+      dragSrcId = row.dataset.el;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragSrcId); // Firefox requires data to be set for drag to start
+    });
+    row.addEventListener('dragend', ()=>{
+      row.classList.remove('dragging');
+      clearDragMarkers();
+      dragSrcId = null;
+    });
+    row.addEventListener('dragover', (e)=>{
+      if(!dragSrcId || row.dataset.el === dragSrcId) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = row.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height/2;
+      row.classList.toggle('drag-over-top', before);
+      row.classList.toggle('drag-over-bottom', !before);
+    });
+    row.addEventListener('dragleave', ()=>{
+      row.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    row.addEventListener('drop', (e)=>{
+      e.preventDefault();
+      const targetId = row.dataset.el;
+      const before = row.classList.contains('drag-over-top');
+      clearDragMarkers();
+      if(dragSrcId && dragSrcId !== targetId) reorderElement(dragSrcId, targetId, before);
+      dragSrcId = null;
+    });
+  });
+  const linkSelBtn = document.getElementById('linkSelBtn');
+  if(linkSelBtn) linkSelBtn.addEventListener('click', linkSelectedElements);
+  const unlinkSelBtn = document.getElementById('unlinkSelBtn');
+  if(unlinkSelBtn) unlinkSelBtn.addEventListener('click', unlinkSelectedElements);
+  const clearLinkSelBtn = document.getElementById('clearLinkSelBtn');
+  if(clearLinkSelBtn) clearLinkSelBtn.addEventListener('click', ()=>{ state.linkSelectIds.clear(); renderRightPanel(); });
+  const unlinkOneBtn = document.getElementById('unlinkOneBtn');
+  if(unlinkOneBtn) unlinkOneBtn.addEventListener('click', ()=>{
+    const icon = currentIcon();
+    const el = icon.elements.find(x=>x.id===state.selectedElId);
+    if(!el) return;
+    unlinkGroupMember(icon, el.id);
+    markDirty(state.currentKey); snapshot(); renderAll();
+  });
+  document.querySelectorAll('[data-del]').forEach(btn=>{
+    btn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const icon = currentIcon();
+      icon.elements = icon.elements.filter(x => x.id !== btn.dataset.del);
+      if(state.selectedElId === btn.dataset.del){ state.selectedElId = null; state.selectedAnchor = null; }
+      state.linkSelectIds.delete(btn.dataset.del);
+      cleanupSingletonLinkGroups(icon);
+      markDirty(state.currentKey); snapshot(); renderAll();
+    });
+  });
+  const addShapeBtn = document.getElementById('addShapeBtn');
+  if(addShapeBtn) addShapeBtn.addEventListener('click', ()=>{
+    state.shapePickerOpen = !state.shapePickerOpen;
+    renderRightPanel();
+  });
+  const shapeOverlay = document.getElementById('shapePickerOverlay');
+  if(shapeOverlay) shapeOverlay.addEventListener('click', ()=>{
+    state.shapePickerOpen = false;
+    renderRightPanel();
+  });
+  document.querySelectorAll('.shape-opt').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const key = btn.dataset.shape;
+      state.shapePickerOpen = false;
+      const def = SHAPE_LIBRARY.find(s => s.key === key);
+      if(!def) return;
+      if(key === 'path'){ toggleAddPointMode(); return; }
+      const icon = currentIcon();
+      const el = def.make();
+      icon.elements.push(el);
+      state.selectedElId = el.id;
+      markDirty(state.currentKey); snapshot(); renderAll();
+    });
+  });
+  const addPointBtn = document.getElementById('addPointModeBtn');
+  if(addPointBtn) addPointBtn.addEventListener('click', toggleAddPointMode);
+  const delAnchorBtn = document.getElementById('deleteAnchorBtn');
+  if(delAnchorBtn) delAnchorBtn.addEventListener('click', deleteSelected);
+  const delElBtn = document.getElementById('deleteElBtn');
+  if(delElBtn) delElBtn.addEventListener('click', deleteSelected);
+  const dupBtn = document.getElementById('duplicateElBtn');
+  if(dupBtn) dupBtn.addEventListener('click', duplicateSelected);
+  const centerXBtn = document.getElementById('centerXBtn');
+  if(centerXBtn) centerXBtn.addEventListener('click', ()=> centerElementAxis('x'));
+  const centerYBtn = document.getElementById('centerYBtn');
+  if(centerYBtn) centerYBtn.addEventListener('click', ()=> centerElementAxis('y'));
+  const flipHBtn = document.getElementById('flipHBtn');
+  if(flipHBtn) flipHBtn.addEventListener('click', ()=> flipSelected('h'));
+  const flipVBtn = document.getElementById('flipVBtn');
+  if(flipVBtn) flipVBtn.addEventListener('click', ()=> flipSelected('v'));
+
+  document.querySelectorAll('#rightPanel [data-prop]').forEach(input=>{
+    const evtName = input.tagName === 'SELECT' || input.type === 'color' ? 'input' : 'input';
+    input.addEventListener(evtName, ()=>{
+      const icon = currentIcon();
+      const el = icon.elements.find(x => x.id === state.selectedElId);
+      if(!el) return;
+      const prop = input.dataset.prop;
+      let val = input.value;
+      if(input.type === 'number') val = parseFloat(val);
+      el[prop] = val;
+      renderCanvas();
+      // role selects change which extra fields should show (e.g. custom color
+      // picker, stroke width) — those need a full property-panel re-render.
+      if(prop === 'fillRole' || prop === 'strokeRole'){ renderRightPanel(); }
+    });
+    input.addEventListener('change', ()=>{
+      if(input.dataset.prop === 'transform'){ const e2 = currentIcon().elements.find(x=>x.id===state.selectedElId); if(e2 && bakeRotation(e2)){ renderCanvas(); renderRightPanel(); } }
+      markDirty(state.currentKey); snapshot(); renderSidebar(); renderTopbar();
+    });
+  });
+}
+
+/* ---------------- сохранение: marker-icons.js собирается целиком из каталога ---------------- */
+const CAT_HEADER = `// ============================================================
+// Библиотека значков карты: названия, категории, цвета и сама графика.
+// Подключается и в Мастерской (index.html), и в Столе картографа.
+// Не правьте вручную — файл собирает и сохраняет icon-editor.html.
+// ============================================================
+`;
+const jsq = s => "'" + String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'") + "'";
+const jsKey = k => /^[A-Za-z_$][\w$]*$/.test(k) ? k : jsq(k);
+function currentSvgOf(k){
+  const ic = library[k];
+  return (ic.dirty || !MARKER_SVG[k]) ? iconToSvgString(ic) : MARKER_SVG[k];
+}
+function bucketedCategories(){
+  const buckets = {}; MARKER_ICON_CATEGORIES.forEach(c=>{ buckets[c.key] = []; });
+  const fb = MARKER_ICON_CATEGORIES[MARKER_ICON_CATEGORIES.length-1].key;
+  ALL_KEYS.forEach(k=>{ const c = library[k].category; buckets[buckets[c] ? c : fb].push(k); });
+  return buckets;
+}
+function buildCatalogText(){
+  const buckets = bucketedCategories();
+  const colors = ALL_KEYS.map(k=>`  ${jsKey(k)}:${jsq(library[k].color || MARKER_COLORS.other || 'var(--gray)')},`);
+  if(!ALL_KEYS.includes('other') && MARKER_COLORS.other) colors.push(`  other:${jsq(MARKER_COLORS.other)},`);
+  const svgs = ALL_KEYS.map(k=>'  ' + jsKey(k) + ': `' + currentSvgOf(k).replace(/\\/g,'\\\\').replace(/`/g,'\\`').replace(/\$\{/g,'\\${') + '`,');
+  return CAT_HEADER + '\n' + [
+    'let MARKER_ICONS = [\n' + ALL_KEYS.map(k=>`  [${jsq(k)},${jsq(library[k].label)}],`).join('\n') + '\n];',
+    'let MARKER_ICON_LABELS = Object.fromEntries(MARKER_ICONS);',
+    'let MARKER_ICON_CATEGORIES = [\n' + MARKER_ICON_CATEGORIES.map(c=>`  { key:${jsq(c.key)}, label:${jsq(c.label)}, icons:[${buckets[c.key].map(jsq).join(',')}] },`).join('\n') + '\n];',
+    "let MARKER_ICON_TO_CATEGORY = {};\nMARKER_ICON_CATEGORIES.forEach(cat=>{ cat.icons.forEach(key=>{ MARKER_ICON_TO_CATEGORY[key] = cat.key; }); });\nfunction iconCategoryOf(iconKey){ return MARKER_ICON_TO_CATEGORY[iconKey] || 'other'; }",
+    'let MARKER_COLORS = {\n' + colors.join('\n') + '\n};',
+    'let MARKER_SVG = {\n' + svgs.join('\n') + '\n};',
+    '// старые ключи значков → актуальные (для карт, сохранённых раньше)\nlet LEGACY_MARKER_ICONS = ' + JSON.stringify(LEGACY_MARKER_ICONS || {}) + ';',
+  ].join('\n\n') + '\n';
+}
+function downloadText(text){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], {type:'text/javascript'}));
+  a.download = 'marker-icons.js';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+async function saveAll(){
+  if(state.drawing) finishDrawing();
+  const text = buildCatalogText();
+  // проверка: собранный файл должен читаться и содержать все значки — иначе ничего не пишем
+  let back;
+  try{ back = parseCatalogText(text); }catch(e){ back = null; }
+  if(!back || !back.S || Object.keys(back.S).length !== ALL_KEYS.length || back.I.length !== ALL_KEYS.length){
+    alert('Не удалось собрать корректный marker-icons.js — ничего не записано. Ваши правки остались в редакторе.');
+    return;
+  }
+  let how = '';
+  try{
+    if(!state.fileHandle && window.showSaveFilePicker){
+      state.fileHandle = await window.showSaveFilePicker({ suggestedName:'marker-icons.js', types:[{ description:'marker-icons.js', accept:{'text/javascript':['.js']} }] });
+    }
+    if(state.fileHandle){
+      const w = await state.fileHandle.createWritable(); await w.write(text); await w.close();
+      how = 'Записано в ' + state.fileHandle.name;
+    } else { downloadText(text); how = 'Скачан marker-icons.js — положите его в папку проекта вместо старого'; }
+  }catch(e){
+    if(e && e.name === 'AbortError') return;
+    state.fileHandle = null; downloadText(text); how = 'Прямая запись не вышла — скачан marker-icons.js';
+  }
+  // после сохранения редактор считает сохранённое состояние «чистым»
+  ALL_KEYS.forEach(k=>{ MARKER_SVG[k] = currentSvgOf(k); library[k].dirty = false; });
+  const buckets = bucketedCategories();
+  MARKER_ICON_CATEGORIES.forEach(c=>{ c.icons = buckets[c.key]; });
+  MARKER_ICON_TO_CATEGORY = {}; MARKER_ICON_CATEGORIES.forEach(c=>c.icons.forEach(k=>{ MARKER_ICON_TO_CATEGORY[k] = c.key; }));
+  MARKER_ICONS = ALL_KEYS.map(k=>[k, library[k].label]); MARKER_ICON_LABELS = Object.fromEntries(MARKER_ICONS);
+  state.structureDirty = false;
+  persistLocal(); renderAll();
+  flashSaveStatus(how);
+}
+
+const SIDEBAR_MIN_WIDTH = 125;
+const SIDEBAR_MAX_WIDTH = 340;
+function initSidebarResize(){
+  const sidebar = document.getElementById('sidebar');
+  const handle = document.getElementById('sidebarResizeHandle');
+  const saved = Number(localStorage.getItem('icon-editor-sidebar-width'));
+  if(saved && saved >= SIDEBAR_MIN_WIDTH && saved <= SIDEBAR_MAX_WIDTH) sidebar.style.width = saved + 'px';
+  handle.addEventListener('mousedown', (e)=>{
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = sidebar.getBoundingClientRect().width;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    const move = (ev)=>{
+      const w = Math.min(SIDEBAR_MAX_WIDTH, Math.max(SIDEBAR_MIN_WIDTH, startWidth + (ev.clientX - startX)));
+      sidebar.style.width = w + 'px';
+    };
+    const up = ()=>{
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      localStorage.setItem('icon-editor-sidebar-width', Math.round(sidebar.getBoundingClientRect().width));
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+  });
+}
+
+function flashSaveStatus(msg){
+  const el = document.getElementById('saveStatus');
+  const prev = el.textContent;
+  el.textContent = msg;
+  setTimeout(()=>{ renderTopbar(); }, 2600);
+}
+
+/* ---------------- wiring ---------------- */
+function closeContextMenu(){
+  state.contextMenu = null;
+  const el = document.getElementById('ctxMenu'); if(el) el.remove();
+  const ov = document.getElementById('ctxMenuOverlay'); if(ov) ov.remove();
+  const sub = document.getElementById('ctxSubMenu'); if(sub) sub.remove();
+}
+
+function mergeWithNeighbor(elId, neighborId){
+  if(!neighborId) return;
+  const icon = currentIcon();
+  const primary = icon.elements.find(e=>e.id===elId);
+  const secondary = icon.elements.find(e=>e.id===neighborId);
+  if(!primary || !secondary) return;
+  const merged = mergeElements(primary, secondary, icon);
+  state.selectedElId = merged.id;
+  state.selectedAnchor = null;
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+function closeLayerContextMenu(){
+  state.layerContextMenu = null;
+  const el = document.getElementById('ctxMenu'); if(el) el.remove();
+  const ov = document.getElementById('ctxMenuOverlay'); if(ov) ov.remove();
+}
+function openLayerContextMenu(clientX, clientY, elId){
+  closeContextMenu();
+  closeLayerContextMenu();
+  selectElement(elId);
+  const icon = currentIcon();
+  const idx = icon.elements.findIndex(e=>e.id===elId);
+  const aboveEl = idx > 0 ? icon.elements[idx-1] : null;
+  const belowEl = idx >= 0 && idx < icon.elements.length-1 ? icon.elements[idx+1] : null;
+  state.layerContextMenu = { x:clientX, y:clientY, elId, aboveId: aboveEl?aboveEl.id:null, belowId: belowEl?belowEl.id:null };
+  renderLayerContextMenu();
+}
+function renderLayerContextMenu(){
+  const cm = state.layerContextMenu;
+  if(!cm) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'ctxMenuOverlay';
+  overlay.addEventListener('mousedown', closeLayerContextMenu);
+  overlay.addEventListener('contextmenu', (e)=>{ e.preventDefault(); closeLayerContextMenu(); });
+  document.body.appendChild(overlay);
+
+  const menu = document.createElement('div');
+  menu.id = 'ctxMenu';
+  menu.innerHTML = `
+    <div class="ctx-item" data-act="mergeUp" ${cm.aboveId?'':'disabled'}>⬆ Объединить с верхним слоем</div>
+    <div class="ctx-item" data-act="mergeDown" ${cm.belowId?'':'disabled'}>⬇ Объединить с нижним слоем</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-act="linkUp" ${cm.aboveId?'':'disabled'}>⬆ Связать с верхним слоем</div>
+    <div class="ctx-item" data-act="linkDown" ${cm.belowId?'':'disabled'}>⬇ Связать с нижним слоем</div>
+  `;
+  document.body.appendChild(menu);
+  positionFloatingMenu(menu, cm.x, cm.y);
+  const bind = (sel, enabled, fn)=>{
+    const item = menu.querySelector(sel);
+    if(item && enabled) item.addEventListener('click', ()=>{ closeLayerContextMenu(); fn(); });
+  };
+  bind('[data-act="mergeUp"]', cm.aboveId, ()=> mergeWithNeighbor(cm.elId, cm.aboveId));
+  bind('[data-act="mergeDown"]', cm.belowId, ()=> mergeWithNeighbor(cm.elId, cm.belowId));
+  bind('[data-act="linkUp"]', cm.aboveId, ()=> linkElementIds([cm.elId, cm.aboveId]));
+  bind('[data-act="linkDown"]', cm.belowId, ()=> linkElementIds([cm.elId, cm.belowId]));
+}
+
+function openContextMenu(clientX, clientY, targetElId, svgPoint){
+  closeContextMenu();
+  state.contextMenu = { x:clientX, y:clientY, targetElId, svgPoint };
+  if(targetElId) selectElement(targetElId);
+  renderContextMenu();
+}
+function repositionElementCenter(el, px, py){
+  const b = elementBounds(el);
+  const cx = b.x + b.w/2, cy = b.y + b.h/2;
+  translateElement(el, JSON.parse(JSON.stringify(el)), px - cx, py - cy);
+}
+function addShapeFromContextMenu(key){
+  const def = SHAPE_LIBRARY.find(s => s.key === key);
+  if(!def) return;
+  const cm = state.contextMenu;
+  closeContextMenu();
+  if(key === 'path'){ toggleAddPointMode(); return; }
+  const icon = currentIcon();
+  const el = def.make();
+  if(cm && cm.svgPoint) repositionElementCenter(el, cm.svgPoint.x, cm.svgPoint.y);
+  icon.elements.push(el);
+  state.selectedElId = el.id;
+  markDirty(state.currentKey); snapshot(); renderAll();
+}
+function positionFloatingMenu(node, x, y){
+  node.style.left = x + 'px';
+  node.style.top = y + 'px';
+  requestAnimationFrame(()=>{
+    const r = node.getBoundingClientRect();
+    let nx = x, ny = y;
+    if(r.right > window.innerWidth - 6) nx = Math.max(6, window.innerWidth - r.width - 6);
+    if(r.bottom > window.innerHeight - 6) ny = Math.max(6, window.innerHeight - r.height - 6);
+    node.style.left = nx + 'px';
+    node.style.top = ny + 'px';
+  });
+}
+function renderContextMenu(){
+  const cm = state.contextMenu;
+  if(!cm) return;
+  const overlay = document.createElement('div');
+  overlay.id = 'ctxMenuOverlay';
+  overlay.addEventListener('mousedown', closeContextMenu);
+  overlay.addEventListener('contextmenu', (e)=>{ e.preventDefault(); closeContextMenu(); });
+  document.body.appendChild(overlay);
+
+  const menu = document.createElement('div');
+  menu.id = 'ctxMenu';
+  const hasTarget = !!cm.targetElId;
+  menu.innerHTML = `
+    <div class="ctx-item" data-act="duplicate" ${hasTarget?'':'disabled'}>⧉ Дублировать</div>
+    <div class="ctx-item" data-act="copy" ${hasTarget?'':'disabled'}>📋 Копировать</div>
+    <div class="ctx-item" data-act="paste" ${state.clipboard?'':'disabled'}>📥 Вставить сюда</div>
+    <div class="ctx-item" data-act="flipH" ${hasTarget?'':'disabled'}>⇋ Отразить по горизонтали</div>
+    <div class="ctx-item" data-act="flipV" ${hasTarget?'':'disabled'}>⇵ Отразить по вертикали</div>
+    <div class="ctx-item danger" data-act="delete" ${hasTarget?'':'disabled'}>✕ Удалить</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-act="fillMain" ${hasTarget?'':'disabled'}><span class="ctx-fill-swatch ctx-fill-swatch-main"></span> Залить основным цветом</div>
+    <div class="ctx-item" data-act="fillAccent" ${hasTarget?'':'disabled'}><span class="ctx-fill-swatch ctx-fill-swatch-accent"></span> Залить акцентным цветом</div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-sub-wrap" id="ctxAddShapeWrap"><div class="ctx-item">+ Добавить фигуру</div></div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" data-act="toggleSnap"><span class="ctx-check">${state.snapToObjects?'✓':''}</span> Привязка к объектам</div>
+  `;
+  document.body.appendChild(menu);
+  positionFloatingMenu(menu, cm.x, cm.y);
+
+  const dupItem = menu.querySelector('[data-act="duplicate"]');
+  if(hasTarget) dupItem.addEventListener('click', ()=>{ closeContextMenu(); duplicateSelected(); });
+  const copyItem = menu.querySelector('[data-act="copy"]');
+  if(hasTarget) copyItem.addEventListener('click', ()=>{ closeContextMenu(); copySelection(); });
+  const pasteItem = menu.querySelector('[data-act="paste"]');
+  if(state.clipboard) pasteItem.addEventListener('click', ()=>{ const pt=cm.svgPoint; closeContextMenu(); pasteClipboard(pt); });
+  const flipHItem = menu.querySelector('[data-act="flipH"]');
+  if(hasTarget) flipHItem.addEventListener('click', ()=>{ closeContextMenu(); flipSelected('h'); });
+  const flipVItem = menu.querySelector('[data-act="flipV"]');
+  if(hasTarget) flipVItem.addEventListener('click', ()=>{ closeContextMenu(); flipSelected('v'); });
+  const delItem = menu.querySelector('[data-act="delete"]');
+  if(hasTarget) delItem.addEventListener('click', ()=>{ closeContextMenu(); deleteSelected(); });
+  const fillMainItem = menu.querySelector('[data-act="fillMain"]');
+  if(hasTarget) fillMainItem.addEventListener('click', ()=>{ closeContextMenu(); quickFillSelected('main'); });
+  const fillAccentItem = menu.querySelector('[data-act="fillAccent"]');
+  if(hasTarget) fillAccentItem.addEventListener('click', ()=>{ closeContextMenu(); quickFillSelected('accent'); });
+  menu.querySelector('[data-act="toggleSnap"]').addEventListener('click', ()=>{
+    state.snapToObjects = !state.snapToObjects;
+    closeContextMenu();
+  });
+
+  const addWrap = document.getElementById('ctxAddShapeWrap');
+  let subMenuCloseTimer = null;
+  const openSub = ()=>{
+    if(document.getElementById('ctxSubMenu')) return;
+    if(subMenuCloseTimer){ clearTimeout(subMenuCloseTimer); subMenuCloseTimer = null; }
+    const sub = document.createElement('div');
+    sub.id = 'ctxSubMenu';
+    sub.innerHTML = SHAPE_LIBRARY.map(s=>`<div class="ctx-shape-item" data-shape="${s.key}">${shapeThumbSvg(s.key)}<span>${esc(s.label)}</span></div>`).join('');
+    document.body.appendChild(sub);
+    const rect = addWrap.getBoundingClientRect();
+    positionFloatingMenu(sub, rect.right + 4, rect.top);
+    sub.querySelectorAll('.ctx-shape-item').forEach(item=>{
+      item.addEventListener('click', ()=> addShapeFromContextMenu(item.dataset.shape));
+    });
+    sub.addEventListener('mouseenter', ()=>{ if(subMenuCloseTimer){ clearTimeout(subMenuCloseTimer); subMenuCloseTimer = null; } });
+    sub.addEventListener('mouseleave', scheduleSubClose);
+  };
+  function scheduleSubClose(){
+    subMenuCloseTimer = setTimeout(()=>{ const s = document.getElementById('ctxSubMenu'); if(s) s.remove(); }, 220);
+  }
+  addWrap.addEventListener('mouseenter', openSub);
+  addWrap.addEventListener('mouseleave', scheduleSubClose);
+  addWrap.addEventListener('click', openSub);
+}
+
+function initEditor(){
+  fitBaseCanvas();
+  const svg = document.getElementById('svgCanvas');
+  svg.addEventListener('pointerdown', (e)=>{
+    if(e.target === svg){
+      if(state.drawing){ onCanvasPointerDownForDrawing(e); }
+      else { state.selectedElId = null; state.selectedAnchor = null; renderCanvas(); renderRightPanel(); }
+    }
+  });
+  svg.addEventListener('contextmenu', (e)=>{
+    e.preventDefault();
+    const hit = e.target.closest('.move-hit');
+    const targetElId = hit ? hit.dataset.elId : null;
+    const svgPoint = getSvgPoint(e);
+    openContextMenu(e.clientX, e.clientY, targetElId, svgPoint);
+  });
+
+  document.getElementById('prevBtn').addEventListener('click', ()=>{
+    const i = ALL_KEYS.indexOf(state.currentKey);
+    loadIcon(ALL_KEYS[(i - 1 + ALL_KEYS.length) % ALL_KEYS.length]);
+  });
+  document.getElementById('nextBtn').addEventListener('click', ()=>{
+    const i = ALL_KEYS.indexOf(state.currentKey);
+    loadIcon(ALL_KEYS[(i + 1) % ALL_KEYS.length]);
+  });
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    state.search = e.target.value;
+    renderSidebar();
+  });
+  document.getElementById('saveBtn').addEventListener('click', saveAll);
+  document.getElementById('loadFromFileBtn').addEventListener('click', loadFromFile);
+  document.getElementById('undoBtn').addEventListener('click', undo);
+  document.getElementById('redoBtn').addEventListener('click', redo);
+  document.getElementById('alignMenu').addEventListener('change', (e)=>{
+    const val = e.target.value;
+    if(!val) return;
+    applyAlignOrDistribute(val);
+    e.target.value = '';
+  });
+  document.getElementById('addIconBtn').addEventListener('click', addNewIcon);
+  document.getElementById('renameIconBtn').addEventListener('click', renameCurrentIcon);
+  document.getElementById('deleteIconBtn').addEventListener('click', deleteCurrentIcon);
+  initSidebarResize();
+
+  populateCategorySelect();
+  document.getElementById('iconCategorySelect').addEventListener('change', (e)=>{
+    const icon = currentIcon();
+    icon.category = e.target.value;
+    persistLocal();
+    renderSidebar();
+    renderTopbar();
+  });
+
+  window.addEventListener('keydown', (e)=>{
+    const tag = (document.activeElement && document.activeElement.tagName) || '';
+    const typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+    if(e.key === 'Escape' && state.contextMenu){ closeContextMenu(); return; }
+    if(state.drawing && (e.key === 'Enter' || e.key === 'Escape')){ finishDrawing(); return; }
+    if(typing) return;
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey){ e.preventDefault(); undo(); return; }
+    if((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === 'y' || (e.key.toLowerCase()==='z' && e.shiftKey))){ e.preventDefault(); redo(); return; }
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'd'){ e.preventDefault(); duplicateSelected(); return; }
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c'){ e.preventDefault(); copySelection(); return; }
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v'){ e.preventDefault(); pasteClipboard(null); return; }
+    if((e.key === 'Delete' || e.key === 'Backspace') && (state.selectedElId || state.selectedAnchor)){ e.preventDefault(); deleteSelected(); return; }
+    if((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's'){ e.preventDefault(); saveAll(); return; }
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && (state.selectedElId || state.selectedAnchor)){
+      e.preventDefault();
+      const onePx = screenPxToIconUnits(1);
+      const step = e.altKey ? onePx * 0.1 : e.shiftKey ? onePx * 10 : onePx;
+      const dx = e.key==='ArrowLeft' ? -step : e.key==='ArrowRight' ? step : 0;
+      const dy = e.key==='ArrowUp' ? -step : e.key==='ArrowDown' ? step : 0;
+      nudgeSelected(dx, dy);
+      return;
+    }
+    if((e.ctrlKey || e.metaKey) && (e.key === '=' || e.key === '+')){ e.preventDefault(); zoomBy(1.25); return; }
+    if((e.ctrlKey || e.metaKey) && e.key === '-'){ e.preventDefault(); zoomBy(1/1.25); return; }
+    if((e.ctrlKey || e.metaKey) && e.key === '0'){ e.preventDefault(); resetZoom(); return; }
+  });
+
+  document.getElementById('zoomInBtn').addEventListener('click', ()=> zoomBy(1.25));
+  document.getElementById('zoomOutBtn').addEventListener('click', ()=> zoomBy(1/1.25));
+  document.getElementById('zoomResetBtn').addEventListener('click', resetZoom);
+  document.getElementById('canvasWrap').addEventListener('wheel', (e)=>{
+    e.preventDefault();
+    const factor = Math.exp(-e.deltaY * 0.0015);
+    zoomBy(factor, e.clientX, e.clientY);
+  }, { passive:false });
+  renderZoomLabel();
+
+  if(!state.history[state.currentKey]) snapshot();
+  renderAll();
+}
+
+document.addEventListener('DOMContentLoaded', initEditor);
+
+</script>
+</body>
+</html>
