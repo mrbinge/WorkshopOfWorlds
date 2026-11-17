@@ -155,6 +155,7 @@ async function loadData(){
     return;
   }
   cloudLoadInProgress = true;
+  cloudBase = null;
   try{
     const { data: sessionData, error: sessionError } = await supabaseClient.auth.getSession();
     if(sessionError) throw sessionError;
@@ -174,9 +175,11 @@ async function loadData(){
 
     if(row && row.data){
       // Облачная версия является источником истины после входа.
+      cloudBase = snapshotOf(typeof row.data === 'string' ? JSON.parse(row.data) : row.data);
       data = parseData(row.data);
       clearLocalData();          // локальная копия больше не нужна — освобождаем место в браузере
     }else{
+      cloudBase = {};
       const localData = readLocalData();
       if(localData && Object.values(localData).some(v=>Array.isArray(v) && v.length)){
         const shouldMigrate = window.confirm('В облаке пока нет данных для этого аккаунта, но в браузере найдены локальные проекты. Перенести их в облако? Нажми «Отмена», если это данные другого аккаунта или ты хочешь начать с пустого архива.');
@@ -228,23 +231,137 @@ function warnCloudFailure(err){
   const why = err && (err.message || err.details || err.code) ? ' Причина: ' + String(err.message || err.details || err.code).slice(0,120) + '.' : '';
   showToast('Не удалось сохранить в облако.' + why + ' Изменения пока не сохранены. Резервную копию можно скачать в настройках.');
 }
+
+/* ===== Точечное сохранение =====
+   Вместо того чтобы каждый раз отправлять весь мир, считаем, что изменилось с момента загрузки/последнего
+   сохранения, и отправляем только это (через SQL-функцию patch_world, см. supabase-patch.sql).
+   Большие картинки, которые не менялись, больше не уходят в облако при каждой правке. */
+let cloudBase = null;        // что, по нашим данным, сейчас лежит в облаке (хэши)
+let rpcMissing = false;      // функции patch_world в базе ещё нет
+const DELTA_CHUNK = 1500000; // примерный размер одного запроса, символов
+function h32(str){ let h = 2166136261 >>> 0; for(let i=0;i<str.length;i++){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h.toString(36); }
+function sampleHash(str){ const n = str.length, step = Math.max(1, Math.floor(n/4000)); let h = 2166136261 >>> 0; for(let i=0;i<n;i+=step){ h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } h ^= str.charCodeAt(n-1); return n + ':' + h.toString(36); }
+function valHash(v){
+  if(typeof v === 'string') return (v.length > 20000 && v.startsWith('data:')) ? 'd' + sampleHash(v) : 's' + v.length + ':' + h32(v);
+  const j = JSON.stringify(v); return j === undefined ? 'u' : 'j' + j.length + ':' + h32(j);
+}
+function valSize(v){ if(typeof v === 'string') return v.length; const j = JSON.stringify(v); return j ? j.length : 4; }
+function isIdArray(a){
+  if(!Array.isArray(a) || !a.length) return false;
+  const seen = new Set();
+  for(const x of a){ if(!x || typeof x !== 'object' || Array.isArray(x) || typeof x.id !== 'string' || seen.has(x.id)) return false; seen.add(x.id); }
+  return true;
+}
+function snapKey(v){
+  if(isIdArray(v)){
+    const items = {}, order = [];
+    for(const it of v){ order.push(it.id); const f = {}; for(const k in it) f[k] = valHash(it[k]); items[it.id] = f; }
+    return { c:1, order, items };
+  }
+  return { c:0, h: valHash(v) };
+}
+function snapshotOf(obj){ const b = {}; for(const k of Object.keys(obj || {})) b[k] = snapKey(obj[k]); return b; }
+const EMPTY_ARR_HASH = valHash([]);
+/* Список операций: [{ op, bytes, commit }]. commit() вызывается, когда облако подтвердило операцию. */
+function buildOps(cur, base){
+  const out = [];
+  for(const k of Object.keys(cur)){
+    const v = cur[k], b = base[k];
+    if(isIdArray(v) && (!b || b.c || b.h === EMPTY_ARR_HASH)){
+      const bItems = b && b.c ? b.items : {};
+      const order = v.map(x => x.id), have = new Set(order);
+      const ups = [], rm = {};
+      for(const it of v){
+        const bf = bItems[it.id], f = {}, hs = {}; let any = !bf;
+        for(const key in it){ const h = valHash(it[key]); if(!bf || bf[key] !== h){ f[key] = it[key]; hs[key] = h; any = true; } }
+        if(bf){ const gone = Object.keys(bf).filter(key => !(key in it)); if(gone.length) rm[it.id] = gone; }
+        if(any){ f.id = it.id; ups.push({ id: it.id, f, hs }); }
+      }
+      const del = Object.keys(bItems).filter(id => !have.has(id));
+      const baseOrder = b && b.c ? b.order : [];
+      const delSet = new Set(del), seenIds = new Set(baseOrder.filter(id => !delSet.has(id)));
+      const expected = baseOrder.filter(id => !delSet.has(id)).concat(order.filter(id => !seenIds.has(id)));
+      const ordChanged = expected.length !== order.length || expected.some((id, i) => id !== order[i]);
+      // режем записи на куски по размеру; слишком большую запись — по полям
+      const pieces = [];
+      for(const u of ups){
+        let size = 0; for(const key in u.f) size += valSize(u.f[key]);
+        if(size > DELTA_CHUNK && Object.keys(u.hs).length > 1){
+          for(const key in u.hs) pieces.push({ id: u.id, f: { id: u.id, [key]: u.f[key] }, hs: { [key]: u.hs[key] }, bytes: valSize(u.f[key]) });
+        }else pieces.push({ id: u.id, f: u.f, hs: u.hs, bytes: size });
+      }
+      const chunks = []; let cur2 = null;
+      for(const pc of pieces){
+        if(!cur2 || (cur2.bytes + pc.bytes > DELTA_CHUNK && cur2.ups.length)){ cur2 = { ups: [], bytes: 0 }; chunks.push(cur2); }
+        cur2.ups.push(pc); cur2.bytes += pc.bytes;
+      }
+      const needTail = del.length || ordChanged || Object.keys(rm).length;
+      if(!chunks.length && needTail) chunks.push({ ups: [], bytes: 0 });
+      chunks.forEach((ch, ci) => {
+        const last = ci === chunks.length - 1, op = { t:'coll', k };
+        if(ch.ups.length) op.up = ch.ups.map(u => u.f);
+        if(last){ if(Object.keys(rm).length) op.rm = rm; if(del.length) op.del = del; if(ordChanged) op.ord = order; }
+        out.push({ op, bytes: ch.bytes + 200, commit(){
+          let bb = base[k]; if(!bb || !bb.c){ bb = base[k] = { c:1, order: [], items: {} }; }
+          for(const u of ch.ups){ const it = bb.items[u.id] || (bb.items[u.id] = {}); Object.assign(it, u.hs); if(!bb.order.includes(u.id)) bb.order.push(u.id); }
+          if(last){
+            for(const id in rm){ if(bb.items[id]) rm[id].forEach(key => delete bb.items[id][key]); }
+            del.forEach(id => { delete bb.items[id]; });
+            bb.order = order.slice();
+          }
+        }});
+      });
+    }else{
+      const h = valHash(v);
+      if(!b || b.c || b.h !== h){
+        out.push({ op: { t:'set', k, v }, bytes: valSize(v) + 100, commit(){ base[k] = { c:0, h }; } });
+      }
+    }
+  }
+  return out;
+}
+async function saveDelta(){
+  const ops = buildOps(data, cloudBase);
+  let i = 0, sent = 0;
+  while(i < ops.length){
+    const group = [ops[i]]; let bytes = ops[i].bytes; i++;
+    while(i < ops.length && bytes + ops[i].bytes <= DELTA_CHUNK){ group.push(ops[i]); bytes += ops[i].bytes; i++; }
+    const { error } = await supabaseClient.rpc('patch_world', { ops: group.map(g => g.op) });
+    if(error) return { error, sent };
+    group.forEach(g => g.commit()); sent += bytes;
+  }
+  return { error: null, sent };
+}
+const isMissingRpc = e => /PGRST202|42883|patch_world|Could not find the function/i.test(String((e && (e.code + ' ' + e.message)) || ''));
 async function saveCloudData(silent=false, force=false){
   if(!supabaseClient || !currentUser || (cloudLoadInProgress && !force)) return false;
   const revisionAtStart = saveRevision;
-  const body = JSON.stringify(data);
-  const payload = JSON.parse(body);
-  let error = null;
+  let error = null, sentBytes = 0, done = false;
   setCloudChip('saving', '☁ Сохраняется…');
-  try{
-    ({ error } = await supabaseClient.from('worlds').upsert({
-      user_id: currentUser.id,
-      data: payload,
-      updated_at: new Date().toISOString()
-    }, { onConflict:'user_id' }));
-  }catch(e){ error = e; }
+  if(cloudBase && !rpcMissing){
+    try{ const r = await saveDelta(); error = r.error; sentBytes = r.sent; }catch(e){ error = e; }
+    if(error && isMissingRpc(error)){
+      rpcMissing = true; error = null;
+      console.warn('В базе нет функции patch_world — сохраняю целиком. Выполните supabase-patch.sql.');
+      showToast('Чтобы сохранение было быстрым, один раз выполните supabase-patch.sql в Supabase (SQL Editor).');
+    }else done = true;
+  }
+  if(!done){
+    const body = JSON.stringify(data);
+    sentBytes = body.length;
+    const payload = JSON.parse(body);
+    try{
+      ({ error } = await supabaseClient.from('worlds').upsert({
+        user_id: currentUser.id,
+        data: payload,
+        updated_at: new Date().toISOString()
+      }, { onConflict:'user_id' }));
+    }catch(e){ error = e; }
+    if(!error) cloudBase = snapshotOf(payload);
+  }
   if(error){
     console.error('Ошибка облачного сохранения:', error);
-    const why = explainCloudError(error, body.length);
+    const why = explainCloudError(error, sentBytes);
     setCloudChip('err', '⚠ Не сохранено — повторить', why + ' Нажмите, чтобы повторить сейчас; также повторю сам.');
     warnCloudFailure(error);
     clearTimeout(retryTimer);
